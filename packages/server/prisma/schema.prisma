@@ -1,0 +1,133 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Workspace {
+  id        String   @id @default(uuid())
+  name      String
+  ownerId   String
+  plan      Plan     @default(STARTER)
+  createdAt DateTime @default(now())
+
+  schemas    Schema[]
+  states     State[]
+  checkpoints Checkpoint[]
+  workflows  Workflow[]
+  apiKeys    ApiKey[]
+  usages     Usage[]
+
+  @@index([ownerId])
+}
+
+enum Plan {
+  STARTER
+  PRO
+  ENTERPRISE
+}
+
+model ApiKey {
+  id           String   @id @default(uuid())
+  workspaceId  String
+  keyHash      String   @unique
+  name         String
+  permissions  Permission @default(READ_WRITE)
+  createdAt    DateTime @default(now())
+  lastUsedAt   DateTime?
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([keyHash])
+  @@index([workspaceId])
+}
+
+enum Permission {
+  READ_ONLY
+  READ_WRITE
+}
+
+model Schema {
+  id           String   @id @default(uuid())
+  workspaceId  String
+  name         String
+  version      Int      @default(1)
+  fields       Json
+  createdAt    DateTime @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, name, version])
+  @@index([workspaceId])
+}
+
+model State {
+  id           String   @id @default(uuid())
+  workspaceId  String
+  workflowId   String
+  key          String
+  value        Json
+  updatedAt    DateTime @updatedAt
+  version      Int      @default(1)
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workflow  Workflow  @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  @@unique([workflowId, key])
+  @@index([workspaceId])
+  @@index([workflowId])
+}
+
+model Checkpoint {
+  id           String   @id @default(uuid())
+  workspaceId  String
+  workflowId   String
+  snapshot     Json
+  label        String?
+  createdAt    DateTime @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workflow  Workflow  @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+  @@index([workflowId])
+}
+
+model Workflow {
+  id            String         @id @default(uuid())
+  workspaceId   String
+  status        WorkflowStatus @default(RUNNING)
+  createdAt     DateTime       @default(now())
+  completedAt   DateTime?
+  failureReason String?
+
+  workspace  Workspace   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  states     State[]
+  checkpoints Checkpoint[]
+  usages      Usage[]
+
+  @@index([workspaceId])
+  @@index([status])
+}
+
+enum WorkflowStatus {
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+model Usage {
+  id          String   @id @default(uuid())
+  workspaceId String
+  workflowId  String?
+  action      String
+  timestamp   DateTime @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workflow  Workflow? @relation(fields: [workflowId], references: [id])
+
+  @@index([workspaceId, timestamp])
+}
