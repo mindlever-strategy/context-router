@@ -1,0 +1,11 @@
+{
+  "name": "context-router",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": ["packages/*"],
+  "scripts": {
+    "dev": "npm run dev --workspace=@contextrouter/server",
+    "build": "npm run build --workspace=@contextrouter/sdk-ts && npm run build --workspace=@contextrouter/sdk-python",
+    "test": "npm run test --workspaces --if-present"
+  }
+}
