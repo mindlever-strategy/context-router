@@ -1,4 +1,4 @@
-type FieldDefinition = {
+export type FieldDefinition = {
   type: 'string' | 'integer' | 'number' | 'boolean' | 'enum' | 'object' | 'array';
   required?: boolean;
   values?: string[];
