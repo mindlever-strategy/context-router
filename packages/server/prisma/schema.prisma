@@ -1,5 +1,9 @@
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client"
+  output          = "../src/generated/prisma"
+  engineType      = "client"
+  moduleFormat    = "esm"
+  importFileExtension = "js"
 }
 
 datasource db {
@@ -11,43 +15,14 @@ model Workspace {
   id        String   @id @default(uuid())
   name      String
   ownerId   String
-  plan      Plan     @default(STARTER)
   createdAt DateTime @default(now())
 
   schemas    Schema[]
   states     State[]
   checkpoints Checkpoint[]
   workflows  Workflow[]
-  apiKeys    ApiKey[]
-  usages     Usage[]
 
   @@index([ownerId])
-}
-
-enum Plan {
-  STARTER
-  PRO
-  ENTERPRISE
-}
-
-model ApiKey {
-  id           String   @id @default(uuid())
-  workspaceId  String
-  keyHash      String   @unique
-  name         String
-  permissions  Permission @default(READ_WRITE)
-  createdAt    DateTime @default(now())
-  lastUsedAt   DateTime?
-
-  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-
-  @@index([keyHash])
-  @@index([workspaceId])
-}
-
-enum Permission {
-  READ_ONLY
-  READ_WRITE
 }
 
 model Schema {
@@ -107,7 +82,6 @@ model Workflow {
   workspace  Workspace   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   states     State[]
   checkpoints Checkpoint[]
-  usages      Usage[]
 
   @@index([workspaceId])
   @@index([status])
@@ -117,17 +91,4 @@ enum WorkflowStatus {
   RUNNING
   COMPLETED
   FAILED
-}
-
-model Usage {
-  id          String   @id @default(uuid())
-  workspaceId String
-  workflowId  String?
-  action      String
-  timestamp   DateTime @default(now())
-
-  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  workflow  Workflow? @relation(fields: [workflowId], references: [id])
-
-  @@index([workspaceId, timestamp])
 }

@@ -1,4 +1,3 @@
-version: '3.8'
 services:
   postgres:
     image: postgres:16-alpine
@@ -7,7 +6,12 @@ services:
       POSTGRES_PASSWORD: password
       POSTGRES_DB: contextrouter
     ports:
-      - "5432:5432"
+      - '5432:5432'
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U contextrouter -d contextrouter']
+      interval: 5s
+      timeout: 5s
+      retries: 10
     volumes:
       - postgres_data:/var/lib/postgresql/data
 

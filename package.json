@@ -1,11 +1,38 @@
 {
   "name": "context-router",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "private": true,
-  "workspaces": ["packages/*"],
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mindlever-strategy/context-router.git"
+  },
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
-    "dev": "npm run dev --workspace=@contextrouter/server",
-    "build": "npm run build --workspace=@contextrouter/sdk-ts && npm run build --workspace=@contextrouter/sdk-python",
-    "test": "npm run test --workspaces --if-present"
+    "dev": "npm run dev --workspace=@context-router/mcp-server",
+    "build": "npm run db:generate && npm run build --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "test:mcp": "node scripts/mcp-smoke.mjs",
+    "test:integration": "npm run test:integration --workspace=@context-router/mcp-server",
+    "format:check": "prettier --check .",
+    "format": "prettier --write .",
+    "db:generate": "npm run db:generate --workspace=@context-router/mcp-server",
+    "db:migrate": "npm run db:migrate --workspace=@context-router/mcp-server",
+    "pack:check": "npm pack --dry-run --workspace=@context-router/mcp-server && npm pack --dry-run --workspace=@context-router/sdk",
+    "changeset": "changeset",
+    "changeset:version": "changeset version",
+    "changeset:publish": "changeset publish"
+  },
+  "devDependencies": {
+    "@changesets/cli": "^2.29.7",
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "prettier": "^3.6.2",
+    "rimraf": "^6.0.1"
+  },
+  "engines": {
+    "node": ">=24"
   }
 }

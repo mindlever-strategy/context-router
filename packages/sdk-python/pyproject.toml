@@ -1,7 +1,7 @@
 [project]
 name = "context-router"
-version = "1.0.0"
-description = "Context Router Python SDK"
+version = "0.1.0.dev0"
+description = "Experimental, unpublished Context Router Python SDK"
 requires-python = ">=3.10"
 dependencies = ["mcp>=1.0.0"]
 
@@ -11,3 +11,6 @@ dev = ["pytest>=8.0.0", "pytest-asyncio>=0.24.0"]
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.context-router]
+status = "experimental-unpublished"

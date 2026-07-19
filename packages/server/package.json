@@ -1,30 +1,68 @@
 {
-  "name": "@contextrouter/server",
-  "version": "1.0.0",
+  "name": "@context-router/mcp-server",
+  "version": "0.1.0",
+  "description": "Local MCP server for structured multi-agent workflow state, checkpoints, and handoffs",
   "type": "module",
   "main": "dist/index.js",
+  "bin": {
+    "context-router-mcp": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "prisma",
+    "README.md",
+    "LICENSE"
+  ],
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mindlever-strategy/context-router.git",
+    "directory": "packages/server"
+  },
+  "homepage": "https://github.com/mindlever-strategy/context-router#readme",
+  "bugs": {
+    "url": "https://github.com/mindlever-strategy/context-router/issues"
+  },
+  "keywords": [
+    "mcp",
+    "agents",
+    "state-management",
+    "checkpoints",
+    "postgresql"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "engines": {
+    "node": ">=24"
+  },
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "tsc",
+    "build": "rimraf dist && tsc",
+    "typecheck": "tsc --noEmit",
     "start": "node dist/index.js",
-    "db:migrate": "prisma migrate dev",
-    "db:generate": "prisma generate"
+    "test": "vitest run --exclude src/integration.test.ts",
+    "test:integration": "vitest run src/integration.test.ts",
+    "db:migrate": "prisma migrate deploy",
+    "db:migrate:dev": "prisma migrate dev",
+    "db:generate": "prisma generate",
+    "prepack": "npm run db:generate && npm run build"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.0.0",
-    "@prisma/client": "^5.22.0",
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@prisma/adapter-pg": "^6.19.3",
+    "@prisma/client": "^6.16.2",
     "dotenv": "^16.4.5",
-    "express": "^4.21.0",
-    "uuid": "^10.0.0",
-    "zod": "^3.23.8"
+    "pg": "^8.16.3",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@types/express": "^5.0.0",
-    "@types/uuid": "^10.0.0",
-    "@vitest/ui": "^4.1.7",
-    "prisma": "^5.22.0",
+    "@types/node": "^24.0.0",
+    "@types/pg": "^8.15.5",
+    "prisma": "^6.16.2",
     "tsx": "^4.19.0",
     "typescript": "^5.6.0",
-    "vitest": "^4.1.7"
+    "vitest": "^4.1.10"
   }
 }

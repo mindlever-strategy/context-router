@@ -35,7 +35,7 @@ describe('HandoffGenerator', () => {
     const state = {
       company_name: 'Acme Corp',
       domain: 'acme.com',
-      status: 'CONFIRMED'
+      status: 'CONFIRMED',
     };
     const result = generator.generate(state, { maxTokens: 100 });
     expect(result).toContain('Acme Corp');

@@ -1,18 +1,55 @@
 {
-  "name": "@contextrouter/sdk",
-  "version": "1.0.0",
+  "name": "@context-router/sdk",
+  "version": "0.1.0",
+  "description": "TypeScript SDK for the Context Router MCP server",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mindlever-strategy/context-router.git",
+    "directory": "packages/sdk-typescript"
+  },
+  "homepage": "https://github.com/mindlever-strategy/context-router#readme",
+  "bugs": {
+    "url": "https://github.com/mindlever-strategy/context-router/issues"
+  },
+  "keywords": [
+    "mcp",
+    "agents",
+    "sdk",
+    "context-router"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "engines": {
+    "node": ">=24"
+  },
   "scripts": {
-    "build": "tsc",
-    "test": "vitest"
+    "build": "rimraf dist && tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "prepack": "npm run build"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0"
   },
   "devDependencies": {
     "typescript": "^5.6.0",
-    "vitest": "^2.1.0"
+    "vitest": "^4.1.10"
   }
 }

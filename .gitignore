@@ -1,0 +1,14 @@
+node_modules/
+dist/
+packages/server/src/generated/
+coverage/
+.env
+.env.*
+!.env.example
+*.log
+*.db
+*.db-journal
+.DS_Store
+.idea/
+.vscode/
+.changeset/pre.json

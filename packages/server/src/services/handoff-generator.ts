@@ -3,7 +3,10 @@ type HandoffOptions = {
 };
 
 export class HandoffGenerator {
-  generate(state: Record<string, unknown>, options: HandoffOptions = {}): string {
+  generate(
+    state: Record<string, unknown>,
+    options: HandoffOptions = {},
+  ): string {
     const parts: string[] = [];
     const maxTokens = options.maxTokens ?? 200;
 
@@ -36,7 +39,7 @@ export class HandoffGenerator {
       .replace(/([a-z])([A-Z])/g, '$1 $2')
       .toLowerCase()
       .split(' ')
-      .filter(w => w.length > 0);
+      .filter((w) => w.length > 0);
 
     // Capitalize only the first letter of the first word
     if (words.length === 0) return '';
@@ -64,7 +67,7 @@ export class HandoffGenerator {
 
     if (Array.isArray(value)) {
       if (value.length === 0) return 'empty';
-      if (value.every(item => typeof item === 'string')) {
+      if (value.every((item) => typeof item === 'string')) {
         return value.slice(0, 3).join(', ') + (value.length > 3 ? '...' : '');
       }
       return `[${value.length} items]`;
@@ -73,9 +76,12 @@ export class HandoffGenerator {
     if (typeof value === 'object') {
       const entries = Object.entries(value as Record<string, unknown>);
       if (entries.length === 0) return '{}';
-      const formatted = entries.slice(0, 2).map(([k, v]) => {
-        return `${this.formatKey(k)}: ${this.formatValue(v)}`;
-      }).join(', ');
+      const formatted = entries
+        .slice(0, 2)
+        .map(([k, v]) => {
+          return `${this.formatKey(k)}: ${this.formatValue(v)}`;
+        })
+        .join(', ');
       return `{${formatted}${entries.length > 2 ? '...' : ''}}`;
     }
 

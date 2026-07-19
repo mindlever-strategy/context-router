@@ -1,5 +1,6 @@
 export type FieldDefinition = {
-  type: 'string' | 'integer' | 'number' | 'boolean' | 'enum' | 'object' | 'array';
+  type:
+    'string' | 'integer' | 'number' | 'boolean' | 'enum' | 'object' | 'array';
   required?: boolean;
   values?: string[];
   fields?: Record<string, FieldDefinition>;
@@ -13,7 +14,10 @@ export type ValidationError = {
 };
 
 export class SchemaValidator {
-  validate(schema: Record<string, FieldDefinition>, data: unknown): ValidationError[] {
+  validate(
+    schema: Record<string, FieldDefinition>,
+    data: unknown,
+  ): ValidationError[] {
     const errors: ValidationError[] = [];
 
     if (typeof data !== 'object' || data === null) {
@@ -27,7 +31,11 @@ export class SchemaValidator {
 
       if (value === undefined) {
         if (fieldDef.required) {
-          errors.push({ path: key, expected: fieldDef.type, received: undefined });
+          errors.push({
+            path: key,
+            expected: fieldDef.type,
+            received: undefined,
+          });
         }
         continue;
       }
@@ -39,7 +47,11 @@ export class SchemaValidator {
     return errors;
   }
 
-  private validateField(path: string, value: unknown, fieldDef: FieldDefinition): ValidationError[] {
+  private validateField(
+    path: string,
+    value: unknown,
+    fieldDef: FieldDefinition,
+  ): ValidationError[] {
     const errors: ValidationError[] = [];
 
     switch (fieldDef.type) {
@@ -72,20 +84,26 @@ export class SchemaValidator {
           errors.push({
             path,
             expected: `enum(${fieldDef.values?.join(' | ')})`,
-            received: value
+            received: value,
           });
         }
         break;
 
       case 'object':
-        if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+        if (
+          typeof value !== 'object' ||
+          value === null ||
+          Array.isArray(value)
+        ) {
           errors.push({ path, expected: 'object', received: value });
         } else if (fieldDef.fields) {
           const nestedErrors = this.validate(fieldDef.fields, value);
-          errors.push(...nestedErrors.map(e => ({
-            ...e,
-            path: `${path}.${e.path}`
-          })));
+          errors.push(
+            ...nestedErrors.map((e) => ({
+              ...e,
+              path: `${path}.${e.path}`,
+            })),
+          );
         }
         break;
 
@@ -94,7 +112,11 @@ export class SchemaValidator {
           errors.push({ path, expected: 'array', received: value });
         } else if (fieldDef.itemType) {
           value.forEach((item, index) => {
-            const itemErrors = this.validateField(`${path}[${index}]`, item, fieldDef.itemType!);
+            const itemErrors = this.validateField(
+              `${path}[${index}]`,
+              item,
+              fieldDef.itemType!,
+            );
             errors.push(...itemErrors);
           });
         }

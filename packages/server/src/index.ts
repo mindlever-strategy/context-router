@@ -1,62 +1,40 @@
+#!/usr/bin/env node
 import 'dotenv/config';
-import { z } from 'zod';
-import { Server as McpServer } from '@modelcontextprotocol/sdk/server';
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio';
+import { Server as McpServer } from '@modelcontextprotocol/sdk/server/index.js';
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import {
   ListToolsRequestSchema,
   ListToolsResultSchema,
   CallToolRequestSchema,
   CallToolResultSchema,
-} from '@modelcontextprotocol/sdk/types';
-import { registerWorkspaceTools } from './tools/workspace';
-import { registerSchemaTools } from './tools/schema';
-import { registerStateTools } from './tools/state';
-import { registerCheckpointTools } from './tools/checkpoint';
-import { registerHandoffTools } from './tools/handoff';
-import { registerWorkflowTools } from './tools/workflow';
-
-/**
- * MCP Tool handler interface
- */
-interface Tool {
-  definition: {
-    name: string;
-    description?: string;
-    inputSchema: {
-      type: 'object';
-      properties?: Record<string, unknown>;
-      required?: string[];
-    };
-  };
-  handler: (args: unknown) => Promise<{
-    content: Array<{ type: 'text'; text: string }>;
-    isError?: boolean;
-  }>;
-}
+} from '@modelcontextprotocol/sdk/types.js';
+import { registerWorkspaceTools } from './tools/workspace.js';
+import { registerSchemaTools } from './tools/schema.js';
+import { registerStateTools } from './tools/state.js';
+import { registerCheckpointTools } from './tools/checkpoint.js';
+import { registerHandoffTools } from './tools/handoff.js';
+import { registerWorkflowTools } from './tools/workflow.js';
+import { failure, type Tool } from './tools/tool-kit.js';
 
 // Create and configure the MCP server with all registered tools
 const server = new McpServer(
   {
     name: 'context-router',
-    version: '1.0.0',
+    version: '0.1.0',
   },
   {
     capabilities: {
       tools: {},
     },
-  }
+  },
 );
 
 // Store all registered tools for lookup
 const allTools = new Map<string, Tool>();
 
-// For MCP stdio mode, we don't have traditional auth context
-// User ID would be passed via initialization or derived from the session
-const getCurrentUserId = (): string | undefined => {
-  // In stdio mode, user context is typically established via initialization
-  // Return undefined to allow tool handlers to handle auth requirements
-  return undefined;
-};
+// stdio is a trusted local transport. The owner ID scopes every database query.
+const getCurrentUserId = (): string =>
+  process.env.CONTEXT_ROUTER_OWNER_ID?.trim() || 'local';
 
 // Register all tools and collect them for tool listing
 const workspaceTools = registerWorkspaceTools(server, getCurrentUserId);
@@ -95,19 +73,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const tool = allTools.get(name);
 
   if (!tool) {
-    return CallToolResultSchema.parse({
-      content: [
-        {
-          type: 'text' as const,
-          text: JSON.stringify({
-            error: 'Tool not found',
-            name,
-            availableTools: Array.from(allTools.keys()),
-          }),
-        },
-      ],
-      isError: true,
-    });
+    return CallToolResultSchema.parse(
+      failure('TOOL_NOT_FOUND', `Unknown tool: ${name}`, {
+        availableTools: Array.from(allTools.keys()),
+      }),
+    );
   }
 
   try {
@@ -115,18 +85,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     return CallToolResultSchema.parse(result);
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
-    return CallToolResultSchema.parse({
-      content: [
-        {
-          type: 'text' as const,
-          text: JSON.stringify({
-            error: 'Tool execution failed',
-            details: message,
-          }),
-        },
-      ],
-      isError: true,
-    });
+    return CallToolResultSchema.parse(
+      failure('INTERNAL_ERROR', 'Tool execution failed', message),
+    );
   }
 });
 
