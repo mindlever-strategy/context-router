@@ -2,6 +2,8 @@
 
 Python client for the [Context Router](https://github.com/mindlever-strategy/context-router) MCP server.
 
+Full Cursor + Python usage guide: **[USING.md](../../USING.md)**.
+
 ## Requirements
 
 - Python 3.10+

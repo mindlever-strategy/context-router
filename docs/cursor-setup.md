@@ -3,6 +3,9 @@
 Use Context Router as a local MCP server inside Cursor for structured multi-agent
 workflow state.
 
+For the full cookbook (Cursor Agent prompts + Python SDK), see
+**[USING.md](../USING.md)**.
+
 ## Requirements
 
 - Node.js 20+

@@ -77,13 +77,25 @@ MCP-compatible agent system a reliable place to exchange workflow state.
 - **Bounded handoff summaries** generated from selected or complete workflow state
 - **Workspace-scoped persistence** for safe local project separation
 - **TypeScript SDK** with a simple workflow session and the full explicit API
-- **Python SDK** (v0.4.0) with the same workflow session and MCP tool surface
+- **Python SDK** (`context-router` v0.4.0) with the same workflow session and MCP tool surface
+- **Cursor MCP** via `@context-router/mcp-server` for multi-agent Agent chats
 - **Zero-configuration local runtime** with SQLite by default and PostgreSQL for production
+
+## How to use this project
+
+| Path | Doc |
+| ---- | --- |
+| **Full guide (Cursor + Python cookbook)** | **[USING.md](USING.md)** |
+| TypeScript quickstart | below |
+| Cursor MCP only | [docs/cursor-setup.md](docs/cursor-setup.md) |
+| MCP tool reference | [docs/api.md](docs/api.md) |
 
 ## Quickstart
 
 You need Node.js 20 or newer. No database, Docker installation, migration, or
 environment file is required.
+
+### TypeScript
 
 ```bash
 npm install @context-router/sdk
@@ -99,6 +111,46 @@ console.log((await flow.handoff({ keys: ['findings'] })).summary);
 await flow.complete();
 await router.close();
 ```
+
+### Python
+
+```bash
+npm install @context-router/mcp-server   # Node MCP server the SDK spawns
+pip install context-router
+```
+
+```python
+import asyncio
+from context_router import ContextRouter
+
+
+async def main():
+    async with await ContextRouter.local() as router:
+        flow = await router.start('Research')
+        await flow.set('findings', {'answer': 42, 'source': 'example'})
+        print((await flow.handoff(keys=['findings'])).summary)
+        await flow.complete()
+
+
+asyncio.run(main())
+```
+
+### Cursor MCP (`@context-router`)
+
+```json
+{
+  "mcpServers": {
+    "context-router": {
+      "command": "npx",
+      "args": ["-y", "@context-router/mcp-server"]
+    }
+  }
+}
+```
+
+Then attach **`@context-router`** in Agent and use tools like `workspace_ensure`,
+`state_write`, and `handoff_generate` instead of pasting full chat history.
+See [USING.md](USING.md) for the full Cursor cookbook.
 
 SQLite is created automatically in your operating system's application-data
 directory. Inspect the resolved location and installation health at any time:
@@ -116,9 +168,10 @@ Pick the workflow pattern that matches your use case:
 
 | Pattern                     | Guide                                                                  | Example                                        |
 | --------------------------- | ---------------------------------------------------------------------- | ---------------------------------------------- |
-| Linear agent chain          | [docs/workflows/simple-pipeline.md](docs/workflows/simple-pipeline.md) | `node scripts/run-example.mjs simple-pipeline` |
+| Linear agent chain          | [docs/workflows/simple-pipeline.md](docs/workflows/simple-pipeline.md) | `node scripts/run-example.mjs simple-pipeline` · [examples/simple-pipeline.py](examples/simple-pipeline.py) |
 | Parallel fan-out + merge    | [docs/workflows/parallel-merge.md](docs/workflows/parallel-merge.md)   | `node scripts/run-example.mjs parallel-merge`  |
 | Checkpoint retry / recovery | [docs/workflows/retry-recovery.md](docs/workflows/retry-recovery.md)   | `node scripts/run-example.mjs retry-recovery`  |
+| Cursor + Python cookbook    | [USING.md](USING.md)                                                   | recipes for MCP + `context_router`             |
 
 The recommended SDK entry point is `ContextRouter.local()` and `router.start()` — you do not need to learn all 29 MCP tools to get started.
 
@@ -155,7 +208,7 @@ You can also run an example directly with `node --experimental-strip-types examp
 ## Connect an MCP client
 
 To use the raw MCP surface instead of the SDK, add the server to a client that
-supports local stdio MCP servers. SQLite remains the default:
+supports local stdio MCP servers (including **Cursor**). SQLite remains the default:
 
 ```json
 {
@@ -171,6 +224,9 @@ supports local stdio MCP servers. SQLite remains the default:
 For PostgreSQL, set `DATABASE_URL`, run the included Prisma migrations, and then
 start the server. `CONTEXT_ROUTER_OWNER_ID` is a trusted-local isolation scope,
 not a remote authentication credential.
+
+Full Cursor Agent patterns and recipes: [USING.md](USING.md). Short setup:
+[docs/cursor-setup.md](docs/cursor-setup.md).
 
 ## The workflow lifecycle
 
@@ -277,36 +333,39 @@ Read the complete [MCP API reference](docs/api.md).
 
 ```text
 context-router/
+├── USING.md              # Cursor + Python usage guide (start here for adopters)
 ├── packages/
-│   ├── server/           # MCP server, tools, Prisma client and migrations
-│   ├── sdk-typescript/   # Publishable TypeScript SDK
-│   └── sdk-python/       # Experimental, unpublished prototype
-├── examples/             # End-to-end usage examples
-├── docs/                 # Architecture, API, roadmap and release docs
-├── scripts/              # MCP smoke checks
+│   ├── server/           # MCP server (@context-router/mcp-server), tools, Prisma
+│   ├── sdk-typescript/   # Publishable TypeScript SDK (@context-router/sdk)
+│   └── sdk-python/       # Python SDK (context-router on PyPI, v0.4.0)
+├── examples/             # TypeScript + Python end-to-end examples
+├── docs/                 # Architecture, API, Cursor setup, workflows, release docs
+├── scripts/              # MCP smoke checks and example runners
 └── docker-compose.yml    # Optional local PostgreSQL 16
 ```
 
 ## Current status
 
-Context Router is an **early open-source preview**.
+Context Router is an **early open-source preview** (npm packages at **v0.3.1**;
+Python SDK at **v0.4.0**).
 
 Already working:
 
 - TypeScript build and type-checking
-- unit and SDK contract tests
+- unit and SDK contract tests (TypeScript + Python)
 - MCP discovery smoke test for all 29 tools
 - SQLite and PostgreSQL integration test suites in CI
-- clean npm package generation
+- clean npm package generation (`@context-router/mcp-server`, `@context-router/sdk`)
+- Python SDK with MCP stdio transport and TypeScript API parity
+- zero-config Cursor MCP via `npx @context-router/mcp-server`
 - zero known production dependency vulnerabilities
 
-Deliberately outside `v0.3.0`:
+Deliberately outside the current preview:
 
 - remote MCP transport;
 - hosted authentication and multi-tenancy;
 - billing or managed infrastructure;
-- automatic agent execution (Context Router records steps but does not invoke agents);
-- published Python SDK.
+- automatic agent execution (Context Router records steps but does not invoke agents).
 
 Please do not expose the stdio server directly to an untrusted network.
 
@@ -315,7 +374,8 @@ Please do not expose the stdio server directly to an untrusted network.
 - **v0.1:** trusted-local MCP server, PostgreSQL storage, TypeScript SDK
 - **v0.2:** CAS writes, step execution, agent roles, provenance, structured handoffs
 - **v0.3:** SQLite default, Node 20+, local workflow SDK, doctor/status CLI
-- **v0.4 candidate:** Python SDK, more workflow templates, integration adapters
+- **v0.3.1 / Python 0.4.0:** workflow guides, Python SDK, Cursor zero-config docs
+- **Next:** more workflow templates, integration adapters, publish polish
 - **Later evaluation:** remote transport, authentication, observability, hosted deployment
 
 See the detailed [roadmap](docs/roadmap.md).
@@ -331,8 +391,11 @@ opening a public issue.
 
 ## Documentation
 
+- **[USING.md](USING.md) — Cursor (`@context-router`) + Python cookbook**
+- [Cursor setup](docs/cursor-setup.md)
 - [Architecture](docs/architecture.md)
 - [MCP tool API](docs/api.md)
+- [Workflow patterns](docs/workflows/simple-pipeline.md)
 - [Roadmap](docs/roadmap.md)
 - [Release checklist](docs/release-checklist.md)
 - [Changelog](CHANGELOG.md)
