@@ -1,28 +1,59 @@
-# v0.1.0 Release Checklist
+# Release Checklist
 
-## Repository owner setup
+Full step-by-step instructions: **[release-npm-and-pypi.md](./release-npm-and-pypi.md)**
 
-- Confirm `mindlever-strategy/context-router` is public.
-- Protect `main` and require the CI, CodeQL, and secret-scan checks.
-- Enable private vulnerability reporting and Dependabot alerts.
-- Create the `bug`, `enhancement`, `good first issue`, and `help wanted` labels.
+## One-time owner setup
 
-## npm owner setup
+### GitHub
 
-- Create or claim the `@context-router` npm organization.
-- Grant the release workflow permission to publish
-  `@context-router/mcp-server` and `@context-router/sdk`.
-- Configure the protected GitHub `npm` environment and npm trusted publishing
-  or the `NPM_TOKEN` fallback used by the release workflow.
+- [ ] Repo `mindlever-strategy/context-router` is public
+- [ ] Protect `main` — require **CI** status check
+- [ ] Create GitHub environment **`npm`** (trusted publishing or `NPM_TOKEN`)
+- [ ] Create GitHub environment **`pypi`** (PyPI trusted publisher)
+- [ ] (Optional) Add org secret `GITLEAKS_LICENSE` for secret-scan workflow
 
-## Release gates
+### npm (@context-router)
 
-- Run CI against PostgreSQL 16 and confirm the integration job passes.
-- Confirm `npm audit --omit=dev` reports zero vulnerabilities.
-- Confirm `npm run pack:check` includes licenses, runtime code, generated Prisma
-  client, and migrations but excludes tests, source secrets, and local artifacts.
-- Install both tarballs in an empty temporary project and import their public
-  entry points.
-- Merge the Changesets release pull request.
-- Create the signed `v0.1.0` tag and GitHub release only after every required
-  check passes.
+- [ ] Create npm organization **@context-router**
+- [ ] Configure trusted publishing for `release.yml` / `publish-npm-manual.yml`, **or** add `NPM_TOKEN` to `npm` environment
+- [ ] Verify: `npm whoami` and org membership
+
+### PyPI (context-router)
+
+- [ ] Create PyPI account
+- [ ] Confirm package name `context-router` is available on PyPI
+- [ ] Add trusted publisher: owner `mindlever-strategy`, repo `context-router`, workflow `release-python.yml`, environment `pypi`
+
+## First release (current versions on main)
+
+### npm v0.3.1 (if not already on registry)
+
+- [ ] Run **Actions → Publish npm (manual)** on `main`, **or** local `npm publish` (see full guide)
+- [ ] Tag `v0.3.1` and draft GitHub Release from CHANGELOG
+
+### Python v0.4.0
+
+- [ ] Run `node scripts/release-python-check.mjs` locally (optional)
+- [ ] Run **Actions → Release Python SDK** on `main`
+- [ ] Verify https://pypi.org/project/context-router/
+- [ ] (Optional) Tag `python-v0.4.0`
+
+## Every npm release (Changesets)
+
+- [ ] `npm run changeset` when changing publishable packages
+- [ ] Merge PR → merge **Version Packages** bot PR
+- [ ] Confirm **Release** workflow publishes both `@context-router/mcp-server` and `@context-router/sdk`
+
+## Every Python release
+
+- [ ] Bump `version` in `packages/sdk-python/pyproject.toml`
+- [ ] Update CHANGELOG
+- [ ] Merge to `main`
+- [ ] Run **Release Python SDK** workflow or push tag `python-vX.Y.Z`
+
+## Pre-publish gates
+
+- [ ] `npm test` and `npm run build` pass
+- [ ] `npm run pack:check` looks correct
+- [ ] `pytest packages/sdk-python` passes
+- [ ] `npm audit --omit=dev` acceptable for your policy

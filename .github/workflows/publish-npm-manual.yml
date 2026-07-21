@@ -1,0 +1,42 @@
+name: Publish npm (manual)
+
+# Use when Changesets already bumped versions on main but npm publish failed
+# (e.g. missing @context-router org). Does not create new version bumps.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: npm
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          registry-url: https://registry.npmjs.org
+
+      - run: npm ci
+      - run: npm run db:generate
+      - run: npm test
+      - run: npm run build
+      - run: npm run pack:check
+
+      - name: Publish @context-router/mcp-server
+        run: npm publish --workspace=@context-router/mcp-server --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish @context-router/sdk
+        run: npm publish --workspace=@context-router/sdk --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

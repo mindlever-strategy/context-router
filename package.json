@@ -23,6 +23,7 @@
     "db:generate": "npm run db:generate --workspace=@context-router/mcp-server",
     "db:migrate": "npm run db:migrate --workspace=@context-router/mcp-server",
     "pack:check": "npm pack --dry-run --workspace=@context-router/mcp-server && npm pack --dry-run --workspace=@context-router/sdk",
+    "release:python:check": "node scripts/release-python-check.mjs",
     "changeset": "changeset",
     "changeset:version": "changeset version",
     "changeset:publish": "changeset publish"
