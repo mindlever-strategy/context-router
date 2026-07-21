@@ -288,6 +288,7 @@ Python does **not** use Changesets today; version is manual in `pyproject.toml`.
 |---------|--------------|-----|
 | npm **404** on publish | `@context-router` org missing | Create org; retry manual publish workflow |
 | npm **403** | Token lacks publish rights | Regenerate automation token; check org membership |
+| npm **EOTP** | Token requires 2FA in browser | Use **Classic → Automation** token, not Granular Publish |
 | npm publish skipped | No pending changesets / already published | Use manual publish workflow for retry |
 | PyPI **403** | Trusted publisher mismatch | Match owner/repo/workflow/environment exactly on PyPI |
 | PyPI **400** file already exists | Version already on PyPI | Bump version in pyproject.toml |

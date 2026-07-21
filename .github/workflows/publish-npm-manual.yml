@@ -22,9 +22,12 @@ jobs:
           if [ -z "${{ secrets.NPM_TOKEN }}" ]; then
             echo "::error::Missing GitHub secret NPM_TOKEN in the npm environment."
             echo "Add it at: Settings → Environments → npm → Environment secrets"
-            echo "Secret name must be exactly NPM_TOKEN (not METRICAI_TOKEN or similar)."
+            echo "Secret name must be exactly NPM_TOKEN."
             exit 1
           fi
+          echo "NPM_TOKEN is configured."
+          echo "Token must be npm Classic → Automation (bypasses 2FA)."
+          echo "Granular Publish tokens fail in CI with npm error EOTP."
 
       - uses: actions/setup-node@v4
         with:
