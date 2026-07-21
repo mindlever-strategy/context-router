@@ -7,7 +7,7 @@ independent version numbers:
 |---------|----------|-----------------|------|
 | `@context-router/mcp-server` | npm | see `packages/server/package.json` | `packages/server` |
 | `@context-router/sdk` | npm | see `packages/sdk-typescript/package.json` | `packages/sdk-typescript` |
-| `context-router` | PyPI | see `packages/sdk-python/pyproject.toml` | `packages/sdk-python` |
+| `ctxrouter` | PyPI | see `packages/sdk-python/pyproject.toml` | `packages/sdk-python` |
 
 ---
 
@@ -49,10 +49,10 @@ Used by `.github/workflows/release.yml` and `publish-npm-manual.yml`.
 Used by `.github/workflows/release-python.yml`.
 
 1. Create a PyPI account: https://pypi.org/account/register/
-2. Check name availability: https://pypi.org/project/context-router/
+2. Check name availability: https://pypi.org/project/ctxrouter/
    - If taken, rename in `packages/sdk-python/pyproject.toml` before first publish.
 3. On PyPI: **Account settings → Publishing → Add a new pending publisher** (Trusted Publisher):
-   - PyPI project name: `context-router`
+   - PyPI project name: `ctxrouter`
    - Owner: `mindlever-strategy`
    - Repository: `context-router`
    - Workflow name: `release-python.yml`
@@ -218,7 +218,7 @@ This builds the wheel/sdist and runs pytest.
 4. Go to **Actions → Release Python SDK → Run workflow**:
    - Branch: `main`
    - Optional: set **version** to double-check (must match `pyproject.toml`).
-5. On success, verify: https://pypi.org/project/context-router/
+5. On success, verify: https://pypi.org/project/ctxrouter/
 
 Optional git tag (for traceability):
 
@@ -252,7 +252,7 @@ Use this order:
 | 2 | Configure GitHub environment `npm` (trusted publishing or `NPM_TOKEN`) | You |
 | 3 | Run **Publish npm (manual)** workflow OR local `npm publish` for 0.3.1 | You |
 | 4 | Tag `v0.3.1` and create GitHub Release with CHANGELOG | You |
-| 5 | Register PyPI trusted publisher for `context-router` | You |
+| 5 | Register PyPI trusted publisher for `ctxrouter` | You |
 | 6 | Create GitHub environment `pypi` | You |
 | 7 | Run **Release Python SDK** workflow for 0.4.0 | You |
 | 8 | Tag `python-v0.4.0` (optional) | You |

@@ -18,11 +18,11 @@ Full step-by-step instructions: **[release-npm-and-pypi.md](./release-npm-and-py
 - [ ] Configure trusted publishing for `release.yml` / `publish-npm-manual.yml`, **or** add `NPM_TOKEN` to `npm` environment
 - [ ] Verify: `npm whoami` and org membership
 
-### PyPI (context-router)
+### PyPI (ctxrouter)
 
 - [ ] Create PyPI account
-- [ ] Confirm package name `context-router` is available on PyPI
-- [ ] Add trusted publisher: owner `mindlever-strategy`, repo `context-router`, workflow `release-python.yml`, environment `pypi`
+- [ ] Confirm package name `ctxrouter` is available on PyPI
+- [ ] Add trusted publisher: PyPI project name `ctxrouter`, owner `mindlever-strategy`, repo `context-router`, workflow `release-python.yml`, environment `pypi`
 
 ## First release (current versions on main)
 
@@ -35,7 +35,7 @@ Full step-by-step instructions: **[release-npm-and-pypi.md](./release-npm-and-py
 
 - [ ] Run `node scripts/release-python-check.mjs` locally (optional)
 - [ ] Run **Actions → Release Python SDK** on `main`
-- [ ] Verify https://pypi.org/project/context-router/
+- [ ] Verify https://pypi.org/project/ctxrouter/
 - [ ] (Optional) Tag `python-v0.4.0`
 
 ## Every npm release (Changesets)
