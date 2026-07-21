@@ -57,21 +57,21 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
-    "@prisma/adapter-better-sqlite3": "^6.19.3",
-    "@prisma/adapter-pg": "^6.19.3",
-    "@prisma/client": "^6.16.2",
-    "better-sqlite3": "^11.8.1",
-    "dotenv": "^16.4.5",
+    "@prisma/adapter-better-sqlite3": "^7.9.0",
+    "@prisma/adapter-pg": "^7.9.0",
+    "@prisma/client": "^7.9.0",
+    "better-sqlite3": "^13.0.0",
+    "dotenv": "^17.4.2",
     "pg": "^8.16.3",
     "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.12",
-    "@types/node": "^20.0.0",
+    "@types/node": "^26.1.1",
     "@types/pg": "^8.15.5",
-    "prisma": "^6.16.2",
+    "prisma": "^7.9.0",
     "tsx": "^4.19.0",
-    "typescript": "^5.6.0",
+    "typescript": "^7.0.2",
     "vitest": "^4.1.10"
   }
 }
