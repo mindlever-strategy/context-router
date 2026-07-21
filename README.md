@@ -15,9 +15,9 @@
 
 <p align="center">
   <a href="./LICENSE"><img alt="Apache-2.0 License" src="https://img.shields.io/badge/license-Apache--2.0-7C5CFC?style=flat-square"></a>
-  <img alt="Release status" src="https://img.shields.io/badge/status-v0.1.0%20preview-25D9FF?style=flat-square">
-  <img alt="Node.js 24+" src="https://img.shields.io/badge/Node.js-24%2B-5FA04E?style=flat-square">
-  <img alt="PostgreSQL 16" src="https://img.shields.io/badge/PostgreSQL-16-4169E1?style=flat-square">
+  <img alt="Release status" src="https://img.shields.io/badge/status-v0.3.1%20preview-25D9FF?style=flat-square">
+  <img alt="Node.js 20+" src="https://img.shields.io/badge/Node.js-20%2B-5FA04E?style=flat-square">
+  <img alt="SQLite default" src="https://img.shields.io/badge/storage-SQLite%20%7C%20PostgreSQL-4169E1?style=flat-square">
   <img alt="Model Context Protocol" src="https://img.shields.io/badge/protocol-MCP-8B5CFF?style=flat-square">
 </p>
 
@@ -59,7 +59,7 @@ purpose-built state layer.
                          └───────┬────────┘
                                  │
                                  ▼
-                           PostgreSQL 16
+                       SQLite / PostgreSQL
 ```
 
 Context Router does **not** execute or orchestrate agents. It gives any
@@ -67,8 +67,8 @@ MCP-compatible agent system a reliable place to exchange workflow state.
 
 ## What you get
 
-- **22 MCP tools** across workspaces, schemas, workflows, state, checkpoints,
-  and handoffs
+- **29 MCP tools** across workspaces, schemas, workflows, state, checkpoints,
+  handoffs, step execution, and agent roles
 - **Schema-enforced state** with nested objects, arrays, enums, and required fields
 - **Selective context reads** so each agent receives only relevant state keys
 - **Explicit workflow lifecycles** with running, completed, and failed states
@@ -76,65 +76,107 @@ MCP-compatible agent system a reliable place to exchange workflow state.
 - **Transactional restores** that apply checkpoint snapshots atomically
 - **Bounded handoff summaries** generated from selected or complete workflow state
 - **Workspace-scoped persistence** for safe local project separation
-- **TypeScript SDK** with explicit workspace and workflow identifiers
-- **Cross-platform runtime** built on PostgreSQL and Prisma's JavaScript driver adapter
+- **TypeScript SDK** with a simple workflow session and the full explicit API
+- **Python SDK** (v0.4.0) with the same workflow session and MCP tool surface
+- **Zero-configuration local runtime** with SQLite by default and PostgreSQL for production
 
 ## Quickstart
 
-### Requirements
-
-- Node.js 24 or newer
-- npm
-- Docker with Compose, or an existing PostgreSQL 16 database
-
-### Run from source
+You need Node.js 20 or newer. No database, Docker installation, migration, or
+environment file is required.
 
 ```bash
-git clone https://github.com/mindlever-strategy/context-router.git
-cd context-router
-
-cp .env.example .env
-docker compose up -d
-
-npm ci
-npm run db:generate
-npm run db:migrate
-npm run build
-npm start --workspace=@context-router/mcp-server
+npm install @context-router/sdk
 ```
 
-The MCP server communicates through stdio. Operational logs are written to
-stderr so they do not corrupt MCP messages.
+```typescript
+import { ContextRouter } from '@context-router/sdk';
+
+const router = await ContextRouter.local();
+const flow = await router.start('Research');
+await flow.set('findings', { answer: 42, source: 'example' });
+console.log((await flow.handoff({ keys: ['findings'] })).summary);
+await flow.complete();
+await router.close();
+```
+
+SQLite is created automatically in your operating system's application-data
+directory. Inspect the resolved location and installation health at any time:
+
+```bash
+npx context-router doctor
+npx context-router status
+```
+
+Context Router stores and transfers workflow state. It does not execute agents.
+
+## Start here
+
+Pick the workflow pattern that matches your use case:
+
+| Pattern                     | Guide                                                                  | Example                                        |
+| --------------------------- | ---------------------------------------------------------------------- | ---------------------------------------------- |
+| Linear agent chain          | [docs/workflows/simple-pipeline.md](docs/workflows/simple-pipeline.md) | `node scripts/run-example.mjs simple-pipeline` |
+| Parallel fan-out + merge    | [docs/workflows/parallel-merge.md](docs/workflows/parallel-merge.md)   | `node scripts/run-example.mjs parallel-merge`  |
+| Checkpoint retry / recovery | [docs/workflows/retry-recovery.md](docs/workflows/retry-recovery.md)   | `node scripts/run-example.mjs retry-recovery`  |
+
+The recommended SDK entry point is `ContextRouter.local()` and `router.start()` — you do not need to learn all 29 MCP tools to get started.
+
+## Runnable examples
+
+Requires Node.js 20+ and a built SDK (`npm run build` from this repository).
+
+### Simple Pipeline
+
+[examples/simple-pipeline.ts](examples/simple-pipeline.ts) — Linear agent chain
+
+```bash
+node scripts/run-example.mjs simple-pipeline
+```
+
+### Parallel Merge
+
+[examples/parallel-merge.ts](examples/parallel-merge.ts) — Fan-out to multiple agents, merge results
+
+```bash
+node scripts/run-example.mjs parallel-merge
+```
+
+### Retry Recovery
+
+[examples/retry-recovery.ts](examples/retry-recovery.ts) — Checkpoint-based retry with state restoration
+
+```bash
+node scripts/run-example.mjs retry-recovery
+```
+
+You can also run an example directly with `node --experimental-strip-types examples/simple-pipeline.ts`.
 
 ## Connect an MCP client
 
-After `@context-router/mcp-server` is published, add it to any client that
-supports local stdio MCP servers:
+To use the raw MCP surface instead of the SDK, add the server to a client that
+supports local stdio MCP servers. SQLite remains the default:
 
 ```json
 {
   "mcpServers": {
     "context-router": {
       "command": "npx",
-      "args": ["-y", "@context-router/mcp-server"],
-      "env": {
-        "DATABASE_URL": "postgresql://contextrouter:password@localhost:5432/contextrouter",
-        "CONTEXT_ROUTER_OWNER_ID": "local"
-      }
+      "args": ["-y", "@context-router/mcp-server"]
     }
   }
 }
 ```
 
-Apply the included Prisma migrations before starting the packaged server.
-`CONTEXT_ROUTER_OWNER_ID` is a trusted-local isolation scope, not a remote
-authentication credential.
+For PostgreSQL, set `DATABASE_URL`, run the included Prisma migrations, and then
+start the server. `CONTEXT_ROUTER_OWNER_ID` is a trusted-local isolation scope,
+not a remote authentication credential.
 
 ## The workflow lifecycle
 
 ```text
-workspace_create
-  -> schema_create
+workspace_ensure / workspace_create
+  -> schema_create (optional)
   -> workflow_create
   -> state_write
   -> checkpoint_create
@@ -143,17 +185,12 @@ workspace_create
   -> workflow_complete
 ```
 
-### TypeScript SDK example
+### Explicit TypeScript SDK
 
 ```typescript
 import { ContextRouter } from '@context-router/sdk';
 
-const router = new ContextRouter();
-
-await router.connect('npx', ['-y', '@context-router/mcp-server'], {
-  DATABASE_URL: process.env.DATABASE_URL!,
-  CONTEXT_ROUTER_OWNER_ID: 'local',
-});
+const router = await ContextRouter.local();
 
 const workspace = await router.workspace.create('Lead qualification');
 
@@ -178,7 +215,7 @@ await router.state.write(
     domain: 'acme.example',
     status: 'CONFIRMED',
   },
-  'Lead',
+  { schemaName: 'Lead' },
 );
 
 await router.checkpoint.create(workspace.id, workflow.id, {
@@ -202,16 +239,19 @@ See the complete
 ## MCP tool surface
 
 <details>
-<summary><strong>View all 22 tools</strong></summary>
+<summary><strong>View all 29 tools</strong></summary>
 
-| Area       | Tools                                                                             |
-| ---------- | --------------------------------------------------------------------------------- |
-| Workspace  | `workspace_create`, `workspace_list`, `workspace_get`, `workspace_delete`         |
-| Schema     | `schema_create`, `schema_get`, `schema_list`, `schema_validate`                   |
-| Workflow   | `workflow_create`, `workflow_status`, `workflow_complete`, `workflow_fail`        |
-| State      | `state_write`, `state_read`, `state_delete`, `state_snapshot`                     |
-| Checkpoint | `checkpoint_create`, `checkpoint_list`, `checkpoint_restore`, `checkpoint_delete` |
-| Handoff    | `handoff_generate`, `handoff_apply`                                               |
+| Area       | Tools                                                                                         |
+| ---------- | --------------------------------------------------------------------------------------------- |
+| Router     | `router_status`                                                                               |
+| Workspace  | `workspace_create`, `workspace_ensure`, `workspace_list`, `workspace_get`, `workspace_delete` |
+| Schema     | `schema_create`, `schema_get`, `schema_list`, `schema_validate`                               |
+| Workflow   | `workflow_create`, `workflow_status`, `workflow_complete`, `workflow_fail`                    |
+| State      | `state_write`, `state_read`, `state_delete`, `state_snapshot`                                 |
+| Checkpoint | `checkpoint_create`, `checkpoint_list`, `checkpoint_restore`, `checkpoint_delete`             |
+| Handoff    | `handoff_generate`, `handoff_apply`                                                           |
+| Step       | `step_run_start`, `step_run_complete`, `step_run_fail`                                        |
+| Agent role | `agent_role_create`, `agent_role_list`                                                        |
 
 Every tool returns one stable JSON envelope:
 
@@ -244,7 +284,7 @@ context-router/
 ├── examples/             # End-to-end usage examples
 ├── docs/                 # Architecture, API, roadmap and release docs
 ├── scripts/              # MCP smoke checks
-└── docker-compose.yml    # Local PostgreSQL 16
+└── docker-compose.yml    # Optional local PostgreSQL 16
 ```
 
 ## Current status
@@ -255,26 +295,27 @@ Already working:
 
 - TypeScript build and type-checking
 - unit and SDK contract tests
-- MCP discovery smoke test for all 22 tools
-- PostgreSQL integration test suite in CI
+- MCP discovery smoke test for all 29 tools
+- SQLite and PostgreSQL integration test suites in CI
 - clean npm package generation
 - zero known production dependency vulnerabilities
 
-Deliberately outside `v0.1.0`:
+Deliberately outside `v0.3.0`:
 
 - remote MCP transport;
 - hosted authentication and multi-tenancy;
 - billing or managed infrastructure;
-- automatic agent execution and retry orchestration;
-- idempotent execution keys and compare-and-set writes;
+- automatic agent execution (Context Router records steps but does not invoke agents);
 - published Python SDK.
 
-Please do not expose the `v0.1.0` stdio server directly to an untrusted network.
+Please do not expose the stdio server directly to an untrusted network.
 
 ## Roadmap
 
 - **v0.1:** trusted-local MCP server, PostgreSQL storage, TypeScript SDK
-- **v0.2 candidate:** Python SDK, compare-and-set writes, idempotent executions
+- **v0.2:** CAS writes, step execution, agent roles, provenance, structured handoffs
+- **v0.3:** SQLite default, Node 20+, local workflow SDK, doctor/status CLI
+- **v0.4 candidate:** Python SDK, more workflow templates, integration adapters
 - **Later evaluation:** remote transport, authentication, observability, hosted deployment
 
 See the detailed [roadmap](docs/roadmap.md).

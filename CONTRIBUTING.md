@@ -4,11 +4,12 @@ Thank you for helping improve Context Router.
 
 ## Development setup
 
-1. Install Node.js 24+, npm, Docker, and Git.
-2. Copy `.env.example` to `.env`.
-3. Run `docker compose up -d`.
-4. Run `npm ci`, `npm run db:generate`, and `npm run db:migrate`.
-5. Run `npm run build && npm test && npm run test:integration`.
+1. Install Node.js 20+, npm, and Git. Docker is only needed for PostgreSQL integration tests.
+2. Run `npm ci`, `npm run db:generate`, `npm run build`, and `npm test`.
+3. Run `npm run test:local` for the zero-configuration SQLite path.
+4. For PostgreSQL integration work, copy `.env.example` to `.env`, start
+   PostgreSQL with Docker, apply `npm run db:migrate`, and run
+   `npm run test:integration`.
 
 Use a focused branch from `main`. Add tests for behavior changes and update the
 API documentation when a tool contract changes. Pull requests must pass CI and

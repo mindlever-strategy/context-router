@@ -7,16 +7,38 @@
 - TypeScript SDK
 - Schemas, explicit workflows, state, checkpoints, and handoffs
 
-## Candidate v0.2 work
+## v0.2
 
-- Functional and published Python SDK
-- Compare-and-set state updates
-- Idempotent execution keys
-- Storage adapter evaluation
-- Improved handoff formatting strategies
+- Compare-and-set state updates (`expectedVersion`)
+- Idempotent step executions (`step_run_start` / `complete` / `fail`)
+- Semantic schema rules (`requires`)
+- Agent roles with read/write ACLs
+- Optional provenance envelopes on state writes
+- Structured, role-aware handoff packets
+- Cursor setup docs and example workflow
+
+## v0.3
+
+- SQLite default with automatic local migrations
+- Node.js 20+ support
+- Workflow-scoped TypeScript SDK and packaged local server startup
+- Named workspace get-or-create
+- Router status plus `doctor` and `status` CLI commands
+- One runnable simple-pipeline quickstart
+
+## Candidate v0.4 work
+
+- [x] Functional Python SDK in monorepo (`packages/sdk-python`, v0.4.0)
+- [ ] Python SDK published to PyPI
+- [x] Additional first-class workflow examples and `docs/workflows/` guides
+- Visual workflow debugger evaluation
+- LangGraph and CrewAI adapter evaluation
+- Event journal and checkpoint compaction
+- AI-assisted handoff summaries (optional)
 
 ## Later evaluation
 
-Remote MCP transport, authentication, hosted multi-tenancy, observability,
+Automatic SQLite-to-PostgreSQL migration, remote MCP transport,
+authentication, hosted multi-tenancy, observability,
 Redis, billing, and managed deployment require separate threat models and
 product decisions. They are not existing features.

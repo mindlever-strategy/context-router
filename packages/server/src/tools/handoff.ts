@@ -1,7 +1,11 @@
 import type { Server as McpServer } from '@modelcontextprotocol/sdk/server/index.js';
 import { z } from 'zod';
-import { readStateFields } from '../db/queries.js';
-import { HandoffGenerator } from '../services/handoff-generator.js';
+import { readStateFields, getAgentRole } from '../db/queries.js';
+import { filterReadableState } from '../services/agent-role.js';
+import {
+  HandoffGenerator,
+  type StructuredHandoff,
+} from '../services/handoff-generator.js';
 import { defineTool, string, uuid, type ToolRegistry } from './tool-kit.js';
 
 const generator = new HandoffGenerator();
@@ -10,6 +14,10 @@ const handoffSchema = z.object({
   workflowId: z.string().uuid(),
   keys: z.array(z.string().min(1)).optional(),
   maxTokens: z.number().int().min(50).max(1000).default(200),
+  agentRole: z.string().min(1).max(100).optional(),
+  priorityKeys: z.array(z.string().min(1)).optional(),
+  nextGoals: z.array(z.string().min(1)).optional(),
+  format: z.enum(['text', 'structured']).default('text'),
 });
 
 export function registerHandoffTools(
@@ -22,6 +30,40 @@ export function registerHandoffTools(
     workflowId: uuid,
     keys: { type: 'array', items: string },
     maxTokens: { type: 'integer', minimum: 50, maximum: 1000, default: 200 },
+    agentRole: string,
+    priorityKeys: { type: 'array', items: string },
+    nextGoals: { type: 'array', items: string },
+    format: { type: 'string', enum: ['text', 'structured'] },
+  };
+
+  const buildHandoff = async (
+    input: z.infer<typeof handoffSchema>,
+  ): Promise<StructuredHandoff> => {
+    let state: Record<string, unknown> = (await readStateFields(
+      input.workspaceId,
+      getCurrentUserId(),
+      input.workflowId,
+      input.keys,
+    )) as Record<string, unknown>;
+
+    if (input.agentRole) {
+      const role = await getAgentRole(
+        input.workspaceId,
+        getCurrentUserId(),
+        input.agentRole,
+      );
+      if (!role) throw new Error('AGENT_ROLE_NOT_FOUND');
+      state = filterReadableState(state, role.allowedReadKeys);
+    }
+
+    const structured = generator.generateStructured(state, {
+      maxTokens: input.maxTokens,
+      priorityKeys: input.priorityKeys,
+      nextGoals: input.nextGoals,
+      format: input.format,
+    });
+
+    return structured;
   };
 
   tools.set(
@@ -30,7 +72,7 @@ export function registerHandoffTools(
       {
         name: 'handoff_generate',
         description:
-          'Generate a bounded human-readable summary from selected or all state keys',
+          'Generate bounded handoff summaries with optional role projection and structured packets',
         inputSchema: {
           type: 'object',
           properties: commonProperties,
@@ -38,16 +80,13 @@ export function registerHandoffTools(
         },
       },
       handoffSchema,
-      async ({ workspaceId, workflowId, keys, maxTokens }) => {
-        const state = await readStateFields(
-          workspaceId,
-          getCurrentUserId(),
-          workflowId,
-          keys,
-        );
+      async (input) => {
+        const structured = await buildHandoff(input);
+        if (input.format === 'structured') return structured;
         return {
-          summary: generator.generate(state, { maxTokens }),
-          keysIncluded: Object.keys(state),
+          summary: structured.summary,
+          keysIncluded: structured.keysIncluded,
+          tokensEstimate: structured.tokensEstimate,
         };
       },
     ),
@@ -66,17 +105,14 @@ export function registerHandoffTools(
         },
       },
       handoffSchema.extend({ prefix: z.string().max(1000).optional() }),
-      async ({ workspaceId, workflowId, keys, maxTokens, prefix }) => {
-        const state = await readStateFields(
-          workspaceId,
-          getCurrentUserId(),
-          workflowId,
-          keys,
-        );
-        const summary = generator.generate(state, { maxTokens });
+      async (input) => {
+        const handoff = await buildHandoff(input);
         return {
-          context: prefix ? `${prefix}\n\n${summary}` : summary,
-          keysIncluded: Object.keys(state),
+          context: input.prefix
+            ? `${input.prefix}\n\n${handoff.summary}`
+            : handoff.summary,
+          keysIncluded: handoff.keysIncluded,
+          ...(input.format === 'structured' ? { packet: handoff.packet } : {}),
         };
       },
     ),

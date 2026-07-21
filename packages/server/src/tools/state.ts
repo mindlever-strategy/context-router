@@ -12,9 +12,10 @@ import {
   SchemaValidator,
   type FieldDefinition,
 } from '../services/schema-validator.js';
-import type { Prisma } from '../generated/prisma/client.js';
+import type { Prisma } from '../generated/postgresql/client.js';
 import {
   defineTool,
+  number,
   object,
   string,
   ToolOperationError,
@@ -28,6 +29,15 @@ const identifiers = {
   workflowId: z.string().uuid(),
 };
 
+const provenanceSchema = z
+  .object({
+    agentRole: z.string().min(1).max(100).optional(),
+    executionId: z.string().uuid().optional(),
+    source: z.string().max(255).optional(),
+    confidence: z.number().min(0).max(1).optional(),
+  })
+  .optional();
+
 export function registerStateTools(
   _server: McpServer,
   getCurrentUserId: () => string,
@@ -40,7 +50,7 @@ export function registerStateTools(
       {
         name: 'state_write',
         description:
-          'Write structured state, optionally validated against a schema',
+          'Write structured state with optional schema validation, CAS, provenance, and agent role ACL',
         inputSchema: {
           type: 'object',
           properties: {
@@ -49,6 +59,13 @@ export function registerStateTools(
             key: string,
             value: object,
             schemaName: string,
+            expectedVersion: number,
+            agentRole: string,
+            provenance: object,
+            provenanceMode: {
+              type: 'string',
+              enum: ['per-field', 'whole-object'],
+            },
           },
           required: ['workspaceId', 'workflowId', 'key', 'value'],
         },
@@ -58,8 +75,22 @@ export function registerStateTools(
         key: z.string().min(1).max(255),
         value: z.record(z.string(), z.unknown()),
         schemaName: z.string().min(1).max(100).optional(),
+        expectedVersion: z.number().int().min(0).optional(),
+        agentRole: z.string().min(1).max(100).optional(),
+        provenance: provenanceSchema,
+        provenanceMode: z.enum(['per-field', 'whole-object']).optional(),
       }),
-      async ({ workspaceId, workflowId, key, value, schemaName }) => {
+      async ({
+        workspaceId,
+        workflowId,
+        key,
+        value,
+        schemaName,
+        expectedVersion,
+        agentRole,
+        provenance,
+        provenanceMode,
+      }) => {
         if (schemaName) {
           const schema = await getSchema(
             workspaceId,
@@ -79,14 +110,32 @@ export function registerStateTools(
             );
           }
         }
+        if (
+          !schemaName &&
+          process.env.CONTEXT_ROUTER_LOG_UNVALIDATED_STATE === 'true'
+        ) {
+          console.warn(
+            `[context-router] state_write key="${key}" without schemaName: UNVALIDATED_STATE`,
+          );
+        }
         const state = await writeState(
           workspaceId,
           getCurrentUserId(),
           workflowId,
           key,
           value as Prisma.InputJsonValue,
+          {
+            expectedVersion,
+            agentRole,
+            provenance,
+            provenanceMode,
+          },
         );
-        return { written: true, state };
+        return {
+          written: true,
+          state,
+          ...(schemaName ? {} : { warning: 'UNVALIDATED_STATE' as const }),
+        };
       },
     ),
   );
@@ -96,7 +145,8 @@ export function registerStateTools(
     defineTool(
       {
         name: 'state_read',
-        description: 'Read one state key or a selected set of state keys',
+        description:
+          'Read one state key or selected keys with optional role filtering and unwrap',
         inputSchema: {
           type: 'object',
           properties: {
@@ -104,6 +154,8 @@ export function registerStateTools(
             workflowId: uuid,
             key: string,
             keys: { type: 'array', items: string },
+            agentRole: string,
+            unwrap: { type: 'boolean' },
           },
           required: ['workspaceId', 'workflowId'],
         },
@@ -113,11 +165,13 @@ export function registerStateTools(
           ...identifiers,
           key: z.string().min(1).optional(),
           keys: z.array(z.string().min(1)).min(1).optional(),
+          agentRole: z.string().min(1).max(100).optional(),
+          unwrap: z.boolean().optional(),
         })
         .refine((value) => Boolean(value.key) !== Boolean(value.keys), {
           message: 'Provide exactly one of key or keys',
         }),
-      async ({ workspaceId, workflowId, key, keys }) => {
+      async ({ workspaceId, workflowId, key, keys, agentRole, unwrap }) => {
         if (keys) {
           return {
             values: await readStateFields(
@@ -125,6 +179,7 @@ export function registerStateTools(
               getCurrentUserId(),
               workflowId,
               keys,
+              { agentRole, unwrap },
             ),
           };
         }
@@ -133,6 +188,7 @@ export function registerStateTools(
           getCurrentUserId(),
           workflowId,
           key!,
+          { agentRole, unwrap },
         );
         if (!state) throw new Error('STATE_NOT_FOUND');
         return { key: state.key, value: state.value, version: state.version };
@@ -167,16 +223,29 @@ export function registerStateTools(
     defineTool(
       {
         name: 'state_snapshot',
-        description: 'Read the complete workflow state as a key-value object',
+        description:
+          'Read complete workflow state with optional role filtering',
         inputSchema: {
           type: 'object',
-          properties: { workspaceId: uuid, workflowId: uuid },
+          properties: {
+            workspaceId: uuid,
+            workflowId: uuid,
+            agentRole: string,
+            unwrap: { type: 'boolean' },
+          },
           required: ['workspaceId', 'workflowId'],
         },
       },
-      z.object(identifiers),
-      ({ workspaceId, workflowId }) =>
-        snapshotState(workspaceId, getCurrentUserId(), workflowId),
+      z.object({
+        ...identifiers,
+        agentRole: z.string().min(1).max(100).optional(),
+        unwrap: z.boolean().optional(),
+      }),
+      ({ workspaceId, workflowId, agentRole, unwrap }) =>
+        snapshotState(workspaceId, getCurrentUserId(), workflowId, {
+          agentRole,
+          unwrap,
+        }),
     ),
   );
 

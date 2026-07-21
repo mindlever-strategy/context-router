@@ -3,6 +3,7 @@ import { z } from 'zod';
 import {
   createWorkspace,
   deleteWorkspace,
+  ensureWorkspace,
   getWorkspace,
   listWorkspaces,
 } from '../db/queries.js';
@@ -28,6 +29,24 @@ export function registerWorkspaceTools(
       },
       z.object({ name: z.string().min(1).max(100) }),
       ({ name }) => createWorkspace(name, getCurrentUserId()),
+    ),
+  );
+
+  tools.set(
+    'workspace_ensure',
+    defineTool(
+      {
+        name: 'workspace_ensure',
+        description:
+          'Get or create one stable workspace by normalized name for the local owner',
+        inputSchema: {
+          type: 'object',
+          properties: { name: string },
+          required: ['name'],
+        },
+      },
+      z.object({ name: z.string().trim().min(1).max(100) }),
+      ({ name }) => ensureWorkspace(name, getCurrentUserId()),
     ),
   );
 

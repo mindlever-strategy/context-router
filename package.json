@@ -1,6 +1,6 @@
 {
   "name": "context-router",
-  "version": "0.1.0",
+  "version": "0.3.1",
   "private": true,
   "license": "Apache-2.0",
   "repository": {
@@ -16,6 +16,7 @@
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
     "test:mcp": "node scripts/mcp-smoke.mjs",
+    "test:local": "node scripts/local-smoke.mjs",
     "test:integration": "npm run test:integration --workspace=@context-router/mcp-server",
     "format:check": "prettier --check .",
     "format": "prettier --write .",
@@ -33,6 +34,6 @@
     "rimraf": "^6.0.1"
   },
   "engines": {
-    "node": ">=24"
+    "node": ">=20"
   }
 }

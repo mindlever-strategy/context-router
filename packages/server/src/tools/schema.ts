@@ -48,7 +48,12 @@ export function registerSchemaTools(
         description: 'Create the next version of a validation schema',
         inputSchema: {
           type: 'object',
-          properties: { workspaceId: uuid, name: string, fields: object },
+          properties: {
+            workspaceId: uuid,
+            name: string,
+            fields: object,
+            rules: { type: 'array', items: object },
+          },
           required: ['workspaceId', 'name', 'fields'],
         },
       },
@@ -56,13 +61,15 @@ export function registerSchemaTools(
         ...base,
         name: z.string().min(1).max(100),
         fields: fieldsSchema,
+        rules: z.array(z.record(z.string(), z.unknown())).optional(),
       }),
-      ({ workspaceId, name, fields }) =>
+      ({ workspaceId, name, fields, rules }) =>
         createSchema(
           workspaceId,
           getCurrentUserId(),
           name,
           fields as Record<string, FieldDefinition>,
+          rules,
         ),
     ),
   );

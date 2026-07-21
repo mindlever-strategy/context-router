@@ -1,5 +1,25 @@
+import type { ProvenanceMeta } from './provenance.js';
+import { unwrapForHandoff } from './provenance.js';
+
 type HandoffOptions = {
   maxTokens?: number;
+  priorityKeys?: string[];
+  nextGoals?: string[];
+  format?: 'text' | 'structured';
+};
+
+export type HandoffPacket = {
+  facts: Record<string, unknown>;
+  decisions: string[];
+  openQuestions: string[];
+  nextGoals: string[];
+};
+
+export type StructuredHandoff = {
+  packet: HandoffPacket;
+  summary: string;
+  keysIncluded: string[];
+  tokensEstimate: number;
 };
 
 export class HandoffGenerator {
@@ -7,33 +27,121 @@ export class HandoffGenerator {
     state: Record<string, unknown>,
     options: HandoffOptions = {},
   ): string {
-    const parts: string[] = [];
+    return this.generateStructured(state, options).summary;
+  }
+
+  generateStructured(
+    state: Record<string, unknown>,
+    options: HandoffOptions = {},
+  ): StructuredHandoff {
     const maxTokens = options.maxTokens ?? 200;
+    const priorityKeys = options.priorityKeys ?? [];
+    const normalizedState = this.normalizeState(state);
+    const orderedEntries = this.orderEntries(normalizedState, priorityKeys);
+    const parts: string[] = [];
 
-    for (const [key, value] of Object.entries(state)) {
+    for (const [key, value] of orderedEntries) {
       if (value === undefined || value === null) continue;
-
       const formattedKey = this.formatKey(key);
       const formattedValue = this.formatValue(value, key);
-
       if (formattedKey && formattedValue) {
         parts.push(`${formattedKey}: ${formattedValue}`);
       }
     }
 
     let summary = parts.join(', ');
-
-    // Rough token estimate (1 token ≈ 4 chars)
     const maxChars = maxTokens * 4;
+    if (summary.length > maxChars) {
+      summary = this.truncateWithPriority(
+        orderedEntries,
+        priorityKeys,
+        maxChars,
+      );
+    }
+
+    const packet: HandoffPacket = {
+      facts: Object.fromEntries(orderedEntries),
+      decisions: this.extractDecisions(normalizedState),
+      openQuestions: [],
+      nextGoals: options.nextGoals ?? [],
+    };
+
+    return {
+      packet,
+      summary,
+      keysIncluded: orderedEntries.map(([key]) => key),
+      tokensEstimate: Math.ceil(summary.length / 4),
+    };
+  }
+
+  private normalizeState(
+    state: Record<string, unknown>,
+  ): Record<string, unknown> {
+    return Object.fromEntries(
+      Object.entries(state).map(([key, value]) => [
+        key,
+        unwrapForHandoff(value),
+      ]),
+    );
+  }
+
+  private orderEntries(
+    state: Record<string, unknown>,
+    priorityKeys: string[],
+  ): Array<[string, unknown]> {
+    const entries = Object.entries(state);
+    if (priorityKeys.length === 0) return entries;
+
+    const priority = new Set(priorityKeys);
+    return [
+      ...entries.filter(([key]) => priority.has(key)),
+      ...entries.filter(([key]) => !priority.has(key)),
+    ];
+  }
+
+  private truncateWithPriority(
+    entries: Array<[string, unknown]>,
+    priorityKeys: string[],
+    maxChars: number,
+  ): string {
+    const priority = new Set(priorityKeys);
+    const priorityParts: string[] = [];
+    const regularParts: string[] = [];
+
+    for (const [key, value] of entries) {
+      const part = `${this.formatKey(key)}: ${this.formatValue(value, key)}`;
+      if (priority.has(key)) priorityParts.push(part);
+      else regularParts.push(part);
+    }
+
+    let summary = priorityParts.join(', ');
+    for (const part of regularParts) {
+      const candidate = summary.length === 0 ? part : `${summary}, ${part}`;
+      if (candidate.length <= maxChars) summary = candidate;
+      else break;
+    }
+
     if (summary.length > maxChars) {
       summary = summary.substring(0, maxChars - 3) + '...';
     }
-
     return summary;
   }
 
+  private extractDecisions(state: Record<string, unknown>): string[] {
+    const decisions: string[] = [];
+    for (const [key, value] of Object.entries(state)) {
+      if (
+        key.toLowerCase().includes('status') &&
+        typeof value === 'string' &&
+        value.length > 0
+      ) {
+        decisions.push(`${this.formatKey(key)}: ${value}`);
+      }
+    }
+    return decisions;
+  }
+
   formatKey(key: string): string {
-    // Convert snake_case or camelCase to Title Case (only first letter capitalized)
     const words = key
       .replace(/_/g, ' ')
       .replace(/([a-z])([A-Z])/g, '$1 $2')
@@ -41,10 +149,8 @@ export class HandoffGenerator {
       .split(' ')
       .filter((w) => w.length > 0);
 
-    // Capitalize only the first letter of the first word
     if (words.length === 0) return '';
     words[0] = words[0].charAt(0).toUpperCase() + words[0].slice(1);
-
     return words.join(' ');
   }
 
@@ -78,9 +184,7 @@ export class HandoffGenerator {
       if (entries.length === 0) return '{}';
       const formatted = entries
         .slice(0, 2)
-        .map(([k, v]) => {
-          return `${this.formatKey(k)}: ${this.formatValue(v)}`;
-        })
+        .map(([k, v]) => `${this.formatKey(k)}: ${this.formatValue(v)}`)
         .join(', ');
       return `{${formatted}${entries.length > 2 ? '...' : ''}}`;
     }

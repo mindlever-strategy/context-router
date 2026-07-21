@@ -42,4 +42,19 @@ describe('HandoffGenerator', () => {
     expect(result).toContain('acme.com');
     expect(result).toContain('CONFIRMED');
   });
+
+  it('generates structured handoff packets', () => {
+    const structured = generator.generateStructured(
+      { company_name: 'Acme Corp', status: 'CONFIRMED' },
+      {
+        maxTokens: 100,
+        priorityKeys: ['company_name'],
+        nextGoals: ['Draft outreach email'],
+        format: 'structured',
+      },
+    );
+    expect(structured.packet.facts.company_name).toBe('Acme Corp');
+    expect(structured.packet.nextGoals).toEqual(['Draft outreach email']);
+    expect(structured.summary).toContain('Acme Corp');
+  });
 });

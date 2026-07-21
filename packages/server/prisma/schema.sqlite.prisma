@@ -1,0 +1,126 @@
+generator client {
+  provider            = "prisma-client"
+  output              = "../src/generated/sqlite"
+  engineType          = "client"
+  moduleFormat        = "esm"
+  importFileExtension = "js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Workspace {
+  id        String   @id @default(uuid())
+  name      String
+  ownerId   String
+  createdAt DateTime @default(now())
+  lookupKey String?
+  schemas Schema[]
+  states State[]
+  checkpoints Checkpoint[]
+  workflows Workflow[]
+  stepExecutions StepExecution[]
+  agentRoles AgentRole[]
+  @@index([ownerId])
+  @@unique([ownerId, lookupKey])
+}
+
+model Schema {
+  id String @id @default(uuid())
+  workspaceId String
+  name String
+  version Int @default(1)
+  fields Json
+  createdAt DateTime @default(now())
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  @@unique([workspaceId, name, version])
+  @@index([workspaceId])
+}
+
+model State {
+  id String @id @default(uuid())
+  workspaceId String
+  workflowId String
+  key String
+  value Json
+  updatedAt DateTime @updatedAt
+  version Int @default(1)
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workflow Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  @@unique([workflowId, key])
+  @@index([workspaceId])
+  @@index([workflowId])
+}
+
+model Checkpoint {
+  id String @id @default(uuid())
+  workspaceId String
+  workflowId String
+  snapshot Json
+  label String?
+  createdAt DateTime @default(now())
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workflow Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  @@index([workspaceId])
+  @@index([workflowId])
+}
+
+model Workflow {
+  id String @id @default(uuid())
+  workspaceId String
+  status WorkflowStatus @default(RUNNING)
+  createdAt DateTime @default(now())
+  completedAt DateTime?
+  failureReason String?
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  states State[]
+  checkpoints Checkpoint[]
+  stepExecutions StepExecution[]
+  @@index([workspaceId])
+  @@index([status])
+}
+
+enum WorkflowStatus {
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+model StepExecution {
+  id String @id @default(uuid())
+  workspaceId String
+  workflowId String
+  stepId String
+  executionId String
+  agentId String?
+  status StepExecutionStatus @default(RUNNING)
+  result Json?
+  attempt Int @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workflow Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  @@unique([workflowId, stepId, executionId])
+  @@index([workspaceId])
+  @@index([workflowId])
+}
+
+enum StepExecutionStatus {
+  RUNNING
+  SUCCEEDED
+  FAILED
+}
+
+model AgentRole {
+  id String @id @default(uuid())
+  workspaceId String
+  name String
+  allowedWriteKeys Json
+  allowedReadKeys Json
+  createdAt DateTime @default(now())
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  @@unique([workspaceId, name])
+  @@index([workspaceId])
+}

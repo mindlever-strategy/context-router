@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 describe('public MCP tool surface', () => {
-  it('registers the documented 22 unique tools', async () => {
+  it('registers the documented 29 unique tools', async () => {
     vi.stubEnv(
       'DATABASE_URL',
       'postgresql://contextrouter:password@localhost:5432/contextrouter',
@@ -13,6 +13,9 @@ describe('public MCP tool surface', () => {
       { registerStateTools },
       { registerWorkflowTools },
       { registerWorkspaceTools },
+      { registerStepTools },
+      { registerAgentRoleTools },
+      { registerRouterTools },
     ] = await Promise.all([
       import('./checkpoint.js'),
       import('./handoff.js'),
@@ -20,6 +23,9 @@ describe('public MCP tool surface', () => {
       import('./state.js'),
       import('./workflow.js'),
       import('./workspace.js'),
+      import('./step.js'),
+      import('./agent-role.js'),
+      import('./router.js'),
     ]);
     const server = {} as never;
     const owner = () => 'local';
@@ -30,9 +36,12 @@ describe('public MCP tool surface', () => {
       ...registerStateTools(server, owner).keys(),
       ...registerCheckpointTools(server, owner).keys(),
       ...registerHandoffTools(server, owner).keys(),
+      ...registerStepTools(server, owner).keys(),
+      ...registerAgentRoleTools(server, owner).keys(),
+      ...registerRouterTools(server, owner).keys(),
     ];
 
-    expect(names).toHaveLength(22);
-    expect(new Set(names).size).toBe(22);
+    expect(names).toHaveLength(29);
+    expect(new Set(names).size).toBe(29);
   });
 });

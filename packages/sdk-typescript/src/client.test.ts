@@ -80,4 +80,19 @@ describe('ContextRouter SDK contract', () => {
       code: 'WORKFLOW_NOT_FOUND',
     });
   });
+
+  it('starts a workflow-scoped session without changing the explicit API', async () => {
+    const transport = new FakeTransport();
+    const client = new ContextRouter({ transport });
+    const session = await client.start('Research');
+    await session.set('findings', { answer: 42 });
+    await session.complete();
+
+    expect(transport.calls.map((call) => call.name)).toEqual([
+      'workspace_ensure',
+      'workflow_create',
+      'state_write',
+      'workflow_complete',
+    ]);
+  });
 });

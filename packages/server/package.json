@@ -1,9 +1,13 @@
 {
   "name": "@context-router/mcp-server",
-  "version": "0.1.0",
+  "version": "0.3.1",
   "description": "Local MCP server for structured multi-agent workflow state, checkpoints, and handoffs",
   "type": "module",
   "main": "dist/index.js",
+  "exports": {
+    ".": "./dist/index.js",
+    "./entry": "./dist/index.js"
+  },
   "bin": {
     "context-router-mcp": "dist/index.js"
   },
@@ -35,7 +39,7 @@
     "provenance": true
   },
   "engines": {
-    "node": ">=24"
+    "node": ">=20"
   },
   "scripts": {
     "dev": "tsx watch src/index.ts",
@@ -44,21 +48,26 @@
     "start": "node dist/index.js",
     "test": "vitest run --exclude src/integration.test.ts",
     "test:integration": "vitest run src/integration.test.ts",
-    "db:migrate": "prisma migrate deploy",
+    "db:migrate": "prisma migrate deploy --schema prisma/schema.prisma",
     "db:migrate:dev": "prisma migrate dev",
-    "db:generate": "prisma generate",
+    "db:generate": "npm run db:generate:postgresql && npm run db:generate:sqlite",
+    "db:generate:postgresql": "prisma generate --schema prisma/schema.prisma",
+    "db:generate:sqlite": "prisma generate --schema prisma/schema.sqlite.prisma",
     "prepack": "npm run db:generate && npm run build"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
+    "@prisma/adapter-better-sqlite3": "^6.19.3",
     "@prisma/adapter-pg": "^6.19.3",
     "@prisma/client": "^6.16.2",
+    "better-sqlite3": "^11.8.1",
     "dotenv": "^16.4.5",
     "pg": "^8.16.3",
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@types/node": "^24.0.0",
+    "@types/better-sqlite3": "^7.6.12",
+    "@types/node": "^20.0.0",
     "@types/pg": "^8.15.5",
     "prisma": "^6.16.2",
     "tsx": "^4.19.0",

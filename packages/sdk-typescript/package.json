@@ -1,6 +1,6 @@
 {
   "name": "@context-router/sdk",
-  "version": "0.1.0",
+  "version": "0.3.1",
   "description": "TypeScript SDK for the Context Router MCP server",
   "type": "module",
   "main": "dist/index.js",
@@ -16,6 +16,9 @@
     "README.md",
     "LICENSE"
   ],
+  "bin": {
+    "context-router": "dist/cli.js"
+  },
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
@@ -37,7 +40,7 @@
     "provenance": true
   },
   "engines": {
-    "node": ">=24"
+    "node": ">=20"
   },
   "scripts": {
     "build": "rimraf dist && tsc",
@@ -46,9 +49,11 @@
     "prepack": "npm run build"
   },
   "dependencies": {
+    "@context-router/mcp-server": "0.3.1",
     "@modelcontextprotocol/sdk": "^1.29.0"
   },
   "devDependencies": {
+    "@types/node": "^20.0.0",
     "typescript": "^5.6.0",
     "vitest": "^4.1.10"
   }

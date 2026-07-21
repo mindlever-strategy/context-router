@@ -8,19 +8,23 @@ import {
   CallToolRequestSchema,
   CallToolResultSchema,
 } from '@modelcontextprotocol/sdk/types.js';
+import { connectDatabase } from './db/client.js';
 import { registerWorkspaceTools } from './tools/workspace.js';
 import { registerSchemaTools } from './tools/schema.js';
 import { registerStateTools } from './tools/state.js';
 import { registerCheckpointTools } from './tools/checkpoint.js';
 import { registerHandoffTools } from './tools/handoff.js';
 import { registerWorkflowTools } from './tools/workflow.js';
+import { registerStepTools } from './tools/step.js';
+import { registerAgentRoleTools } from './tools/agent-role.js';
+import { registerRouterTools } from './tools/router.js';
 import { failure, type Tool } from './tools/tool-kit.js';
 
 // Create and configure the MCP server with all registered tools
 const server = new McpServer(
   {
     name: 'context-router',
-    version: '0.1.0',
+    version: '0.3.1',
   },
   {
     capabilities: {
@@ -54,6 +58,15 @@ handoffTools.forEach((tool, name) => allTools.set(name, tool));
 
 const workflowTools = registerWorkflowTools(server, getCurrentUserId);
 workflowTools.forEach((tool, name) => allTools.set(name, tool));
+
+const stepTools = registerStepTools(server, getCurrentUserId);
+stepTools.forEach((tool, name) => allTools.set(name, tool));
+
+const agentRoleTools = registerAgentRoleTools(server, getCurrentUserId);
+agentRoleTools.forEach((tool, name) => allTools.set(name, tool));
+
+const routerTools = registerRouterTools(server, getCurrentUserId);
+routerTools.forEach((tool, name) => allTools.set(name, tool));
 
 // Tool listing handler - returns all available tools
 server.setRequestHandler(ListToolsRequestSchema, async () => {
@@ -94,6 +107,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 // Start the server
 async function main(): Promise<void> {
   console.error('Starting Context Router MCP Server...');
+  await connectDatabase();
 
   const transport = new StdioServerTransport();
   await server.connect(transport);

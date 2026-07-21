@@ -1,5 +1,6 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
+import { createRequire } from 'node:module';
 
 export interface ToolTransport {
   callTool(request: {
@@ -12,6 +13,12 @@ export interface ToolTransport {
 export interface ContextRouterOptions {
   clientName?: string;
   transport?: ToolTransport;
+}
+
+export interface LocalContextRouterOptions {
+  dataDir?: string;
+  databaseUrl?: string;
+  ownerId?: string;
 }
 
 export interface Workspace {
@@ -34,6 +41,60 @@ export interface StateValue {
   key: string;
   value: Record<string, unknown>;
   version: number;
+}
+
+export interface StateWriteOptions {
+  schemaName?: string;
+  expectedVersion?: number;
+  agentRole?: string;
+  provenance?: ProvenanceMeta;
+  provenanceMode?: 'per-field' | 'whole-object';
+}
+
+export interface StateReadOptions {
+  agentRole?: string;
+  unwrap?: boolean;
+}
+
+export interface ProvenanceMeta {
+  agentRole?: string;
+  executionId?: string;
+  source?: string;
+  confidence?: number;
+}
+
+export interface HandoffPacket {
+  facts: Record<string, unknown>;
+  decisions: string[];
+  openQuestions: string[];
+  nextGoals: string[];
+}
+
+export interface HandoffOptions {
+  keys?: string[];
+  maxTokens?: number;
+  agentRole?: string;
+  priorityKeys?: string[];
+  nextGoals?: string[];
+  format?: 'text' | 'structured';
+}
+
+export interface HandoffResult {
+  summary: string;
+  keysIncluded: string[];
+  packet?: HandoffPacket;
+}
+
+export interface RouterStatus {
+  version: string;
+  storage: { engine: 'sqlite' | 'postgresql'; location?: string };
+  totals: {
+    workspaces: number;
+    workflows: number;
+    runningWorkflows: number;
+    checkpoints: number;
+  };
+  recentWorkflows: Workflow[];
 }
 
 interface SuccessEnvelope<T> {
@@ -67,10 +128,36 @@ export class ContextRouter {
       return;
     }
     this.mcpClient = new Client(
-      { name: options.clientName ?? 'context-router-sdk', version: '0.1.0' },
+      { name: options.clientName ?? 'context-router-sdk', version: '0.3.1' },
       { capabilities: {} },
     );
     this.transport = this.mcpClient;
+  }
+
+  static async local(
+    options: LocalContextRouterOptions = {},
+  ): Promise<ContextRouter> {
+    if (options.dataDir && options.databaseUrl) {
+      throw new Error('dataDir and databaseUrl cannot be used together');
+    }
+    const serverEntry = createRequire(import.meta.url).resolve(
+      '@context-router/mcp-server/entry',
+    );
+    const router = new ContextRouter();
+    const env = processEnvironment();
+    if (options.dataDir) {
+      delete env.DATABASE_URL;
+      env.STORAGE_ENGINE = 'sqlite';
+      env.CONTEXT_ROUTER_DATA_DIR = options.dataDir;
+    }
+    if (options.databaseUrl) {
+      delete env.CONTEXT_ROUTER_DATA_DIR;
+      delete env.STORAGE_ENGINE;
+      env.DATABASE_URL = options.databaseUrl;
+    }
+    if (options.ownerId) env.CONTEXT_ROUTER_OWNER_ID = options.ownerId;
+    await router.connect(process.execPath, [serverEntry], env);
+    return router;
   }
 
   async connect(
@@ -92,9 +179,33 @@ export class ContextRouter {
     await this.transport.close?.();
   }
 
+  async close(): Promise<void> {
+    await this.disconnect();
+  }
+
+  async start(workspaceName: string): Promise<WorkflowSession> {
+    const workspace = await this.workspace.ensure(workspaceName);
+    const workflow = await this.workflow.create(workspace.id);
+    return new WorkflowSession(this, workspace, workflow);
+  }
+
+  status(): Promise<RouterStatus> {
+    return this.call<RouterStatus>('router_status', {});
+  }
+
+  async discoverTools(): Promise<string[]> {
+    if (!this.mcpClient) {
+      throw new Error('Tool discovery requires the built-in MCP transport');
+    }
+    const result = await this.mcpClient.listTools();
+    return result.tools.map((tool) => tool.name);
+  }
+
   readonly workspace = {
     create: (name: string) =>
       this.call<Workspace>('workspace_create', { name }),
+    ensure: (name: string) =>
+      this.call<Workspace>('workspace_ensure', { name }),
     list: () => this.call<Workspace[]>('workspace_list', {}),
     get: (workspaceId: string) =>
       this.call<Workspace>('workspace_get', { workspaceId }),
@@ -107,7 +218,8 @@ export class ContextRouter {
       workspaceId: string,
       name: string,
       fields: Record<string, unknown>,
-    ) => this.call('schema_create', { workspaceId, name, fields }),
+      rules?: Record<string, unknown>[],
+    ) => this.call('schema_create', { workspaceId, name, fields, rules }),
     get: (workspaceId: string, name: string) =>
       this.call('schema_get', { workspaceId, name }),
     list: (workspaceId: string) => this.call('schema_list', { workspaceId }),
@@ -120,6 +232,23 @@ export class ContextRouter {
         'schema_validate',
         { workspaceId, schemaName, data },
       ),
+  };
+
+  readonly agentRole = {
+    create: (
+      workspaceId: string,
+      name: string,
+      allowedWriteKeys: string[],
+      allowedReadKeys: string[],
+    ) =>
+      this.call('agent_role_create', {
+        workspaceId,
+        name,
+        allowedWriteKeys,
+        allowedReadKeys,
+      }),
+    list: (workspaceId: string) =>
+      this.call('agent_role_list', { workspaceId }),
   };
 
   readonly workflow = {
@@ -139,29 +268,95 @@ export class ContextRouter {
       workflowId: string,
       key: string,
       value: Record<string, unknown>,
-      schemaName?: string,
+      options: StateWriteOptions = {},
     ) =>
       this.call('state_write', {
         workspaceId,
         workflowId,
         key,
         value,
-        schemaName,
+        ...options,
       }),
-    read: (workspaceId: string, workflowId: string, key: string) =>
-      this.call<StateValue>('state_read', { workspaceId, workflowId, key }),
-    readMany: (workspaceId: string, workflowId: string, keys: string[]) =>
+    read: (
+      workspaceId: string,
+      workflowId: string,
+      key: string,
+      options: StateReadOptions = {},
+    ) =>
+      this.call<StateValue>('state_read', {
+        workspaceId,
+        workflowId,
+        key,
+        ...options,
+      }),
+    readMany: (
+      workspaceId: string,
+      workflowId: string,
+      keys: string[],
+      options: StateReadOptions = {},
+    ) =>
       this.call<{ values: Record<string, unknown> }>('state_read', {
         workspaceId,
         workflowId,
         keys,
+        ...options,
       }),
     delete: (workspaceId: string, workflowId: string, key: string) =>
       this.call('state_delete', { workspaceId, workflowId, key }),
-    snapshot: (workspaceId: string, workflowId: string) =>
+    snapshot: (
+      workspaceId: string,
+      workflowId: string,
+      options: StateReadOptions = {},
+    ) =>
       this.call<Record<string, unknown>>('state_snapshot', {
         workspaceId,
         workflowId,
+        ...options,
+      }),
+  };
+
+  readonly step = {
+    start: (
+      workspaceId: string,
+      workflowId: string,
+      stepId: string,
+      executionId: string,
+      agentId?: string,
+    ) =>
+      this.call('step_run_start', {
+        workspaceId,
+        workflowId,
+        stepId,
+        executionId,
+        agentId,
+      }),
+    complete: (
+      workspaceId: string,
+      workflowId: string,
+      stepId: string,
+      executionId: string,
+      result?: Record<string, unknown>,
+    ) =>
+      this.call('step_run_complete', {
+        workspaceId,
+        workflowId,
+        stepId,
+        executionId,
+        result,
+      }),
+    fail: (
+      workspaceId: string,
+      workflowId: string,
+      stepId: string,
+      executionId: string,
+      reason: string,
+    ) =>
+      this.call('step_run_fail', {
+        workspaceId,
+        workflowId,
+        stepId,
+        executionId,
+        reason,
       }),
   };
 
@@ -184,22 +379,31 @@ export class ContextRouter {
     generate: (
       workspaceId: string,
       workflowId: string,
-      options: { keys?: string[]; maxTokens?: number } = {},
+      options: HandoffOptions = {},
     ) =>
-      this.call<{ summary: string; keysIncluded: string[] }>(
-        'handoff_generate',
-        {
-          workspaceId,
-          workflowId,
-          ...options,
-        },
-      ),
+      this.call<HandoffResult>('handoff_generate', {
+        workspaceId,
+        workflowId,
+        ...options,
+      }),
     apply: (
       workspaceId: string,
       workflowId: string,
-      options: { keys?: string[]; prefix?: string; maxTokens?: number } = {},
+      options: {
+        keys?: string[];
+        prefix?: string;
+        maxTokens?: number;
+        agentRole?: string;
+        priorityKeys?: string[];
+        nextGoals?: string[];
+        format?: 'text' | 'structured';
+      } = {},
     ) =>
-      this.call<{ context: string; keysIncluded: string[] }>('handoff_apply', {
+      this.call<{
+        context: string;
+        keysIncluded: string[];
+        packet?: HandoffPacket;
+      }>('handoff_apply', {
         workspaceId,
         workflowId,
         ...options,
@@ -242,6 +446,84 @@ export class ContextRouter {
     }
     return envelope.data;
   }
+}
+
+export class WorkflowSession {
+  constructor(
+    private readonly router: ContextRouter,
+    public readonly workspace: Workspace,
+    public readonly workflow: Workflow,
+  ) {}
+
+  set(
+    key: string,
+    value: Record<string, unknown>,
+    options: StateWriteOptions = {},
+  ): Promise<unknown> {
+    return this.router.state.write(
+      this.workspace.id,
+      this.workflow.id,
+      key,
+      value,
+      options,
+    );
+  }
+
+  get(key: string, options: StateReadOptions = {}): Promise<StateValue> {
+    return this.router.state.read(
+      this.workspace.id,
+      this.workflow.id,
+      key,
+      options,
+    );
+  }
+
+  async getMany(
+    keys: string[],
+    options: StateReadOptions = {},
+  ): Promise<Record<string, unknown>> {
+    const result = await this.router.state.readMany(
+      this.workspace.id,
+      this.workflow.id,
+      keys,
+      options,
+    );
+    return result.values;
+  }
+
+  checkpoint(label?: string): Promise<unknown> {
+    return this.router.checkpoint.create(this.workspace.id, this.workflow.id, {
+      label,
+    });
+  }
+
+  handoff(options: HandoffOptions = {}): Promise<HandoffResult> {
+    return this.router.handoff.generate(
+      this.workspace.id,
+      this.workflow.id,
+      options,
+    );
+  }
+
+  complete(): Promise<Workflow> {
+    return this.router.workflow.complete(this.workspace.id, this.workflow.id);
+  }
+
+  fail(reason: string): Promise<Workflow> {
+    return this.router.workflow.fail(
+      this.workspace.id,
+      this.workflow.id,
+      reason,
+    );
+  }
+}
+
+function processEnvironment(): Record<string, string> {
+  return Object.fromEntries(
+    Object.entries(process.env).filter(
+      (entry): entry is [string, string] => entry[1] !== undefined,
+    ),
+  );
 }
 
 export default ContextRouter;

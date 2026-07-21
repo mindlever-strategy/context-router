@@ -100,15 +100,23 @@ export function failure(
 function messageForCode(code: string): string {
   const messages: Record<string, string> = {
     WORKSPACE_NOT_FOUND: 'Workspace was not found for the local owner',
+    WORKSPACE_NAME_AMBIGUOUS:
+      'Multiple legacy workspaces have this name; select one by ID or rename duplicates',
     WORKFLOW_NOT_FOUND: 'Workflow was not found in the workspace',
     WORKFLOW_NOT_RUNNING: 'Workflow is no longer running',
     STATE_NOT_FOUND: 'State key was not found in the workflow',
     SCHEMA_NOT_FOUND: 'Schema was not found in the workspace',
     CHECKPOINT_NOT_FOUND: 'Checkpoint was not found in the workspace',
+    VERSION_CONFLICT: 'State version does not match the expected version',
+    WRITE_FORBIDDEN: 'Agent role is not allowed to write this state key',
+    READ_FORBIDDEN: 'Agent role is not allowed to read this state key',
+    AGENT_ROLE_NOT_FOUND: 'Agent role was not found in the workspace',
+    STEP_EXECUTION_NOT_FOUND: 'Step execution was not found for this workflow',
   };
   return messages[code] ?? 'Tool operation failed';
 }
 
 export const uuid = { type: 'string', format: 'uuid' };
 export const string = { type: 'string' };
+export const number = { type: 'number' };
 export const object = { type: 'object' };

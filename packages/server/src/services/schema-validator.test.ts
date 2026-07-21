@@ -55,4 +55,31 @@ describe('SchemaValidator', () => {
     };
     expect(validator.validate(schema, {})).toEqual([]);
   });
+
+  it('validates semantic requires rules', () => {
+    const schema = {
+      validationStatus: {
+        type: 'enum' as const,
+        values: ['PENDING', 'CONFIRMED'],
+        required: true,
+      },
+      decisionMakerEmail: { type: 'string' as const, required: false },
+      __semanticRules: [
+        {
+          type: 'requires' as const,
+          when: { field: 'validationStatus', eq: 'CONFIRMED' },
+          fields: ['decisionMakerEmail'],
+        },
+      ],
+    };
+    expect(
+      validator.validate(schema, {
+        validationStatus: 'CONFIRMED',
+        decisionMakerEmail: 'jane@acme.com',
+      }),
+    ).toEqual([]);
+    expect(
+      validator.validate(schema, { validationStatus: 'CONFIRMED' }),
+    ).toHaveLength(1);
+  });
 });

@@ -1,25 +1,33 @@
 import 'dotenv/config';
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { prisma } from './db/client.js';
+import { connectDatabase, prisma } from './db/client.js';
 import {
+  completeStepRun,
+  createAgentRole,
   createCheckpoint,
   createSchema,
   createWorkflow,
   createWorkspace,
+  ensureWorkspace,
+  getRouterStatus,
   getWorkflow,
   readState,
   readStateFields,
   restoreCheckpoint,
+  startStepRun,
   transitionWorkflow,
   writeState,
 } from './db/queries.js';
+import { registerAgentRoleTools } from './tools/agent-role.js';
 import { registerCheckpointTools } from './tools/checkpoint.js';
 import { registerHandoffTools } from './tools/handoff.js';
 import { registerSchemaTools } from './tools/schema.js';
 import { registerStateTools } from './tools/state.js';
+import { registerStepTools } from './tools/step.js';
 import { registerWorkflowTools } from './tools/workflow.js';
 import { registerWorkspaceTools } from './tools/workspace.js';
+import { registerRouterTools } from './tools/router.js';
 
 const hasDatabase = Boolean(process.env.DATABASE_URL);
 const integration = hasDatabase ? describe : describe.skip;
@@ -30,6 +38,7 @@ integration('PostgreSQL vertical slice', () => {
   let workflowId: string;
 
   beforeAll(async () => {
+    await connectDatabase();
     await prisma.$connect();
     const workspace = await createWorkspace('Integration workspace', ownerId);
     workspaceId = workspace.id;
@@ -40,7 +49,7 @@ integration('PostgreSQL vertical slice', () => {
     await prisma.$disconnect();
   });
 
-  it('registers the stable 22-tool MCP surface', () => {
+  it('registers the stable 29-tool MCP surface', () => {
     const server = {} as never;
     const owner = () => ownerId;
     const registries = [
@@ -50,10 +59,22 @@ integration('PostgreSQL vertical slice', () => {
       registerCheckpointTools(server, owner),
       registerHandoffTools(server, owner),
       registerWorkflowTools(server, owner),
+      registerStepTools(server, owner),
+      registerAgentRoleTools(server, owner),
+      registerRouterTools(server, owner),
     ];
     expect(
       registries.reduce((count, registry) => count + registry.size, 0),
-    ).toBe(22);
+    ).toBe(29);
+  });
+
+  it('ensures one named workspace and reports owner-scoped status', async () => {
+    const first = await ensureWorkspace('  Integration Named  ', ownerId);
+    const second = await ensureWorkspace('integration named', ownerId);
+    expect(second.id).toBe(first.id);
+    const status = await getRouterStatus(ownerId);
+    expect(status.version).toBe('0.3.1');
+    expect(status.totals.workspaces).toBeGreaterThanOrEqual(2);
   });
 
   it('creates incrementing schema versions', async () => {
@@ -94,6 +115,109 @@ integration('PostgreSQL vertical slice', () => {
     ).toEqual({
       value: 90,
     });
+  });
+
+  it('rejects compare-and-set writes on version mismatch', async () => {
+    const workflow = await createWorkflow(workspaceId, ownerId);
+    await writeState(workspaceId, ownerId, workflow.id, 'counter', {
+      value: 1,
+    });
+    const current = await readState(
+      workspaceId,
+      ownerId,
+      workflow.id,
+      'counter',
+    );
+    await writeState(
+      workspaceId,
+      ownerId,
+      workflow.id,
+      'counter',
+      { value: 2 },
+      { expectedVersion: current!.version },
+    );
+    await expect(
+      writeState(
+        workspaceId,
+        ownerId,
+        workflow.id,
+        'counter',
+        { value: 99 },
+        { expectedVersion: current!.version },
+      ),
+    ).rejects.toThrow('VERSION_CONFLICT');
+  });
+
+  it('caches successful step executions and auto-checkpoints', async () => {
+    const workflow = await createWorkflow(workspaceId, ownerId);
+    const executionId = randomUUID();
+    const first = await startStepRun(
+      workspaceId,
+      ownerId,
+      workflow.id,
+      'research',
+      executionId,
+      'research-agent',
+    );
+    expect(first.cached).toBe(false);
+    expect(first.checkpoint?.label).toBe(`before:research:${executionId}`);
+
+    await completeStepRun(
+      workspaceId,
+      ownerId,
+      workflow.id,
+      'research',
+      executionId,
+      { companyName: 'Acme Corp' },
+    );
+
+    const second = await startStepRun(
+      workspaceId,
+      ownerId,
+      workflow.id,
+      'research',
+      executionId,
+    );
+    expect(second.cached).toBe(true);
+    expect(second.execution.result).toEqual({ companyName: 'Acme Corp' });
+  });
+
+  it('enforces agent role write and read ACLs', async () => {
+    const workflow = await createWorkflow(workspaceId, ownerId);
+    await createAgentRole(
+      workspaceId,
+      ownerId,
+      'research',
+      ['lead*'],
+      ['lead*'],
+    );
+    await writeState(
+      workspaceId,
+      ownerId,
+      workflow.id,
+      'lead',
+      { companyName: 'Acme Corp' },
+      { agentRole: 'research' },
+    );
+    await expect(
+      writeState(
+        workspaceId,
+        ownerId,
+        workflow.id,
+        'score',
+        { value: 90 },
+        { agentRole: 'research' },
+      ),
+    ).rejects.toThrow('WRITE_FORBIDDEN');
+
+    const visible = await readStateFields(
+      workspaceId,
+      ownerId,
+      workflow.id,
+      undefined,
+      { agentRole: 'research', unwrap: true },
+    );
+    expect(visible).toEqual({ lead: { companyName: 'Acme Corp' } });
   });
 
   it('rejects cross-workspace access and repeated terminal transitions', async () => {

@@ -12,3 +12,8 @@ coverage/
 .idea/
 .vscode/
 .changeset/pre.json
+__pycache__/
+*.py[cod]
+.pytest_cache/
+packages/sdk-python/dist/
+packages/sdk-python/*.egg-info/

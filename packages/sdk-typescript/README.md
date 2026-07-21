@@ -1,20 +1,19 @@
 # @context-router/sdk
 
-TypeScript client for `@context-router/mcp-server`.
+TypeScript client and zero-configuration local runtime for Context Router.
 
 ```typescript
 import { ContextRouter } from '@context-router/sdk';
 
-const router = new ContextRouter();
-await router.connect('npx', ['-y', '@context-router/mcp-server'], {
-  DATABASE_URL: process.env.DATABASE_URL!,
-});
-
-const workspace = await router.workspace.create('Demo');
-const workflow = await router.workflow.create(workspace.id);
-await router.state.write(workspace.id, workflow.id, 'result', { ok: true });
-await router.disconnect();
+const router = await ContextRouter.local();
+const flow = await router.start('Demo');
+await flow.set('result', { ok: true });
+console.log((await flow.handoff()).summary);
+await flow.complete();
+await router.close();
 ```
 
-Every state, checkpoint, handoff, and workflow call uses explicit workspace and
-workflow identifiers. Tool failures throw `ContextRouterError`.
+SQLite is created automatically in the operating system's application-data
+directory. Run `context-router doctor` or `context-router status` after
+installation to inspect it. The existing explicit workspace/workflow-ID API is
+also available. Tool failures throw `ContextRouterError`.
