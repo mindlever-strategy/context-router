@@ -10,8 +10,8 @@ npm install @context-router/langgraph-adapter
 
 **Requirements:**
 - Node.js >= 20
-- `@context-router/sdk` (peer dependency, installed automatically)
-- `langgraph-sdk` (peer dependency, install separately)
+- `@context-router/sdk` (installed as a dependency)
+- `@langchain/langgraph` (optional peer — install separately when wiring a graph)
 
 ## Quick Example
 

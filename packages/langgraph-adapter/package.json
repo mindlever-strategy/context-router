@@ -53,7 +53,12 @@
     "@context-router/sdk": "^0.4.0"
   },
   "peerDependencies": {
-    "langgraph-sdk": "^0.1.0"
+    "@langchain/langgraph": ">=0.2.0"
+  },
+  "peerDependenciesMeta": {
+    "@langchain/langgraph": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "typescript": "^5.4.0",
