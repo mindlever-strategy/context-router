@@ -15,7 +15,7 @@
 
 <p align="center">
   <a href="./LICENSE"><img alt="Apache-2.0 License" src="https://img.shields.io/badge/license-Apache--2.0-7C5CFC?style=flat-square"></a>
-  <img alt="Release status" src="https://img.shields.io/badge/status-v0.3.1%20preview-25D9FF?style=flat-square">
+  <img alt="Release status" src="https://img.shields.io/badge/status-v0.4.0%20preview-25D9FF?style=flat-square">
   <img alt="Node.js 20+" src="https://img.shields.io/badge/Node.js-20%2B-5FA04E?style=flat-square">
   <img alt="SQLite default" src="https://img.shields.io/badge/storage-SQLite%20%7C%20PostgreSQL-4169E1?style=flat-square">
   <img alt="Model Context Protocol" src="https://img.shields.io/badge/protocol-MCP-8B5CFF?style=flat-square">
@@ -171,9 +171,13 @@ Pick the workflow pattern that matches your use case:
 | Linear agent chain          | [docs/workflows/simple-pipeline.md](docs/workflows/simple-pipeline.md) | `node scripts/run-example.mjs simple-pipeline` · [examples/simple-pipeline.py](examples/simple-pipeline.py) |
 | Parallel fan-out + merge    | [docs/workflows/parallel-merge.md](docs/workflows/parallel-merge.md)   | `node scripts/run-example.mjs parallel-merge`  |
 | Checkpoint retry / recovery | [docs/workflows/retry-recovery.md](docs/workflows/retry-recovery.md)   | `node scripts/run-example.mjs retry-recovery`  |
+| Multi-agent orchestrator    | [examples/multi-agent-orchestrator.ts](examples/multi-agent-orchestrator.ts) | `node scripts/run-example.mjs multi-agent-orchestrator` |
+| Human-in-the-loop review    | [examples/human-in-the-loop.ts](examples/human-in-the-loop.ts)         | `node scripts/run-example.mjs human-in-the-loop` |
+| Content generation pipeline | [examples/content-pipeline.ts](examples/content-pipeline.ts)         | `node scripts/run-example.mjs content-pipeline` |
+| LangGraph integration       | [examples/langgraph-example.ts](examples/langgraph-example.ts)       | `node scripts/run-example.mjs langgraph` |
 | Cursor + Python cookbook    | [USING.md](USING.md)                                                   | recipes for MCP + `context_router`             |
 
-The recommended SDK entry point is `ContextRouter.local()` and `router.start()` — you do not need to learn all 29 MCP tools to get started.
+The recommended SDK entry point is `ContextRouter.local()` and `router.start()` — you do not need to learn all 30 MCP tools to get started.
 
 ## Runnable examples
 
@@ -201,6 +205,38 @@ node scripts/run-example.mjs parallel-merge
 
 ```bash
 node scripts/run-example.mjs retry-recovery
+```
+
+### Multi-Agent Orchestrator
+
+[examples/multi-agent-orchestrator.ts](examples/multi-agent-orchestrator.ts) — Coordinator pattern with conditional branching
+
+```bash
+node scripts/run-example.mjs multi-agent-orchestrator
+```
+
+### Human-in-the-Loop
+
+[examples/human-in-the-loop.ts](examples/human-in-the-loop.ts) — Approval workflows with revision loops
+
+```bash
+AUTO_APPROVE=true node scripts/run-example.mjs human-in-the-loop
+```
+
+### Content Pipeline
+
+[examples/content-pipeline.ts](examples/content-pipeline.ts) — Multi-stage content generation with social variants
+
+```bash
+node scripts/run-example.mjs content-pipeline
+```
+
+### LangGraph Integration
+
+[examples/langgraph-example.ts](examples/langgraph-example.ts) — Using Context Router with LangGraph workflows
+
+```bash
+node scripts/run-example.mjs langgraph
 ```
 
 You can also run an example directly with `node --experimental-strip-types examples/simple-pipeline.ts`.
@@ -295,7 +331,7 @@ See the complete
 ## MCP tool surface
 
 <details>
-<summary><strong>View all 29 tools</strong></summary>
+<summary><strong>View all 30 tools</strong></summary>
 
 | Area       | Tools                                                                                         |
 | ---------- | --------------------------------------------------------------------------------------------- |
@@ -308,6 +344,7 @@ See the complete
 | Handoff    | `handoff_generate`, `handoff_apply`                                                           |
 | Step       | `step_run_start`, `step_run_complete`, `step_run_fail`                                        |
 | Agent role | `agent_role_create`, `agent_role_list`                                                        |
+| Debugger   | `debugger_inspect` (list/inspect/diff/tail workflows)                                         |
 
 Every tool returns one stable JSON envelope:
 
@@ -336,28 +373,33 @@ context-router/
 ├── USING.md              # Cursor + Python usage guide (start here for adopters)
 ├── packages/
 │   ├── server/           # MCP server (@context-router/mcp-server), tools, Prisma
-│   ├── sdk-typescript/   # Publishable TypeScript SDK (@context-router/sdk)
-│   └── sdk-python/       # Python SDK (context-router on PyPI, v0.4.0)
+│   ├── sdk-typescript/   # TypeScript SDK (@context-router/sdk)
+│   ├── sdk-python/       # Python SDK (ctxrouter on PyPI)
+│   ├── langgraph-adapter/ # LangGraph checkpointer adapter
+│   └── crewai-adapter/   # CREWAI memory adapter
 ├── examples/             # TypeScript + Python end-to-end examples
-├── docs/                 # Architecture, API, Cursor setup, workflows, release docs
-├── scripts/              # MCP smoke checks and example runners
+├── docs/                 # Architecture, API, Cursor setup, workflows, publishing
+├── scripts/              # MCP smoke checks, example runners, publish scripts
 └── docker-compose.yml    # Optional local PostgreSQL 16
 ```
 
 ## Current status
 
-Context Router is an **early open-source preview** (npm packages at **v0.3.1**;
+Context Router is an **early open-source preview** (npm packages at **v0.4.0**;
 Python SDK at **v0.4.0**).
 
 Already working:
 
 - TypeScript build and type-checking
 - unit and SDK contract tests (TypeScript + Python)
-- MCP discovery smoke test for all 29 tools
+- MCP discovery smoke test for all 30 tools
 - SQLite and PostgreSQL integration test suites in CI
 - clean npm package generation (`@context-router/mcp-server`, `@context-router/sdk`)
 - Python SDK with MCP stdio transport and TypeScript API parity
 - zero-config Cursor MCP via `npx @context-router/mcp-server`
+- LangGraph and CREWAI adapter packages
+- Visual workflow debugger (`debugger_inspect` tool)
+- Improved error messages with actionable suggestions
 - zero known production dependency vulnerabilities
 
 Deliberately outside the current preview:
@@ -375,7 +417,8 @@ Please do not expose the stdio server directly to an untrusted network.
 - **v0.2:** CAS writes, step execution, agent roles, provenance, structured handoffs
 - **v0.3:** SQLite default, Node 20+, local workflow SDK, doctor/status CLI
 - **v0.3.1 / Python 0.4.0:** workflow guides, Python SDK, Cursor zero-config docs
-- **Next:** more workflow templates, integration adapters, publish polish
+- **v0.4.0:** LangGraph/CREWAI adapters, workflow debugger, improved error messages
+- **Next:** PyPI publish, visual debugger, event journal, AI-assisted handoffs
 - **Later evaluation:** remote transport, authentication, observability, hosted deployment
 
 See the detailed [roadmap](docs/roadmap.md).
@@ -396,6 +439,9 @@ opening a public issue.
 - [Architecture](docs/architecture.md)
 - [MCP tool API](docs/api.md)
 - [Workflow patterns](docs/workflows/simple-pipeline.md)
+- [LangGraph adapter](packages/langgraph-adapter/README.md)
+- [CREWAI adapter](packages/crewai-adapter/README.md)
+- [Publishing guide](docs/publishing.md)
 - [Roadmap](docs/roadmap.md)
 - [Release checklist](docs/release-checklist.md)
 - [Changelog](CHANGELOG.md)

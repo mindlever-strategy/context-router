@@ -31,8 +31,11 @@
 - [x] Functional Python SDK in monorepo (`packages/sdk-python`, v0.4.0)
 - [ ] Python SDK published to PyPI
 - [x] Additional first-class workflow examples and `docs/workflows/` guides
+- [x] LangGraph adapter (`packages/langgraph-adapter`)
+- [x] Improved error messages with actionable suggestions
+- [x] Flexible state storage (arrays, nested objects)
 - Visual workflow debugger evaluation
-- LangGraph and CrewAI adapter evaluation
+- CrewAI adapter evaluation
 - Event journal and checkpoint compaction
 - AI-assisted handoff summaries (optional)
 

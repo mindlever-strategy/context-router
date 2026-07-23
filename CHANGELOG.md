@@ -5,6 +5,26 @@ Semantic Versioning.
 
 ## [Unreleased]
 
+### Added
+
+- **Multi-agent orchestrator example** (`examples/multi-agent-orchestrator.ts`) - Coordinator pattern with specialist agents
+- **Human-in-the-loop example** (`examples/human-in-the-loop.ts`) - Approval workflows with revision loops
+- **Content pipeline example** (`examples/content-pipeline.ts`) - Multi-stage content generation
+- **LangGraph example** (`examples/langgraph-example.ts`) - Integration patterns for LangGraph workflows
+- **LangGraph adapter package** (`packages/langgraph-adapter`) - Official adapter for LangGraph checkpointer
+
+### Fixed
+
+- State storage now accepts arrays and nested objects (was limited to flat objects)
+- Native module rebuild (`better-sqlite3`) resolves Node.js version mismatch
+
+### Improved
+
+- **Error messages** - All error codes now have human-readable descriptions
+- **Validation errors** - Schema validation produces actionable messages with value previews
+- **Error suggestions** - Common errors include tips on how to fix them
+- **README** - Added workflow examples table and documentation for new examples
+
 ## [0.3.1] - 2026-07-21
 
 ### Added

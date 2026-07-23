@@ -57,7 +57,21 @@ export function registerStateTools(
             workspaceId: uuid,
             workflowId: uuid,
             key: string,
-            value: object,
+            // Align with z.unknown(): accept any JSON value (not only objects).
+            // MCP clients that validate against this schema reject arrays/scalars
+            // if type is restricted to "object".
+            value: {
+              description:
+                'Any JSON value: object, array, string, number, boolean, or null',
+              anyOf: [
+                { type: 'object' },
+                { type: 'array' },
+                { type: 'string' },
+                { type: 'number' },
+                { type: 'boolean' },
+                { type: 'null' },
+              ],
+            },
             schemaName: string,
             expectedVersion: number,
             agentRole: string,
@@ -73,7 +87,7 @@ export function registerStateTools(
       z.object({
         ...identifiers,
         key: z.string().min(1).max(255),
-        value: z.record(z.string(), z.unknown()),
+        value: z.unknown(), // Accept any JSON value including arrays and nested objects
         schemaName: z.string().min(1).max(100).optional(),
         expectedVersion: z.number().int().min(0).optional(),
         agentRole: z.string().min(1).max(100).optional(),

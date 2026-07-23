@@ -2,6 +2,7 @@
   "name": "context-router",
   "version": "0.3.1",
   "private": true,
+  "type": "module",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
@@ -22,7 +23,7 @@
     "format": "prettier --write .",
     "db:generate": "npm run db:generate --workspace=@context-router/mcp-server",
     "db:migrate": "npm run db:migrate --workspace=@context-router/mcp-server",
-    "pack:check": "npm pack --dry-run --workspace=@context-router/mcp-server && npm pack --dry-run --workspace=@context-router/sdk",
+    "pack:check": "npm pack --dry-run --workspace=@context-router/mcp-server && npm pack --dry-run --workspace=@context-router/sdk && npm pack --dry-run --workspace=@context-router/langgraph-adapter && npm pack --dry-run --workspace=@context-router/crewai-adapter",
     "release:python:check": "node scripts/release-python-check.mjs",
     "changeset": "changeset",
     "changeset:version": "changeset version",

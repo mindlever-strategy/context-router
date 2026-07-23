@@ -18,6 +18,7 @@ import { registerWorkflowTools } from './tools/workflow.js';
 import { registerStepTools } from './tools/step.js';
 import { registerAgentRoleTools } from './tools/agent-role.js';
 import { registerRouterTools } from './tools/router.js';
+import { registerDebuggerTools } from './tools/debugger-tool.js';
 import { failure, type Tool } from './tools/tool-kit.js';
 
 // Create and configure the MCP server with all registered tools
@@ -67,6 +68,9 @@ agentRoleTools.forEach((tool, name) => allTools.set(name, tool));
 
 const routerTools = registerRouterTools(server, getCurrentUserId);
 routerTools.forEach((tool, name) => allTools.set(name, tool));
+
+const debuggerTools = registerDebuggerTools(server, getCurrentUserId);
+debuggerTools.forEach((tool, name) => allTools.set(name, tool));
 
 // Tool listing handler - returns all available tools
 server.setRequestHandler(ListToolsRequestSchema, async () => {

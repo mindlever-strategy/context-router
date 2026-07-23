@@ -535,6 +535,7 @@ TypeScript twin: [examples/lead-qualification.ts](examples/lead-qualification.ts
 | Symptom | Likely cause | Fix |
 |---------|--------------|-----|
 | Cursor shows no `context-router` tools | MCP config missing / not refreshed | Add `npx -y @context-router/mcp-server`, restart or refresh MCP |
+| `NODE_MODULE_VERSION` / `better-sqlite3` mismatch on Windows | Cursor starts MCP with bundled Node 22 while native modules were built under system Node (e.g. 25) | Pin MCP `command` to the absolute path from `where node` (same binary used for `npm install`); run `npm rebuild better-sqlite3` after a Node major upgrade |
 | `NODE_NOT_FOUND` from Python | Node.js not on `PATH` | Install Node 20+ and reopen the terminal |
 | `SERVER_NOT_FOUND` from Python | MCP server not installed / not built | `npm i @context-router/mcp-server` or `npm run build` in monorepo; or set `CONTEXT_ROUTER_MCP_ENTRY` |
 | Tools fail with DB errors after switching engines | Mixed SQLite / Postgres env | Unset the unused of `DATABASE_URL` / `CONTEXT_ROUTER_DATA_DIR` |

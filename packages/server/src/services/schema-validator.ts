@@ -21,6 +21,7 @@ export type ValidationError = {
   path: string;
   expected: string;
   received: unknown;
+  message?: string; // Human-readable message
 };
 
 export class SchemaValidator {
@@ -31,7 +32,13 @@ export class SchemaValidator {
     const errors: ValidationError[] = [];
 
     if (typeof data !== 'object' || data === null) {
-      return [{ path: '', expected: 'object', received: data }];
+      return [
+        {
+          path: '',
+          expected: 'object',
+          received: this.sanitizeReceived(data),
+        },
+      ];
     }
 
     const record = data as Record<string, unknown>;
@@ -45,7 +52,7 @@ export class SchemaValidator {
           errors.push({
             path: key,
             expected: fieldDef.type,
-            received: undefined,
+            received: this.sanitizeReceived(undefined),
           });
         }
         continue;
@@ -99,7 +106,7 @@ export class SchemaValidator {
           errors.push({
             path: requiredField,
             expected: `required when ${rule.when.field}=${String(rule.when.eq)}`,
-            received: value,
+            received: this.sanitizeReceived(value),
           });
         }
       }
@@ -132,29 +139,51 @@ export class SchemaValidator {
     fieldDef: FieldDefinition,
   ): ValidationError[] {
     const errors: ValidationError[] = [];
+    const valuePreview = this.previewValue(value);
+    const received = this.sanitizeReceived(value);
 
     switch (fieldDef.type) {
       case 'string':
         if (typeof value !== 'string') {
-          errors.push({ path, expected: 'string', received: value });
+          errors.push({
+            path,
+            expected: 'string',
+            received,
+            message: `Expected string but received ${typeof value}: ${valuePreview}`,
+          });
         }
         break;
 
       case 'integer':
         if (!Number.isInteger(value)) {
-          errors.push({ path, expected: 'integer', received: value });
+          errors.push({
+            path,
+            expected: 'integer',
+            received,
+            message: `Expected integer but received ${typeof value} (${valuePreview}). Use Math.floor() or parseInt().`,
+          });
         }
         break;
 
       case 'number':
         if (typeof value !== 'number') {
-          errors.push({ path, expected: 'number', received: value });
+          errors.push({
+            path,
+            expected: 'number',
+            received,
+            message: `Expected number but received ${typeof value}: ${valuePreview}`,
+          });
         }
         break;
 
       case 'boolean':
         if (typeof value !== 'boolean') {
-          errors.push({ path, expected: 'boolean', received: value });
+          errors.push({
+            path,
+            expected: 'boolean',
+            received,
+            message: `Expected boolean (true/false) but received ${typeof value}: ${valuePreview}`,
+          });
         }
         break;
 
@@ -162,19 +191,35 @@ export class SchemaValidator {
         if (!fieldDef.values?.includes(value as string)) {
           errors.push({
             path,
-            expected: `enum(${fieldDef.values?.join(' | ')})`,
-            received: value,
+            expected: `one of [${fieldDef.values?.join(', ')}]`,
+            received,
+            message: `Invalid enum value ${valuePreview}. Must be one of: ${fieldDef.values?.join(', ')}`,
           });
         }
         break;
 
       case 'object':
-        if (
-          typeof value !== 'object' ||
-          value === null ||
-          Array.isArray(value)
-        ) {
-          errors.push({ path, expected: 'object', received: value });
+        if (value === null) {
+          errors.push({
+            path,
+            expected: 'object',
+            received,
+            message: 'Object cannot be null. Use {} or omit the field.',
+          });
+        } else if (Array.isArray(value)) {
+          errors.push({
+            path,
+            expected: 'object',
+            received,
+            message: `Expected object but received array. If you need an array, define it in the schema with type: "array".`,
+          });
+        } else if (typeof value !== 'object') {
+          errors.push({
+            path,
+            expected: 'object',
+            received,
+            message: `Expected object but received ${typeof value}: ${valuePreview}`,
+          });
         } else if (fieldDef.fields) {
           const nestedErrors = this.validate(fieldDef.fields, value);
           errors.push(
@@ -188,7 +233,12 @@ export class SchemaValidator {
 
       case 'array':
         if (!Array.isArray(value)) {
-          errors.push({ path, expected: 'array', received: value });
+          errors.push({
+            path,
+            expected: 'array',
+            received,
+            message: `Expected array but received ${typeof value}: ${valuePreview}. Wrap the value in brackets [] if you intended an array.`,
+          });
         } else if (fieldDef.itemType) {
           value.forEach((item, index) => {
             const itemErrors = this.validateField(
@@ -203,5 +253,54 @@ export class SchemaValidator {
     }
 
     return errors;
+  }
+
+  /**
+   * Safe descriptor for error messages — type/length only, never content.
+   * Avoids leaking tokens, API keys, or PII into MCP client context.
+   */
+  private previewValue(value: unknown): string {
+    if (value === null) return 'null';
+    if (value === undefined) return 'undefined';
+    if (typeof value === 'string') {
+      return `string(length=${value.length})`;
+    }
+    if (typeof value === 'number') {
+      return Number.isInteger(value) ? 'integer' : 'number';
+    }
+    if (typeof value === 'boolean') {
+      return 'boolean';
+    }
+    if (Array.isArray(value)) {
+      return `Array(length=${value.length})`;
+    }
+    if (typeof value === 'object') {
+      return `Object(keys=${Object.keys(value as object).length})`;
+    }
+    return typeof value;
+  }
+
+  /**
+   * Sanitize `received` for MCP responses so raw values are not echoed.
+   * null/undefined kept as-is (no content to leak).
+   */
+  private sanitizeReceived(value: unknown): unknown {
+    if (value === null || value === undefined) return value;
+    if (typeof value === 'string') {
+      return { type: 'string', length: value.length };
+    }
+    if (typeof value === 'number' || typeof value === 'boolean') {
+      return { type: typeof value };
+    }
+    if (Array.isArray(value)) {
+      return { type: 'array', length: value.length };
+    }
+    if (typeof value === 'object') {
+      return {
+        type: 'object',
+        keyCount: Object.keys(value as object).length,
+      };
+    }
+    return { type: typeof value };
   }
 }

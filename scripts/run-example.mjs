@@ -16,6 +16,10 @@ const examples = {
   'simple-pipeline': 'examples/simple-pipeline.ts',
   'parallel-merge': 'examples/parallel-merge.ts',
   'retry-recovery': 'examples/retry-recovery.ts',
+  'multi-agent-orchestrator': 'examples/multi-agent-orchestrator.ts',
+  'human-in-the-loop': 'examples/human-in-the-loop.ts',
+  'content-pipeline': 'examples/content-pipeline.ts',
+  'langgraph': 'examples/langgraph-example.ts',
 };
 
 const sdkDist = resolve(process.cwd(), 'packages/sdk-typescript/dist/index.js');

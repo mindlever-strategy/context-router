@@ -1,14 +1,14 @@
 {
-  "name": "@context-router/sdk",
-  "version": "0.4.0",
-  "description": "TypeScript SDK for the Context Router MCP server",
+  "name": "@context-router/crewai-adapter",
+  "version": "0.1.0",
+  "description": "CREWAI adapter for Context Router - brings structured state to CREWAI crews and agents",
   "type": "module",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
     }
   },
   "files": [
@@ -16,24 +16,22 @@
     "README.md",
     "LICENSE"
   ],
-  "bin": {
-    "context-router": "dist/cli.js"
-  },
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/mindlever-strategy/context-router.git",
-    "directory": "packages/sdk-typescript"
+    "directory": "packages/crewai-adapter"
   },
   "homepage": "https://github.com/mindlever-strategy/context-router#readme",
   "bugs": {
     "url": "https://github.com/mindlever-strategy/context-router/issues"
   },
   "keywords": [
-    "mcp",
+    "context-router",
+    "crewai",
     "agents",
-    "sdk",
-    "context-router"
+    "memory",
+    "multi-agent"
   ],
   "publishConfig": {
     "access": "public",
@@ -43,18 +41,24 @@
     "node": ">=20"
   },
   "scripts": {
-    "build": "rimraf dist && tsc",
-    "typecheck": "tsc --noEmit",
+    "build": "tsc",
+    "dev": "tsc --watch",
     "test": "vitest run",
     "prepack": "npm run build"
   },
   "dependencies": {
-    "@context-router/mcp-server": "0.4.0",
-    "@modelcontextprotocol/sdk": "^1.29.0"
+    "@context-router/sdk": "^0.4.0"
+  },
+  "peerDependencies": {
+    "crewai": "^0.80.0"
+  },
+  "peerDependenciesMeta": {
+    "crewai": {
+      "optional": true
+    }
   },
   "devDependencies": {
-    "@types/node": "^20.0.0",
-    "typescript": "^5.6.0",
+    "typescript": "^5.4.0",
     "vitest": "^4.1.10"
   }
 }

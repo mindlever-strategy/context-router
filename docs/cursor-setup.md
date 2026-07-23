@@ -56,6 +56,34 @@ Then point Cursor at the built server (adjust the path to your checkout):
 }
 ```
 
+### Windows / Cursor: pin the Node binary
+
+On Windows, Cursor often resolves bare `"command": "node"` to its bundled helper
+Node (e.g. v22), not the Node you use in a terminal for `npm install`. The
+server depends on native `better-sqlite3`, which must be compiled for the same
+Node ABI that starts the MCP process.
+
+Use the **absolute path** to the Node binary you use for installs (check with
+`where node` and `node -v`):
+
+```json
+{
+  "mcpServers": {
+    "context-router": {
+      "command": "C:\\Program Files\\nodejs\\node.exe",
+      "args": ["path/to/context-router/packages/server/dist/index.js"]
+    }
+  }
+}
+```
+
+After upgrading Node (e.g. 25 → 26), rebuild native modules once:
+
+```powershell
+cd path/to/context-router
+npm rebuild better-sqlite3
+```
+
 ## 3. Multi-agent prompt pattern
 
 When running a multi-step workflow in Cursor Agent:
