@@ -28,6 +28,7 @@ import { registerStepTools } from './tools/step.js';
 import { registerWorkflowTools } from './tools/workflow.js';
 import { registerWorkspaceTools } from './tools/workspace.js';
 import { registerRouterTools } from './tools/router.js';
+import { registerDebuggerTools } from './tools/debugger-tool.js';
 
 const hasDatabase = Boolean(process.env.DATABASE_URL);
 const integration = hasDatabase ? describe : describe.skip;
@@ -49,7 +50,7 @@ integration('PostgreSQL vertical slice', () => {
     await prisma.$disconnect();
   });
 
-  it('registers the stable 29-tool MCP surface', () => {
+  it('registers the stable 30-tool MCP surface', () => {
     const server = {} as never;
     const owner = () => ownerId;
     const registries = [
@@ -62,10 +63,11 @@ integration('PostgreSQL vertical slice', () => {
       registerStepTools(server, owner),
       registerAgentRoleTools(server, owner),
       registerRouterTools(server, owner),
+      registerDebuggerTools(server, owner),
     ];
     expect(
       registries.reduce((count, registry) => count + registry.size, 0),
-    ).toBe(29);
+    ).toBe(30);
   });
 
   it('ensures one named workspace and reports owner-scoped status', async () => {

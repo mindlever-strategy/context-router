@@ -52,7 +52,7 @@ try {
   }
   const diagnosis = JSON.parse(doctor.stdout.trim());
   if (!diagnosis.ok) throw new Error('Doctor reported an unhealthy runtime');
-  console.log('LOCAL_SMOKE_OK persisted=true tools=29');
+  console.log('LOCAL_SMOKE_OK persisted=true tools=30');
 } finally {
   await rm(dataDirectory, { recursive: true, force: true });
 }

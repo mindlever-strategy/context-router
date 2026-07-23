@@ -67,7 +67,7 @@ MCP-compatible agent system a reliable place to exchange workflow state.
 
 ## What you get
 
-- **29 MCP tools** across workspaces, schemas, workflows, state, checkpoints,
+- **30 MCP tools** across workspaces, schemas, workflows, state, checkpoints,
   handoffs, step execution, and agent roles
 - **Schema-enforced state** with nested objects, arrays, enums, and required fields
 - **Selective context reads** so each agent receives only relevant state keys

@@ -24,10 +24,10 @@ const transport = new StdioClientTransport({
 try {
   await client.connect(transport);
   const result = await client.listTools();
-  if (result.tools.length !== 29) {
-    throw new Error(`Expected 29 tools, received ${result.tools.length}`);
+  if (result.tools.length !== 30) {
+    throw new Error(`Expected 30 tools, received ${result.tools.length}`);
   }
-  console.log('MCP_SMOKE_OK tools=29');
+  console.log('MCP_SMOKE_OK tools=30');
 } finally {
   await client.close();
   await rm(dataDirectory, { recursive: true, force: true });

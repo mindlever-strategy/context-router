@@ -37,7 +37,7 @@ It does **not**:
 
 It **does**:
 
-- give Cursor (or any MCP client) 29 tools for workspaces, schemas, workflows, state, checkpoints, handoffs, steps, and agent roles
+- give Cursor (or any MCP client) 30 tools for workspaces, schemas, workflows, state, checkpoints, handoffs, steps, agent roles, and debugger inspect
 - give TypeScript and Python SDKs a high-level session API (`start` → `set` → `handoff` → `complete`)
 
 ---
@@ -50,7 +50,7 @@ It **does**:
 | Scripts, apps, or services that manage workflow state in code | **Python SDK** and/or **TypeScript SDK** |
 | Both (Cursor for interactive work, Python for automation) | Same SQLite store can be shared if you point both at the same data dir / owner |
 
-**Rule of thumb:** prefer the SDK session API in code; prefer MCP tools in Cursor Agent. You do not need all 29 tools to get value — start with workspace → workflow → state → handoff → complete.
+**Rule of thumb:** prefer the SDK session API in code; prefer MCP tools in Cursor Agent. You do not need all 30 tools to get value — start with workspace → workflow → state → handoff → complete.
 
 ---
 

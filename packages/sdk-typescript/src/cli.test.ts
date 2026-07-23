@@ -28,7 +28,7 @@ function healthyRouter() {
   return Promise.resolve({
     status: () => Promise.resolve(status),
     discoverTools: () =>
-      Promise.resolve(Array.from({ length: 29 }, (_, i) => `tool-${i}`)),
+      Promise.resolve(Array.from({ length: 30 }, (_, i) => `tool-${i}`)),
     close: () => Promise.resolve(),
   });
 }

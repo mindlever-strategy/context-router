@@ -95,8 +95,8 @@ async function runDoctor(
     const tools = await router.discoverTools();
     checks.push({
       name: 'mcp-tools',
-      ok: tools.length === 29,
-      message: `Discovered ${tools.length} tools${tools.length === 29 ? '' : '; expected 29'}`,
+      ok: tools.length === 30,
+      message: `Discovered ${tools.length} tools${tools.length === 30 ? '' : '; expected 30'}`,
     });
   } catch (error) {
     checks.push({

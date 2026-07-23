@@ -42,7 +42,8 @@ async def test_checkpoint_and_handoff(temp_data_dir, skip_without_server) -> Non
 async def test_discover_tools(temp_data_dir, skip_without_server) -> None:
     async with await ContextRouter.local(data_dir=str(temp_data_dir)) as router:
         tools = await router.discover_tools()
-        assert len(tools) == 29
+        assert len(tools) == 30
+        assert "debugger_inspect" in tools
 
 
 @pytest.mark.integration
