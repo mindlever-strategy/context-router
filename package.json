@@ -13,9 +13,10 @@
   ],
   "scripts": {
     "dev": "npm run dev --workspace=@context-router/mcp-server",
-    "build": "npm run db:generate && npm run build --workspaces --if-present",
+    "build": "npm run db:generate && npm run build --workspace=@context-router/mcp-server && npm run build --workspace=@context-router/sdk && npm run build --workspace=@context-router/langgraph-adapter && npm run build --workspace=@context-router/crewai-adapter",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
+    "pretest": "npm run build",
     "test:mcp": "node scripts/mcp-smoke.mjs",
     "test:local": "node scripts/local-smoke.mjs",
     "test:integration": "npm run test:integration --workspace=@context-router/mcp-server",
