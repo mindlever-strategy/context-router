@@ -15,11 +15,41 @@
       "types": "./dist/mcp/index.d.ts"
     }
   },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mindlever-strategy/context-router.git",
+    "directory": "packages/autogen-adapter"
+  },
+  "homepage": "https://github.com/mindlever-strategy/context-router#readme",
+  "bugs": {
+    "url": "https://github.com/mindlever-strategy/context-router/issues"
+  },
+  "keywords": [
+    "autogen",
+    "context-router",
+    "agents",
+    "multi-agent",
+    "mcp"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "build": "tsc",
     "test": "vitest run",
     "test:watch": "vitest",
-    "lint": "eslint src"
+    "lint": "eslint src",
+    "prepack": "npm run build"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32.0",

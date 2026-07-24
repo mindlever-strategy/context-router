@@ -2,6 +2,8 @@ name: Publish npm (manual)
 
 # Use when Changesets already bumped versions on main but npm publish failed
 # (e.g. missing @context-router org). Does not create new version bumps.
+# Skips packages whose current version is already on the registry so a partial
+# release can finish (e.g. autogen after others published).
 
 on:
   workflow_dispatch:
@@ -43,27 +45,27 @@ jobs:
       - run: npm test
       - run: npm run pack:check
 
-      - name: Publish @context-router/mcp-server
-        run: npm publish --workspace=@context-router/mcp-server --access public --provenance
+      - name: Publish packages (skip if version already exists)
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          set -euo pipefail
+          publish_one() {
+            local workspace="$1"
+            local pkg_dir="$2"
+            local name version
+            name="$(node -e "console.log(require('./packages/${pkg_dir}/package.json').name)")"
+            version="$(node -e "console.log(require('./packages/${pkg_dir}/package.json').version)")"
+            if npm view "${name}@${version}" version >/dev/null 2>&1; then
+              echo "Skipping ${name}@${version} (already on npm)"
+              return 0
+            fi
+            echo "Publishing ${name}@${version} ..."
+            npm publish --workspace="${workspace}" --access public --provenance
+          }
 
-      - name: Publish @context-router/sdk
-        run: npm publish --workspace=@context-router/sdk --access public --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: Publish @context-router/langgraph-adapter
-        run: npm publish --workspace=@context-router/langgraph-adapter --access public --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: Publish @context-router/crewai-adapter
-        run: npm publish --workspace=@context-router/crewai-adapter --access public --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: Publish @context-router/autogen-adapter
-        run: npm publish --workspace=@context-router/autogen-adapter --access public --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          publish_one @context-router/mcp-server server
+          publish_one @context-router/sdk sdk-typescript
+          publish_one @context-router/langgraph-adapter langgraph-adapter
+          publish_one @context-router/crewai-adapter crewai-adapter
+          publish_one @context-router/autogen-adapter autogen-adapter
