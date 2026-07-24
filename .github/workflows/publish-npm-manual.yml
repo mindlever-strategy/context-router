@@ -62,3 +62,8 @@ jobs:
         run: npm publish --workspace=@context-router/crewai-adapter --access public --provenance
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish @context-router/autogen-adapter
+        run: npm publish --workspace=@context-router/autogen-adapter --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

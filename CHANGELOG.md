@@ -5,8 +5,16 @@ Semantic Versioning.
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-07-24
+
 ### Added
 
+- **AutoGen adapter package** (`packages/autogen-adapter`) - Full AutoGen agent integration with Context Router
+  - `AutoGenContextManager` for session and context management
+  - `ContextRouterAgentWrapper` for selective context injection
+  - `GroupChatCoordinator` for multi-agent coordination
+  - `MCPAutoGenServer` for Claude Desktop integration
+  - 7 MCP tools: create_session, send_message, get_history, handoff, checkpoint, restore, wrap_agent
 - **Multi-agent orchestrator example** (`examples/multi-agent-orchestrator.ts`) - Coordinator pattern with specialist agents
 - **Human-in-the-loop example** (`examples/human-in-the-loop.ts`) - Approval workflows with revision loops
 - **Content pipeline example** (`examples/content-pipeline.ts`) - Multi-stage content generation
