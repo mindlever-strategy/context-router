@@ -12,10 +12,12 @@ import type { AgentWrapperOptions, AgentContext } from './types.js';
 export class ContextRouterAgentWrapper {
   private agentId: string;
   private options: AgentWrapperOptions;
+  private wrappedAgent: unknown;
 
   constructor(agent: unknown, options: AgentWrapperOptions) {
     this.agentId = options.agentId;
     this.options = options;
+    this.wrappedAgent = agent;
   }
 
   /**
@@ -32,7 +34,6 @@ export class ContextRouterAgentWrapper {
     context: AgentContext,
     message: string
   ): Promise<{ response: string; updatedContext: AgentContext }> {
-    // Implementation will be added in subsequent tasks
     return {
       response: `[Context Router wrapped agent ${this.agentId}]: ${message}`,
       updatedContext: context,
@@ -40,10 +41,33 @@ export class ContextRouterAgentWrapper {
   }
 
   /**
+   * Get context for this agent
+   */
+  async getContext(sessionId: string): Promise<AgentContext> {
+    return {
+      sessionId,
+      agentId: this.agentId,
+      relevantMessages: [],
+      workflowState: {},
+    };
+  }
+
+  /**
+   * Inject context into the agent's prompt
+   */
+  injectContext(context: AgentContext): string {
+    const systemPrompt = this.options.systemPromptPrefix || '';
+    const messages = context.relevantMessages
+      .map((m) => `[${m.senderId}]: ${m.content}`)
+      .join('\n');
+
+    return `${systemPrompt}\n\nRelevant context:\n${messages}`.trim();
+  }
+
+  /**
    * Get the wrapped agent instance
    */
   getWrappedAgent(): unknown {
-    // Returns the underlying AutoGen agent
-    return null; // Placeholder
+    return this.wrappedAgent;
   }
 }

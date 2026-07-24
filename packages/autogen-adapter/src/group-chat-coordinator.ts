@@ -12,9 +12,18 @@ import type { GroupChatConfig, ConversationMessage } from './types.js';
 export class GroupChatCoordinator {
   private config: GroupChatConfig;
   private messages: ConversationMessage[] = [];
+  private sessionId: string;
 
   constructor(config: GroupChatConfig) {
     this.config = config;
+    this.sessionId = `group-session-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  }
+
+  /**
+   * Get the session ID
+   */
+  getSessionId(): string {
+    return this.sessionId;
   }
 
   /**

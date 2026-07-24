@@ -25,7 +25,8 @@ export function createAutoGenAdapter(config: AutoGenAdapterConfig) {
      * Create a new session
      */
     createSession: async (options: { workflowName: string }) => {
-      return contextManager.createSession(options.workflowName);
+      const result = await contextManager.createSession(options.workflowName);
+      return { ...result, workflowName: options.workflowName };
     },
 
     /**
