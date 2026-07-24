@@ -1,6 +1,6 @@
 {
   "name": "@context-router/autogen-adapter",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "AutoGen adapter for Context Router - structured state, selective context, and coordinated handoffs",
   "type": "module",
   "main": "./dist/index.js",
