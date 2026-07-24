@@ -48,3 +48,6 @@ export { GroupChatCoordinator } from './group-chat-coordinator.js';
 
 // Factory function
 export { createAutoGenAdapter } from './adapter.js';
+
+// MCP Server
+export { MCPAutoGenServer } from './mcp/index.js';

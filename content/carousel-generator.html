@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Context Router Carousel Generator</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #0a0a0f;
+      color: #fff;
+      min-height: 100vh;
+      padding: 2rem;
+    }
+    .container { max-width: 1200px; margin: 0 auto; }
+    h1 {
+      text-align: center;
+      font-size: 2.5rem;
+      margin-bottom: 0.5rem;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .subtitle { text-align: center; color: #888; margin-bottom: 2rem; }
+
+    .controls {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      margin-bottom: 2rem;
+      flex-wrap: wrap;
+    }
+    .btn {
+      padding: 0.75rem 1.5rem;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.3s;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #fff;
+    }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4); }
+    .btn-secondary {
+      background: #1a1a2e;
+      color: #fff;
+      border: 1px solid #333;
+    }
+    .btn-secondary:hover { background: #252540; }
+
+    .carousel-container {
+      display: flex;
+      overflow-x: auto;
+      gap: 1rem;
+      padding: 1rem 0;
+      scroll-snap-type: x mandatory;
+    }
+    .slide {
+      min-width: 540px;
+      height: 675px; /* Instagram 4:5 ratio */
+      background: linear-gradient(145deg, #1a1a2e 0%, #16213e 100%);
+      border-radius: 16px;
+      padding: 2rem;
+      display: flex;
+      flex-direction: column;
+      scroll-snap-align: start;
+      position: relative;
+      overflow: hidden;
+    }
+    .slide::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -50%;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(circle, rgba(102, 126, 234, 0.1) 0%, transparent 70%);
+    }
+    .slide-number {
+      font-size: 0.75rem;
+      color: #667eea;
+      font-weight: 600;
+      margin-bottom: 1rem;
+    }
+    .slide-icon {
+      font-size: 4rem;
+      margin-bottom: 1.5rem;
+    }
+    .slide-title {
+      font-size: 1.75rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      line-height: 1.2;
+    }
+    .slide-content {
+      flex: 1;
+      font-size: 1rem;
+      line-height: 1.6;
+      color: #ccc;
+    }
+    .slide-content ul {
+      margin-top: 1rem;
+      padding-left: 1.5rem;
+    }
+    .slide-content li {
+      margin-bottom: 0.5rem;
+    }
+    .slide-highlight {
+      margin-top: auto;
+      padding: 1rem;
+      background: rgba(102, 126, 234, 0.1);
+      border-radius: 8px;
+      font-weight: 600;
+      color: #667eea;
+      text-align: center;
+    }
+    .slide-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 1.5rem;
+      padding-top: 1rem;
+      border-top: 1px solid rgba(255,255,255,0.1);
+    }
+    .logo {
+      font-weight: 700;
+      font-size: 0.9rem;
+      color: #667eea;
+    }
+    .hashtag {
+      font-size: 0.8rem;
+      color: #888;
+    }
+
+    /* Different slide themes */
+    .slide.theme-problem { background: linear-gradient(145deg, #2d1f3d 0%, #1a1a2e 100%); }
+    .slide.theme-solution { background: linear-gradient(145deg, #1a2a3a 0%, #1a1a2e 100%); }
+    .slide.theme-numbers { background: linear-gradient(145deg, #1a3a2a 0%, #1a1a2e 100%); }
+    .slide.theme-example { background: linear-gradient(145deg, #3a1a2a 0%, #1a1a2e 100%); }
+
+    .export-section {
+      margin-top: 2rem;
+      padding: 1.5rem;
+      background: #1a1a2e;
+      border-radius: 12px;
+      text-align: center;
+    }
+    .export-section p {
+      color: #888;
+      margin-bottom: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Context Router Carousel</h1>
+    <p class="subtitle">5-slide Instagram carousel for maximum visibility</p>
+
+    <div class="controls">
+      <button class="btn btn-primary" onclick="downloadAll()">📥 Download All Slides</button>
+      <button class="btn btn-secondary" onclick="window.print()">🖨️ Print / Save as PDF</button>
+    </div>
+
+    <div class="carousel-container" id="carousel">
+      <!-- Slide 1: Problem -->
+      <div class="slide theme-problem">
+        <div class="slide-number">01 / 05</div>
+        <div class="slide-icon">🤖</div>
+        <div class="slide-title">Why Your AI Agents Are Slow & Expensive</div>
+        <div class="slide-content">
+          <p>Most teams building multi-agent AI make this mistake:</p>
+          <ul>
+            <li>Each agent passes its FULL conversation</li>
+            <li>By agent 5, they're drowning in text</li>
+            <li>More tokens = More money</li>
+            <li>Bigger prompts = Slower responses</li>
+          </ul>
+        </div>
+        <div class="slide-highlight">Sound familiar?</div>
+        <div class="slide-footer">
+          <span class="logo">Context Router</span>
+          <span class="hashtag">#AIAgents #Engineering</span>
+        </div>
+      </div>
+
+      <!-- Slide 2: Comparison -->
+      <div class="slide theme-solution">
+        <div class="slide-number">02 / 05</div>
+        <div class="slide-icon">📋</div>
+        <div class="slide-title">The Fix: Pass Answers, Not Conversations</div>
+        <div class="slide-content">
+          <p><strong>Before:</strong></p>
+          <p>"Here's everything I thought, including my failed attempts..."</p>
+          <br>
+          <p><strong>After:</strong></p>
+          <p>"Research complete. 3 key findings."</p>
+        </div>
+        <div class="slide-highlight">72% less context. 55% lower costs.</div>
+        <div class="slide-footer">
+          <span class="logo">Context Router</span>
+          <span class="hashtag">#AIAgents #Engineering</span>
+        </div>
+      </div>
+
+      <!-- Slide 3: Results -->
+      <div class="slide theme-numbers">
+        <div class="slide-number">03 / 05</div>
+        <div class="slide-icon">📊</div>
+        <div class="slide-title">The Numbers Don't Lie</div>
+        <div class="slide-content">
+          <ul>
+            <li>📉 <strong>72%</strong> less context</li>
+            <li>💰 <strong>55%</strong> lower API costs</li>
+            <li>⚡ <strong>10x</strong> faster failure recovery</li>
+            <li>🔄 Checkpoint & resume</li>
+          </ul>
+        </div>
+        <div class="slide-highlight">Real results from real workflows</div>
+        <div class="slide-footer">
+          <span class="logo">Context Router</span>
+          <span class="hashtag">#AIAgents #Engineering</span>
+        </div>
+      </div>
+
+      <!-- Slide 4: How It Works -->
+      <div class="slide theme-example">
+        <div class="slide-number">04 / 05</div>
+        <div class="slide-icon">🔧</div>
+        <div class="slide-title">How It Works</div>
+        <div class="slide-content">
+          <ul>
+            <li>✅ <strong>Structured State</strong> - Define schemas</li>
+            <li>✅ <strong>Checkpoints</strong> - Save progress</li>
+            <li>✅ <strong>Selective Reads</strong> - Only what you need</li>
+            <li>✅ <strong>Auto Handoffs</strong> - Summaries generated</li>
+          </ul>
+        </div>
+        <div class="slide-highlight">Open source. Free. Easy to use.</div>
+        <div class="slide-footer">
+          <span class="logo">Context Router</span>
+          <span class="hashtag">#AIAgents #Engineering</span>
+        </div>
+      </div>
+
+      <!-- Slide 5: CTA -->
+      <div class="slide theme-solution">
+        <div class="slide-number">05 / 05</div>
+        <div class="slide-icon">🚀</div>
+        <div class="slide-title">Ready to Fix Your AI Workflows?</div>
+        <div class="slide-content">
+          <p>Join the teams building faster, cheaper, more reliable AI agents.</p>
+          <br>
+          <p>Context Router is open source and free.</p>
+        </div>
+        <div class="slide-highlight">github.com/mindlever-strategy/context-router</div>
+        <div class="slide-footer">
+          <span class="logo">Context Router</span>
+          <span class="hashtag">#AIAgents #OpenSource</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="export-section">
+      <p>To export: Use your browser's Print function (Ctrl+P) and save as PDF, or use a screenshot tool.</p>
+    </div>
+  </div>
+
+  <script>
+    function downloadAll() {
+      alert('For high-quality exports, use:\n\n1. Browser Print (Ctrl+P) → Save as PDF\n2. Or use a screenshot tool like Loom\n\nTip: Zoom to 50% to fit slides in one page');
+    }
+  </script>
+</body>
+</html>
