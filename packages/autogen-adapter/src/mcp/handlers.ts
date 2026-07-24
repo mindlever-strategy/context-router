@@ -28,8 +28,8 @@ export class MCPHandlers {
   private wrappedAgents: Map<string, ContextRouterAgentWrapper> = new Map();
   private checkpoints: Map<string, Checkpoint> = new Map();
 
-  constructor(config: AutoGenAdapterConfig) {
-    this.contextManager = new AutoGenContextManager(config);
+  constructor(config: AutoGenAdapterConfig, contextManager?: AutoGenContextManager) {
+    this.contextManager = contextManager ?? new AutoGenContextManager(config);
   }
 
   /**
@@ -42,25 +42,25 @@ export class MCPHandlers {
     try {
       switch (name) {
         case 'autogen_create_session':
-          return this.handleCreateSession(toolArgs);
+          return await this.handleCreateSession(toolArgs);
 
         case 'autogen_send_message':
-          return this.handleSendMessage(toolArgs);
+          return await this.handleSendMessage(toolArgs);
 
         case 'autogen_get_history':
-          return this.handleGetHistory(toolArgs);
+          return await this.handleGetHistory(toolArgs);
 
         case 'autogen_handoff':
-          return this.handleHandoff(toolArgs);
+          return await this.handleHandoff(toolArgs);
 
         case 'autogen_checkpoint':
-          return this.handleCheckpoint(toolArgs);
+          return await this.handleCheckpoint(toolArgs);
 
         case 'autogen_restore':
-          return this.handleRestore(toolArgs);
+          return await this.handleRestore(toolArgs);
 
         case 'autogen_wrap_agent':
-          return this.handleWrapAgent(toolArgs);
+          return await this.handleWrapAgent(toolArgs);
 
         default:
           return this.createErrorResponse(`Unknown tool: ${name}`);
@@ -111,11 +111,11 @@ export class MCPHandlers {
       return this.createErrorResponse('sessionId, agentId, and message are required');
     }
 
-    // Add the message to the session
+    // Add the inbound user message (sender is the user, not the target agent)
     const conversationMessage: ConversationMessage = {
       id: `msg-${Date.now()}-${Math.random().toString(36).slice(2)}`,
       content: message,
-      senderId: agentId,
+      senderId: 'user',
       timestamp: Date.now(),
       type: 'user',
     };
@@ -138,6 +138,16 @@ export class MCPHandlers {
       responseText = `[Agent ${agentId}] Message received. Wrap the agent with autogen_wrap_agent first for full Context Router integration.`;
     }
 
+    const assistantMessage: ConversationMessage = {
+      id: `msg-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      content: responseText,
+      senderId: agentId,
+      timestamp: Date.now(),
+      type: 'assistant',
+    };
+
+    await this.contextManager.addMessage(sessionId, assistantMessage);
+
     return {
       content: [
         {
@@ -145,6 +155,7 @@ export class MCPHandlers {
           text: JSON.stringify({
             success: true,
             messageId: conversationMessage.id,
+            responseId: assistantMessage.id,
             response: responseText,
             context: {
               relevantMessagesCount: context.relevantMessages.length,
@@ -283,8 +294,8 @@ export class MCPHandlers {
       return this.createErrorResponse(`Checkpoint ${checkpointId} belongs to a different session`);
     }
 
-    // For now, we just return info about what would be restored
-    // Full implementation would restore the session state
+    await this.contextManager.replaceMessages(sessionId, checkpoint.messages);
+
     return {
       content: [
         {
@@ -319,6 +330,7 @@ export class MCPHandlers {
       agentId: agentConfig.agentId,
       roleDescription: agentConfig.roleDescription,
       systemPromptPrefix: agentConfig.systemPromptPrefix,
+      contextManager: this.contextManager,
     });
 
     this.wrappedAgents.set(agentConfig.agentId, wrappedAgent);
@@ -360,6 +372,9 @@ export class MCPHandlers {
 /**
  * Create a new MCPHandlers instance
  */
-export function createHandlers(config: AutoGenAdapterConfig): MCPHandlers {
-  return new MCPHandlers(config);
+export function createHandlers(
+  config: AutoGenAdapterConfig,
+  contextManager?: AutoGenContextManager
+): MCPHandlers {
+  return new MCPHandlers(config, contextManager);
 }

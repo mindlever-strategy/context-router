@@ -2,6 +2,8 @@
  * Type definitions for the AutoGen adapter
  */
 
+import type { ContextRouter } from '@context-router/sdk';
+
 /**
  * Configuration options for the AutoGen adapter
  */
@@ -12,6 +14,15 @@ export interface AutoGenAdapterConfig {
   apiKey?: string;
   /** Default session TTL in seconds */
   sessionTtl?: number;
+  /** Optional Context Router instance. Uses ContextRouter.local() if omitted */
+  router?: ContextRouter;
+}
+
+/**
+ * Minimal context lookup used by the agent wrapper (avoids circular value imports).
+ */
+export interface AgentWrapperContextManager {
+  getContext(sessionId: string, agentId: string): Promise<AgentContext>;
 }
 
 /**
@@ -24,6 +35,8 @@ export interface AgentWrapperOptions {
   roleDescription?: string;
   /** System prompt prefix */
   systemPromptPrefix?: string;
+  /** Shared context manager so getContext reads session messages */
+  contextManager?: AgentWrapperContextManager;
 }
 
 /**

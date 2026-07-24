@@ -33,7 +33,10 @@ export function createAutoGenAdapter(config: AutoGenAdapterConfig) {
      * Wrap an AutoGen agent with Context Router integration
      */
     wrapAgent: (agent: unknown, options: AgentWrapperOptions) => {
-      return new ContextRouterAgentWrapper(agent, options);
+      return new ContextRouterAgentWrapper(agent, {
+        ...options,
+        contextManager,
+      });
     },
 
     /**

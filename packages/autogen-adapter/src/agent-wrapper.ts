@@ -44,6 +44,10 @@ export class ContextRouterAgentWrapper {
    * Get context for this agent
    */
   async getContext(sessionId: string): Promise<AgentContext> {
+    if (this.options.contextManager) {
+      return this.options.contextManager.getContext(sessionId, this.agentId);
+    }
+
     return {
       sessionId,
       agentId: this.agentId,

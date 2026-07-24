@@ -26,6 +26,7 @@ import {
 import { autogenTools } from './tools.js';
 import { createHandlers } from './handlers.js';
 import type { AutoGenAdapterConfig } from '../types.js';
+import type { AutoGenContextManager } from '../context-manager.js';
 
 /**
  * MCP Server for AutoGen Adapter
@@ -35,7 +36,7 @@ import type { AutoGenAdapterConfig } from '../types.js';
 export class MCPAutoGenServer {
   private server: Server;
 
-  constructor(config: AutoGenAdapterConfig) {
+  constructor(config: AutoGenAdapterConfig, contextManager?: AutoGenContextManager) {
     this.server = new Server(
       {
         name: 'context-router-autogen',
@@ -48,7 +49,7 @@ export class MCPAutoGenServer {
       }
     );
 
-    const handlers = createHandlers(config);
+    const handlers = createHandlers(config, contextManager);
 
     // Register tool list handler
     this.server.setRequestHandler(ListToolsRequestSchema, async () => ({
