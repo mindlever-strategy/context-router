@@ -1,6 +1,6 @@
 {
   "name": "@context-router/crewai-adapter",
-  "version": "0.1.0",
+  "version": "0.5.0",
   "description": "CREWAI adapter for Context Router - brings structured state to CREWAI crews and agents",
   "type": "module",
   "main": "./dist/index.js",
@@ -47,7 +47,7 @@
     "prepack": "npm run build"
   },
   "dependencies": {
-    "@context-router/sdk": "^0.4.0"
+    "@context-router/sdk": "^0.5.0"
   },
   "peerDependencies": {
     "crewai": "^0.80.0"

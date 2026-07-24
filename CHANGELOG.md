@@ -5,6 +5,17 @@ Semantic Versioning.
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-07-24
+
+### Changed
+
+- Bumped all npm packages to **0.5.0** for a coordinated publish (`mcp-server`, `sdk`, `langgraph-adapter`, `crewai-adapter`, `autogen-adapter`)
+- Adapters now peer-depend on `@context-router/sdk` `^0.5.0`
+
+### Added
+
+- AutoGen adapter session fixes: throwing unknown-session writes, `replaceMessages` restore, optional Context Router SDK persistence, shared context manager across adapter/MCP
+
 ## [0.4.0] - 2026-07-24
 
 ### Added

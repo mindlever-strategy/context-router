@@ -15,7 +15,7 @@
 
 <p align="center">
   <a href="./LICENSE"><img alt="Apache-2.0 License" src="https://img.shields.io/badge/license-Apache--2.0-7C5CFC?style=flat-square"></a>
-  <img alt="Release status" src="https://img.shields.io/badge/status-v0.4.0%20preview-25D9FF?style=flat-square">
+  <img alt="Release status" src="https://img.shields.io/badge/status-v0.5.0%20preview-25D9FF?style=flat-square">
   <img alt="Node.js 20+" src="https://img.shields.io/badge/Node.js-20%2B-5FA04E?style=flat-square">
   <img alt="SQLite default" src="https://img.shields.io/badge/storage-SQLite%20%7C%20PostgreSQL-4169E1?style=flat-square">
   <img alt="Model Context Protocol" src="https://img.shields.io/badge/protocol-MCP-8B5CFF?style=flat-square">
@@ -117,7 +117,7 @@ MCP-compatible agent system a reliable place to exchange workflow state.
 - **Bounded handoff summaries** generated from selected or complete workflow state
 - **Workspace-scoped persistence** for safe local project separation
 - **TypeScript SDK** with a simple workflow session and the full explicit API
-- **Python SDK** (`context-router` v0.4.0) with the same workflow session and MCP tool surface
+- **Python SDK** (`ctxrouter` v0.5.0) with the same workflow session and MCP tool surface
 - **Cursor MCP** via `@context-router/mcp-server` for multi-agent Agent chats
 - **Zero-configuration local runtime** with SQLite by default and PostgreSQL for production
 
@@ -425,8 +425,8 @@ context-router/
 
 ## Current status
 
-Context Router is an **early open-source preview** (npm packages at **v0.4.0**;
-Python SDK at **v0.4.0**).
+Context Router is an **early open-source preview** (npm packages at **v0.5.0**;
+Python SDK at **v0.5.0**).
 
 Already working:
 
@@ -458,6 +458,7 @@ Please do not expose the stdio server directly to an untrusted network.
 - **v0.3:** SQLite default, Node 20+, local workflow SDK, doctor/status CLI
 - **v0.3.1 / Python 0.4.0:** workflow guides, Python SDK, Cursor zero-config docs
 - **v0.4.0:** LangGraph/CREWAI adapters, workflow debugger, improved error messages
+- **v0.5.0:** AutoGen adapter + coordinated npm/Python 0.5.0 publish line
 - **Next:** PyPI publish, visual debugger, event journal, AI-assisted handoffs
 - **Later evaluation:** remote transport, authentication, observability, hosted deployment
 

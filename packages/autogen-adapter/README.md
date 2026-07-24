@@ -13,7 +13,7 @@ npm install @context-router/autogen-adapter
 ```
 
 **Peer Dependencies:**
-- `@context-router/sdk` ^0.4.0
+- `@context-router/sdk` ^0.5.0
 
 ## Quick Start
 
