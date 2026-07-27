@@ -53,4 +53,56 @@ describe('state layer integrity', () => {
       ).toEqual({ ok: { v: 1 } });
     });
   });
+
+  describe('atomic batch writes', () => {
+    it('commits nothing when any entry fails', async () => {
+      const workspace = await queries.createWorkspace('batch-ws', alice);
+      const workflow = await queries.createWorkflow(workspace.id, alice);
+
+      const batch = await queries.writeStateBatch(
+        workspace.id,
+        alice,
+        workflow.id,
+        [
+          { key: 'good_one', value: { ok: true } },
+          // Prisma rejects an undefined value, forcing a real failure
+          // partway through the transaction.
+          {
+            key: 'poison',
+            value: undefined as unknown as Parameters<
+              typeof queries.writeStateBatch
+            >[3][number]['value'],
+          },
+          { key: 'good_two', value: { ok: true } },
+        ],
+        { atomic: true },
+      );
+
+      expect(batch.results.every((result) => !result.success)).toBe(true);
+      expect(
+        await queries.snapshotState(workspace.id, alice, workflow.id),
+      ).toEqual({});
+    });
+
+    it('commits every entry when all succeed', async () => {
+      const workspace = await queries.createWorkspace('batch-ws-2', alice);
+      const workflow = await queries.createWorkflow(workspace.id, alice);
+
+      const batch = await queries.writeStateBatch(
+        workspace.id,
+        alice,
+        workflow.id,
+        [
+          { key: 'a', value: { n: 1 } },
+          { key: 'b', value: { n: 2 } },
+        ],
+        { atomic: true },
+      );
+
+      expect(batch.results.every((result) => result.success)).toBe(true);
+      expect(
+        await queries.snapshotState(workspace.id, alice, workflow.id),
+      ).toEqual({ a: { n: 1 }, b: { n: 2 } });
+    });
+  });
 });

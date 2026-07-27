@@ -796,21 +796,41 @@ export async function writeStateBatch(
   }> = [];
 
   if (options.atomic) {
-    // All or nothing in a transaction
-    await prisma.$transaction(async (tx) => {
-      for (const entry of entries) {
-        try {
-          const result = await writeStateEntry(tx, workspaceId, workflowId, entry);
-          results.push({ key: entry.key, success: true, version: result.version });
-        } catch (error) {
+    // The try/catch must wrap $transaction, not live inside the callback.
+    // A caught error inside the callback lets the transaction commit.
+    try {
+      await prisma.$transaction(async (tx) => {
+        for (const entry of entries) {
+          const written = await writeStateEntry(
+            tx,
+            workspaceId,
+            workflowId,
+            entry,
+          );
           results.push({
             key: entry.key,
-            success: false,
-            error: (error as Error).message,
+            success: true,
+            version: written.version,
           });
         }
-      }
-    });
+      });
+    } catch (error) {
+      // Nothing was committed. Report every entry as failed and name the
+      // one that broke: entries before it rolled back, entries after it
+      // never ran.
+      const failedIndex = results.length;
+      results.length = 0;
+      entries.forEach((entry, index) => {
+        results.push({
+          key: entry.key,
+          success: false,
+          error:
+            index === failedIndex
+              ? (error as Error).message
+              : 'ROLLED_BACK',
+        });
+      });
+    }
   } else {
     // Best effort
     for (const entry of entries) {
