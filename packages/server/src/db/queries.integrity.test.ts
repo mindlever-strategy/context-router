@@ -185,4 +185,104 @@ describe('state layer integrity', () => {
       ).rejects.toThrow('VERSION_CONFLICT');
     });
   });
+
+  describe('batch conflict and schema handling', () => {
+    it('skips existing keys when onConflict is skip', async () => {
+      const workspace = await queries.createWorkspace('conflict-ws', alice);
+      const workflow = await queries.createWorkflow(workspace.id, alice);
+      await queries.writeState(workspace.id, alice, workflow.id, 'k', {
+        original: true,
+      });
+
+      const batch = await queries.writeStateBatch(
+        workspace.id,
+        alice,
+        workflow.id,
+        [
+          { key: 'k', value: { overwritten: true } },
+          { key: 'fresh', value: { n: 1 } },
+        ],
+        { onConflict: 'skip' },
+      );
+
+      expect(batch.results[0]).toMatchObject({ key: 'k', skipped: true });
+      expect(batch.results[1]).toMatchObject({ key: 'fresh', success: true });
+      const snapshot = await queries.snapshotState(
+        workspace.id,
+        alice,
+        workflow.id,
+      );
+      expect(snapshot.k).toEqual({ original: true });
+      expect(snapshot.fresh).toEqual({ n: 1 });
+    });
+
+    it('fails existing keys when onConflict is fail', async () => {
+      const workspace = await queries.createWorkspace('conflict-ws-2', alice);
+      const workflow = await queries.createWorkflow(workspace.id, alice);
+      await queries.writeState(workspace.id, alice, workflow.id, 'k', {
+        original: true,
+      });
+
+      const batch = await queries.writeStateBatch(
+        workspace.id,
+        alice,
+        workflow.id,
+        [{ key: 'k', value: { overwritten: true } }],
+        { onConflict: 'fail' },
+      );
+
+      expect(batch.results[0]).toMatchObject({
+        key: 'k',
+        success: false,
+        error: 'STATE_KEY_EXISTS',
+      });
+      expect(
+        (await queries.snapshotState(workspace.id, alice, workflow.id)).k,
+      ).toEqual({ original: true });
+    });
+
+    it('rejects batch entries that violate their named schema', async () => {
+      const workspace = await queries.createWorkspace('schema-ws', alice);
+      const workflow = await queries.createWorkflow(workspace.id, alice);
+      await queries.createSchema(workspace.id, alice, 'Lead', {
+        name: { type: 'string', required: true },
+      });
+
+      const batch = await queries.writeStateBatch(
+        workspace.id,
+        alice,
+        workflow.id,
+        [{ key: 'lead', value: { name: 42 }, schemaName: 'Lead' }],
+      );
+
+      expect(batch.results[0]).toMatchObject({
+        key: 'lead',
+        success: false,
+        error: 'SCHEMA_VALIDATION_FAILED',
+      });
+      expect(
+        await queries.snapshotState(workspace.id, alice, workflow.id),
+      ).toEqual({});
+    });
+
+    it('accepts batch entries that satisfy their named schema', async () => {
+      const workspace = await queries.createWorkspace('schema-ws-2', alice);
+      const workflow = await queries.createWorkflow(workspace.id, alice);
+      await queries.createSchema(workspace.id, alice, 'Lead', {
+        name: { type: 'string', required: true },
+      });
+
+      const batch = await queries.writeStateBatch(
+        workspace.id,
+        alice,
+        workflow.id,
+        [{ key: 'lead', value: { name: 'Acme' }, schemaName: 'Lead' }],
+      );
+
+      expect(batch.results[0]).toMatchObject({ key: 'lead', success: true });
+      expect(
+        (await queries.snapshotState(workspace.id, alice, workflow.id)).lead,
+      ).toEqual({ name: 'Acme' });
+    });
+  });
 });

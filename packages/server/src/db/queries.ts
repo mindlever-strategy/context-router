@@ -9,6 +9,10 @@ import {
   wrapStateValue,
 } from '../services/provenance.js';
 import { normalizeWorkspaceName } from '../services/workspace.js';
+import {
+  SchemaValidator,
+  type FieldDefinition,
+} from '../services/schema-validator.js';
 import { prisma, storageConfig } from './client.js';
 import {
   journaledStateWrite,
@@ -45,10 +49,20 @@ export type WriteStateBatchOptions = {
   onConflict?: 'upsert' | 'skip' | 'fail';
 };
 
+export type StateBatchResult = {
+  key: string;
+  success: boolean;
+  version?: number;
+  skipped?: boolean;
+  error?: string;
+};
+
 export type ReadStateBatchOptions = {
   agentRole?: string;
   unwrap?: boolean;
 };
+
+const batchValidator = new SchemaValidator();
 
 export async function createWorkspace(name: string, ownerId: string) {
   return publicWorkspace(
@@ -818,25 +832,45 @@ export async function writeStateBatch(
   workflowId: string,
   entries: StateWriteEntry[],
   options: WriteStateBatchOptions = {},
-): Promise<{
-  results: Array<{
-    key: string;
-    success: boolean;
-    version?: number;
-    error?: string;
-  }>;
-  totalDurationMs: number;
-}> {
+): Promise<{ results: StateBatchResult[]; totalDurationMs: number }> {
   const startTime = Date.now();
 
   await requireRunningWorkflow(workspaceId, ownerId, workflowId);
 
-  const results: Array<{
-    key: string;
-    success: boolean;
-    version?: number;
-    error?: string;
-  }> = [];
+  // Validate every named schema up front so an atomic batch never opens a
+  // transaction it is going to abort.
+  const schemaFailures = await validateBatchSchemas(
+    workspaceId,
+    ownerId,
+    entries,
+  );
+  if (schemaFailures.size > 0) {
+    return {
+      results: entries.map((entry) => {
+        const failure = schemaFailures.get(entry.key);
+        return failure
+          ? { key: entry.key, success: false, error: failure }
+          : { key: entry.key, success: false, error: 'NOT_ATTEMPTED' };
+      }),
+      totalDurationMs: Date.now() - startTime,
+    };
+  }
+
+  const onConflict = options.onConflict ?? 'upsert';
+  const existingKeys = new Set(
+    (
+      await prisma.state.findMany({
+        where: {
+          workspaceId,
+          workflowId,
+          key: { in: entries.map((entry) => entry.key) },
+        },
+        select: { key: true },
+      })
+    ).map((state) => state.key),
+  );
+
+  const results: StateBatchResult[] = [];
 
   if (options.atomic) {
     // The try/catch must wrap $transaction, not live inside the callback.
@@ -844,6 +878,13 @@ export async function writeStateBatch(
     try {
       await prisma.$transaction(async (tx) => {
         for (const entry of entries) {
+          if (existingKeys.has(entry.key)) {
+            if (onConflict === 'skip') {
+              results.push({ key: entry.key, success: true, skipped: true });
+              continue;
+            }
+            if (onConflict === 'fail') throw new Error('STATE_KEY_EXISTS');
+          }
           const written = await writeStateEntry(
             tx,
             workspaceId,
@@ -868,25 +909,39 @@ export async function writeStateBatch(
           key: entry.key,
           success: false,
           error:
-            index === failedIndex
-              ? (error as Error).message
-              : 'ROLLED_BACK',
+            index === failedIndex ? (error as Error).message : 'ROLLED_BACK',
         });
       });
     }
   } else {
-    // Best effort
     for (const entry of entries) {
+      if (existingKeys.has(entry.key)) {
+        if (onConflict === 'skip') {
+          results.push({ key: entry.key, success: true, skipped: true });
+          continue;
+        }
+        if (onConflict === 'fail') {
+          results.push({
+            key: entry.key,
+            success: false,
+            error: 'STATE_KEY_EXISTS',
+          });
+          continue;
+        }
+      }
       try {
-        const result = await writeState(
+        const written = await writeState(
           workspaceId,
           ownerId,
           workflowId,
           entry.key,
           entry.value,
-          entry.schemaName ? { provenance: { source: entry.schemaName } } : {},
         );
-        results.push({ key: entry.key, success: true, version: result.version });
+        results.push({
+          key: entry.key,
+          success: true,
+          version: written.version,
+        });
       } catch (error) {
         results.push({
           key: entry.key,
@@ -897,10 +952,50 @@ export async function writeStateBatch(
     }
   }
 
-  return {
-    results,
-    totalDurationMs: Date.now() - startTime,
-  };
+  return { results, totalDurationMs: Date.now() - startTime };
+}
+
+/**
+ * Validates every entry that names a schema.
+ *
+ * Returns a map of key -> error code for entries that failed. An empty map
+ * means the whole batch is safe to write.
+ */
+async function validateBatchSchemas(
+  workspaceId: string,
+  ownerId: string,
+  entries: StateWriteEntry[],
+): Promise<Map<string, string>> {
+  const failures = new Map<string, string>();
+  const schemaCache = new Map<
+    string,
+    Record<string, FieldDefinition> | null
+  >();
+
+  for (const entry of entries) {
+    if (!entry.schemaName) continue;
+
+    if (!schemaCache.has(entry.schemaName)) {
+      const schema = await getSchema(workspaceId, ownerId, entry.schemaName);
+      schemaCache.set(
+        entry.schemaName,
+        schema
+          ? (schema.fields as Record<string, FieldDefinition>)
+          : null,
+      );
+    }
+
+    const fields = schemaCache.get(entry.schemaName);
+    if (!fields) {
+      failures.set(entry.key, 'SCHEMA_NOT_FOUND');
+      continue;
+    }
+    if (batchValidator.validate(fields, entry.value).length > 0) {
+      failures.set(entry.key, 'SCHEMA_VALIDATION_FAILED');
+    }
+  }
+
+  return failures;
 }
 
 export async function readStateBatch(
