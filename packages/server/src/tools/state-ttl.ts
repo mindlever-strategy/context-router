@@ -5,7 +5,7 @@
 
 import type { Server as McpServer } from '@modelcontextprotocol/sdk/server/index.js';
 import { z } from 'zod';
-import { writeStateWithTTL, readStateWithTTL, cleanupExpiredStates } from '../db/queries.js';
+import { writeState, readState, cleanupExpiredStates } from '../db/queries.js';
 import { isTTLCleanupRunning, startTTLCleanup, stopTTLCleanup } from '../services/state-ttl.js';
 import {
   defineTool,
@@ -80,7 +80,7 @@ export function registerStateTTLTools(
           throw new Error('Provide either expiresIn or expiresAt, not both');
         }
 
-        const result = await writeStateWithTTL(
+        const result = await writeState(
           workspaceId,
           getCurrentUserId(),
           workflowId,
@@ -89,7 +89,6 @@ export function registerStateTTLTools(
           {
             expiresIn,
             expiresAt: expiresAt ? new Date(expiresAt) : undefined,
-            refreshOnAccess,
             expectedVersion,
           },
         );
@@ -140,25 +139,25 @@ export function registerStateTTLTools(
         unwrap: z.boolean().optional(),
       }),
       async ({ workspaceId, workflowId, key, refreshOnAccess, unwrap }) => {
-        const result = await readStateWithTTL(
+        const state = await readState(
           workspaceId,
           getCurrentUserId(),
           workflowId,
           key,
-          { refreshOnAccess, unwrap },
+          { unwrap },
         );
 
-        if (!result.found) {
+        if (!state) {
           return { found: false, key, message: 'State not found or expired' };
         }
 
         return {
           found: true,
           key,
-          value: result.value,
-          version: result.version,
-          expiresAt: result.expiresAt,
-          ttlRefreshed: refreshOnAccess ? true : undefined,
+          value: state.value,
+          version: state.version,
+          expiresAt: state.expiresAt,
+          ttlRefreshed: undefined,
         };
       },
     ),

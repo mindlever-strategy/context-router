@@ -35,7 +35,6 @@ export type WriteStateOptions = {
   provenanceMode?: 'per-field' | 'whole-object';
   expiresIn?: number;          // TTL: seconds from now
   expiresAt?: Date;            // TTL: absolute expiration time
-  refreshOnAccess?: boolean;    // Refresh TTL on read
 };
 
 export type StateWriteEntry = {
@@ -341,12 +340,20 @@ export async function writeState(
 
   // Compare-and-set must be a single conditional statement. Reading the
   // version and then writing lets two concurrent writers both pass the check.
+  const expiresAt = resolveExpiry(options);
+
   const state =
     options.expectedVersion === undefined
       ? await prisma.state.upsert({
           where: { workflowId_key: { workflowId, key } },
-          create: { workspaceId, workflowId, key, value: finalValue },
-          update: { value: finalValue, version: { increment: 1 } },
+          create: {
+            workspaceId,
+            workflowId,
+            key,
+            value: finalValue,
+            expiresAt,
+          },
+          update: { value: finalValue, expiresAt, version: { increment: 1 } },
         })
       : await compareAndSetState(
           workspaceId,
@@ -354,6 +361,7 @@ export async function writeState(
           key,
           finalValue,
           options.expectedVersion,
+          expiresAt,
         );
 
   // Journal the state write (fire and forget, don't block the operation)
@@ -382,11 +390,12 @@ async function compareAndSetState(
   key: string,
   value: Prisma.InputJsonValue,
   expectedVersion: number,
+  expiresAt: Date | null,
 ) {
   if (expectedVersion === 0) {
     try {
       return await prisma.state.create({
-        data: { workspaceId, workflowId, key, value },
+        data: { workspaceId, workflowId, key, value, expiresAt },
       });
     } catch (error) {
       if (isUniqueConstraintError(error)) throw new Error('VERSION_CONFLICT');
@@ -405,13 +414,30 @@ async function compareAndSetState(
   try {
     return await prisma.state.update({
       where: { workflowId_key: { workflowId, key }, version: expectedVersion },
-      data: { value, version: { increment: 1 } },
+      data: { value, expiresAt, version: { increment: 1 } },
     });
   } catch (error) {
     if (isRecordNotFoundError(error)) throw new Error('VERSION_CONFLICT');
     throw error;
   }
 }
+
+/**
+ * Resolves the absolute expiry for a write. `expiresAt` wins over `expiresIn`;
+ * neither means the key never expires.
+ */
+function resolveExpiry(options: WriteStateOptions): Date | null {
+  if (options.expiresAt) return options.expiresAt;
+  if (options.expiresIn !== undefined && options.expiresIn > 0) {
+    return new Date(Date.now() + options.expiresIn * 1000);
+  }
+  return null;
+}
+
+/** Matches rows that have not expired: either no TTL, or a future TTL. */
+const notExpired = () => ({
+  OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+});
 
 export async function readState(
   workspaceId: string,
@@ -422,7 +448,7 @@ export async function readState(
 ) {
   await requireWorkflow(workspaceId, ownerId, workflowId);
   const state = await prisma.state.findFirst({
-    where: { workspaceId, workflowId, key },
+    where: { workspaceId, workflowId, key, ...notExpired() },
   });
   if (!state) return null;
 
@@ -458,6 +484,7 @@ export async function readStateFields(
       workspaceId,
       workflowId,
       ...(keys && keys.length > 0 ? { key: { in: keys } } : {}),
+      ...notExpired(),
     },
     orderBy: { key: 'asc' },
   });
@@ -1109,115 +1136,6 @@ async function writeStateEntry(
 // ============================================================================
 // STATE TTL OPERATIONS
 // ============================================================================
-
-export async function writeStateWithTTL(
-  workspaceId: string,
-  ownerId: string,
-  workflowId: string,
-  key: string,
-  value: Prisma.InputJsonValue,
-  options: WriteStateOptions,
-): Promise<{ id: string; key: string; version: number; expiresAt: Date | null }> {
-  await requireRunningWorkflow(workspaceId, ownerId, workflowId);
-
-  // Calculate expiration time
-  let expiresAt: Date | null = null;
-  if (options.expiresAt) {
-    expiresAt = options.expiresAt;
-  } else if (options.expiresIn) {
-    expiresAt = new Date(Date.now() + options.expiresIn * 1000);
-  }
-
-  // Build provenance-wrapped value if needed
-  let finalValue = value;
-  if (options.provenance) {
-    finalValue = wrapStateValue(
-      value as Record<string, unknown>,
-      options.provenance,
-      options.provenanceMode ?? 'per-field',
-    ) as Prisma.InputJsonValue;
-  }
-
-  const existing = await prisma.state.findFirst({
-    where: { workspaceId, workflowId, key },
-  });
-
-  if (options.expectedVersion !== undefined) {
-    const currentVersion = existing?.version ?? 0;
-    if (currentVersion !== options.expectedVersion) {
-      throw new Error('VERSION_CONFLICT');
-    }
-  }
-
-  // Check if we need to create or update
-  if (existing) {
-    const state = await prisma.state.update({
-      where: { workflowId_key: { workflowId, key } },
-      data: {
-        value: finalValue,
-        expiresAt,
-        version: { increment: 1 },
-      },
-    });
-    return { id: state.id, key: state.key, version: state.version, expiresAt: state.expiresAt };
-  } else {
-    const state = await prisma.state.create({
-      data: {
-        workspaceId,
-        workflowId,
-        key,
-        value: finalValue,
-        expiresAt,
-      },
-    });
-    return { id: state.id, key: state.key, version: state.version, expiresAt: state.expiresAt };
-  }
-}
-
-export async function readStateWithTTL(
-  workspaceId: string,
-  ownerId: string,
-  workflowId: string,
-  key: string,
-  options: ReadStateBatchOptions & {
-    refreshOnAccess?: boolean;
-  } = {},
-): Promise<{ found: boolean; value?: Prisma.JsonValue; version?: number; expiresAt?: Date }> {
-  await requireWorkflow(workspaceId, ownerId, workflowId);
-
-  // Find non-expired state
-  const state = await prisma.state.findFirst({
-    where: {
-      workspaceId,
-      workflowId,
-      key,
-      OR: [
-        { expiresAt: null },
-        { expiresAt: { gt: new Date() } },
-      ],
-    },
-  });
-
-  if (!state) {
-    return { found: false };
-  }
-
-  // Refresh TTL if configured
-  if (options.refreshOnAccess && state.expiresAt) {
-    const refreshSeconds = parseInt(process.env.STATE_TTL_REFRESH_SECONDS ?? '3600', 10);
-    await prisma.state.update({
-      where: { id: state.id },
-      data: { expiresAt: new Date(Date.now() + refreshSeconds * 1000) },
-    });
-  }
-
-  return {
-    found: true,
-    value: (options.unwrap ? unwrapState({ [key]: state.value })[key] : state.value) as Prisma.JsonValue,
-    version: state.version,
-    expiresAt: state.expiresAt ?? undefined,
-  };
-}
 
 export async function cleanupExpiredStates(batchSize: number = 100): Promise<number> {
   // First get IDs of expired states
