@@ -7,7 +7,7 @@ import { Attributes } from '@opentelemetry/api';
 
 export function initMetrics(): void {
   if (process.env.METRICS_ENABLED === 'true') {
-    console.log('[Metrics] Metrics enabled (stub - extend for full implementation)');
+    console.error('[Metrics] Metrics enabled (stub - extend for full implementation)');
   }
 }
 

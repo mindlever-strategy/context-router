@@ -136,20 +136,8 @@ function log(level: LogLevel, message: string, context?: Record<string, unknown>
 
   const formatted = formatLog(entry);
 
-  switch (level) {
-    case 'debug':
-      console.debug(formatted);
-      break;
-    case 'info':
-      console.info(formatted);
-      break;
-    case 'warn':
-      console.warn(formatted);
-      break;
-    case 'error':
-      console.error(formatted);
-      break;
-  }
+  // MCP stdio uses stdout exclusively for JSON-RPC. All logs must go to stderr.
+  console.error(formatted);
 }
 
 /**
@@ -191,7 +179,8 @@ export const logger = {
     };
 
     const formatted = formatLog(entry);
-    console.info(formatted);
+    // MCP stdio uses stdout exclusively for JSON-RPC. All logs must go to stderr.
+    console.error(formatted);
   },
 };
 

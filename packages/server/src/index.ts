@@ -138,10 +138,9 @@ async function main(): Promise<void> {
   initTracing();
   initMetrics();
 
-  // Start TTL cleanup service
-  startTTLCleanup();
-
+  // DB must be ready before TTL cleanup — startTTLCleanup runs an immediate pass
   await connectDatabase();
+  startTTLCleanup();
 
   const transport = new StdioServerTransport();
   await server.connect(transport);

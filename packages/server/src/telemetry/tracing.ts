@@ -5,7 +5,7 @@
 
 export function initTracing(): void {
   if (process.env.OTEL_ENABLED === 'true') {
-    console.log('[Tracing] OpenTelemetry tracing enabled (stub - extend for full implementation)');
+    console.error('[Tracing] OpenTelemetry tracing enabled (stub - extend for full implementation)');
   }
 }
 
