@@ -15,6 +15,27 @@ import {
 } from './tool-kit.js';
 import { recordStateDiff } from '../telemetry/metrics.js';
 
+/**
+ * Flattens a checkpoint snapshot to a plain key -> value map for diffing.
+ * Handles both the current envelope format and the pre-0.6 bare-value format.
+ */
+function snapshotValues(snapshot: unknown): Record<string, unknown> {
+  return Object.fromEntries(
+    Object.entries((snapshot ?? {}) as Record<string, unknown>).map(
+      ([key, raw]) => {
+        const candidate = raw as { value?: unknown; version?: unknown } | null;
+        const isEnvelope =
+          candidate !== null &&
+          typeof candidate === 'object' &&
+          !Array.isArray(candidate) &&
+          'value' in candidate &&
+          typeof candidate.version === 'number';
+        return [key, isEnvelope ? candidate.value : raw];
+      },
+    ),
+  );
+}
+
 export function registerStateDiffTools(
   _server: McpServer,
   getCurrentUserId: () => string,
@@ -96,8 +117,8 @@ export function registerStateDiffTools(
           includeUnchanged: options?.includeUnchanged ?? false,
         };
 
-        const sourceSnapshot = (sourceCp.snapshot ?? {}) as Record<string, unknown>;
-        const targetSnapshot = (targetCp.snapshot ?? {}) as Record<string, unknown>;
+        const sourceSnapshot = snapshotValues(sourceCp.snapshot);
+        const targetSnapshot = snapshotValues(targetCp.snapshot);
 
         const result = diffState(sourceSnapshot, targetSnapshot, diffOptions);
 
@@ -183,7 +204,7 @@ export function registerStateDiffTools(
         if (!checkpoint) throw new Error('CHECKPOINT_NOT_FOUND');
 
         const result = diffState(
-          (checkpoint.snapshot ?? {}) as Record<string, unknown>,
+          snapshotValues(checkpoint.snapshot),
           (currentState ?? {}) as Record<string, unknown>,
           options ?? {},
         );
@@ -265,8 +286,8 @@ export function registerStateDiffTools(
         }
 
         const result = diffState(
-          (sourceCheckpoint.snapshot ?? {}) as Record<string, unknown>,
-          (targetCheckpoint.snapshot ?? {}) as Record<string, unknown>,
+          snapshotValues(sourceCheckpoint.snapshot),
+          snapshotValues(targetCheckpoint.snapshot),
           options ?? {},
         );
 

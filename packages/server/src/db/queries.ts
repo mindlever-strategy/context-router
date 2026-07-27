@@ -546,6 +546,56 @@ export async function snapshotState(
   return readStateFields(workspaceId, ownerId, workflowId, undefined, options);
 }
 
+/** A checkpoint row: the value plus the metadata a restore must reinstate. */
+type CheckpointEntry = {
+  value: Prisma.InputJsonValue;
+  version: number;
+  expiresAt: string | null;
+};
+
+/**
+ * Reads a checkpoint snapshot in either format.
+ *
+ * Checkpoints written before version/expiry preservation stored a bare
+ * key -> value map. Those still restore, defaulting to version 1 and no TTL.
+ */
+function readCheckpointEntries(
+  snapshot: unknown,
+): Record<string, CheckpointEntry> {
+  const entries = Object.entries(
+    (snapshot ?? {}) as Record<string, unknown>,
+  );
+  return Object.fromEntries(
+    entries.map(([key, raw]) => {
+      const candidate = raw as Partial<CheckpointEntry> | null;
+      const isNewFormat =
+        candidate !== null &&
+        typeof candidate === 'object' &&
+        !Array.isArray(candidate) &&
+        'value' in candidate &&
+        typeof candidate.version === 'number';
+
+      return isNewFormat
+        ? [
+            key,
+            {
+              value: candidate.value as Prisma.InputJsonValue,
+              version: candidate.version as number,
+              expiresAt: candidate.expiresAt ?? null,
+            },
+          ]
+        : [
+            key,
+            {
+              value: raw as Prisma.InputJsonValue,
+              version: 1,
+              expiresAt: null,
+            },
+          ];
+    }),
+  );
+}
+
 export async function createCheckpoint(
   workspaceId: string,
   ownerId: string,
@@ -553,7 +603,21 @@ export async function createCheckpoint(
   label?: string,
 ) {
   await requireRunningWorkflow(workspaceId, ownerId, workflowId);
-  const snapshot = await readStateFields(workspaceId, ownerId, workflowId);
+
+  const rows = await prisma.state.findMany({
+    where: { workspaceId, workflowId, ...notExpired() },
+    orderBy: { key: 'asc' },
+  });
+  const snapshot: Record<string, CheckpointEntry> = Object.fromEntries(
+    rows.map((row) => [
+      row.key,
+      {
+        value: row.value as Prisma.InputJsonValue,
+        version: row.version,
+        expiresAt: row.expiresAt ? row.expiresAt.toISOString() : null,
+      },
+    ]),
+  );
 
   const checkpoint = await prisma.checkpoint.create({
     data: {
@@ -599,20 +663,22 @@ export async function restoreCheckpoint(
   if (!checkpoint) throw new Error('CHECKPOINT_NOT_FOUND');
   await requireRunningWorkflow(workspaceId, ownerId, checkpoint.workflowId);
 
-  const snapshot = checkpoint.snapshot as Record<string, Prisma.InputJsonValue>;
+  const snapshot = readCheckpointEntries(checkpoint.snapshot);
   const stateKeysRestored = Object.keys(snapshot);
 
   await prisma.$transaction(async (tx) => {
     await tx.state.deleteMany({
       where: { workspaceId, workflowId: checkpoint.workflowId },
     });
-    if (Object.keys(snapshot).length > 0) {
+    if (stateKeysRestored.length > 0) {
       await tx.state.createMany({
-        data: Object.entries(snapshot).map(([key, value]) => ({
+        data: Object.entries(snapshot).map(([key, entry]) => ({
           workspaceId,
           workflowId: checkpoint.workflowId,
           key,
-          value,
+          value: entry.value,
+          version: entry.version,
+          expiresAt: entry.expiresAt ? new Date(entry.expiresAt) : null,
         })),
       });
     }
