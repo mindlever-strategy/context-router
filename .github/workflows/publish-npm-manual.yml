@@ -69,3 +69,4 @@ jobs:
           publish_one @context-router/langgraph-adapter langgraph-adapter
           publish_one @context-router/crewai-adapter crewai-adapter
           publish_one @context-router/autogen-adapter autogen-adapter
+          publish_one @context-router/llamaindex-adapter llamaindex-adapter

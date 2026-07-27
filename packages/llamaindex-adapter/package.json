@@ -13,38 +13,18 @@
     "./storage": {
       "import": "./dist/storage/index.js",
       "types": "./dist/storage/index.d.ts"
-    },
-    "./memory": {
-      "import": "./dist/memory/index.js",
-      "types": "./dist/memory/index.d.ts"
-    },
-    "./retrieval": {
-      "import": "./dist/retrieval/index.js",
-      "types": "./dist/retrieval/index.d.ts"
-    },
-    "./sync": {
-      "import": "./dist/sync/index.js",
-      "types": "./dist/sync/index.d.ts"
-    },
-    "./mcp": {
-      "import": "./dist/mcp/index.js",
-      "types": "./dist/mcp/index.d.ts"
-    },
-    "./knowledge": {
-      "import": "./dist/knowledge/index.js",
-      "types": "./dist/knowledge/index.d.ts"
     }
   },
   "files": [
     "dist",
     "README.md"
   ],
+  "license": "Apache-2.0",
   "scripts": {
-    "build": "tsc",
+    "build": "rimraf dist && tsc",
     "dev": "tsc --watch",
-    "test": "vitest",
-    "lint": "eslint src --ext .ts",
-    "prepublishOnly": "npm run build"
+    "test": "vitest run",
+    "prepack": "npm run build"
   },
   "keywords": [
     "context-router",
@@ -77,6 +57,13 @@
     "type": "git",
     "url": "git+https://github.com/mindlever-strategy/context-router.git",
     "directory": "packages/llamaindex-adapter"
+  },
+  "homepage": "https://github.com/mindlever-strategy/context-router#readme",
+  "bugs": {
+    "url": "https://github.com/mindlever-strategy/context-router/issues"
+  },
+  "engines": {
+    "node": ">=20"
   },
   "publishConfig": {
     "access": "public",

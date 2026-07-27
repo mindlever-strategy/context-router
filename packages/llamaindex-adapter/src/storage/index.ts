@@ -186,14 +186,22 @@ export class ContextRouterDocumentStore {
 
   private chunkText(text: string, chunkSize: number, chunkOverlap: number): string[] {
     const chunks: string[] = [];
-    const words = text.split(/\s+/);
+    const words = text.split(/\s+/).filter(Boolean);
+    if (words.length === 0) {
+      return chunks;
+    }
+
+    const size = Math.max(1, chunkSize);
+    const overlap = Math.min(Math.max(0, chunkOverlap), size - 1);
     let start = 0;
 
     while (start < words.length) {
-      const end = Math.min(start + chunkSize, words.length);
+      const end = Math.min(start + size, words.length);
       chunks.push(words.slice(start, end).join(' '));
-      start = end - chunkOverlap;
-      if (start >= words.length) break;
+      if (end >= words.length) {
+        break;
+      }
+      start = end - overlap;
     }
 
     return chunks;

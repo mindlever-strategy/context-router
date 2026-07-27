@@ -74,6 +74,8 @@ twine upload dist/*
 | `@context-router/sdk` | `packages/sdk-typescript/` | `npm publish` |
 | `@context-router/langgraph-adapter` | `packages/langgraph-adapter/` | `npm publish` |
 | `@context-router/crewai-adapter` | `packages/crewai-adapter/` | `npm publish` |
+| `@context-router/autogen-adapter` | `packages/autogen-adapter/` | `npm publish` |
+| `@context-router/llamaindex-adapter` | `packages/llamaindex-adapter/` | `npm publish` |
 
 Publish order (also used by `.github/workflows/publish-npm-manual.yml`): `mcp-server` → `sdk` → adapters.
 
