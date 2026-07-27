@@ -44,7 +44,24 @@ export async function startSqliteHarness(
     teardown: async () => {
       await client.closeDatabase();
       vi.unstubAllEnvs();
-      await rm(dataDirectory, { recursive: true, force: true });
+      // On Windows, the OS doesn't always release better-sqlite3's native
+      // file handle for the WAL/SHM files synchronously with $disconnect(),
+      // even though dispose() has already run. Retry with backoff to give
+      // it a chance, but treat cleanup as best-effort: `mkdtemp` gives every
+      // run its own unique directory, so a leftover temp dir here can never
+      // collide with or affect another test run.
+      try {
+        await rm(dataDirectory, {
+          recursive: true,
+          force: true,
+          maxRetries: 5,
+          retryDelay: 100,
+        });
+      } catch (error) {
+        console.warn(
+          `[sqlite-harness] could not remove temp data directory ${dataDirectory}: ${(error as Error).message}`,
+        );
+      }
     },
   };
 }

@@ -389,6 +389,7 @@ export async function readStateFields(
   keys?: string[],
   options: { agentRole?: string; unwrap?: boolean } = {},
 ) {
+  await requireWorkflow(workspaceId, ownerId, workflowId);
   const states = await prisma.state.findMany({
     where: {
       workspaceId,
