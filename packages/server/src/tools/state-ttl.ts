@@ -54,7 +54,8 @@ export function registerStateTTLTools(
             },
             refreshOnAccess: {
               type: 'boolean',
-              description: 'If true, reset TTL on each read',
+              description:
+                'Deprecated: ignored. This tool never read this option on the write side.',
             },
             expectedVersion: {
               type: 'number',
@@ -74,7 +75,7 @@ export function registerStateTTLTools(
         refreshOnAccess: z.boolean().optional(),
         expectedVersion: z.number().int().min(0).optional(),
       }),
-      async ({ workspaceId, workflowId, key, value, expiresIn, expiresAt, refreshOnAccess, expectedVersion }) => {
+      async ({ workspaceId, workflowId, key, value, expiresIn, expiresAt, expectedVersion }) => {
         // Validate mutual exclusivity
         if (expiresIn && expiresAt) {
           throw new Error('Provide either expiresIn or expiresAt, not both');
@@ -111,8 +112,7 @@ export function registerStateTTLTools(
     defineTool(
       {
         name: 'state_read_ttl',
-        description:
-          'Read state with TTL support. Optionally refresh TTL on access.',
+        description: 'Read state with TTL support.',
         inputSchema: {
           type: 'object',
           properties: {
@@ -121,7 +121,8 @@ export function registerStateTTLTools(
             key: string,
             refreshOnAccess: {
               type: 'boolean',
-              description: 'If true, reset TTL on each read',
+              description:
+                'Deprecated: ignored. TTL refresh-on-read is no longer supported; a read never extends a key\'s expiry.',
             },
             unwrap: {
               type: 'boolean',
@@ -138,7 +139,7 @@ export function registerStateTTLTools(
         refreshOnAccess: z.boolean().optional(),
         unwrap: z.boolean().optional(),
       }),
-      async ({ workspaceId, workflowId, key, refreshOnAccess, unwrap }) => {
+      async ({ workspaceId, workflowId, key, unwrap }) => {
         const state = await readState(
           workspaceId,
           getCurrentUserId(),
@@ -157,7 +158,6 @@ export function registerStateTTLTools(
           value: state.value,
           version: state.version,
           expiresAt: state.expiresAt,
-          ttlRefreshed: undefined,
         };
       },
     ),
