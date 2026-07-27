@@ -45,10 +45,10 @@ export async function startSqliteHarness(
       await client.closeDatabase();
       vi.unstubAllEnvs();
       // On Windows, the OS doesn't always release better-sqlite3's native
-      // file handle for the WAL/SHM files synchronously with $disconnect(),
-      // even though dispose() has already run. Retry with backoff to give
-      // it a chance, but treat cleanup as best-effort: `mkdtemp` gives every
-      // run its own unique directory, so a leftover temp dir here can never
+      // file handle for the WAL/SHM files synchronously with $disconnect()
+      // (db/client.ts's closeDatabase()). Retry with backoff to give it a
+      // chance, but treat cleanup as best-effort: `mkdtemp` gives every run
+      // its own unique directory, so a leftover temp dir here can never
       // collide with or affect another test run.
       try {
         await rm(dataDirectory, {
