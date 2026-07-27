@@ -11,6 +11,7 @@ import { journalService } from '../services/journal-service.js';
 import { journaledJournalExport } from '../services/journal-hooks.js';
 import type { EventType } from '../services/event-types.js';
 import { EVENT_TYPE_VALUES } from '../services/event-types.js';
+import { snapshotValues } from '../services/checkpoint-format.js';
 import { defineTool, string, uuid, type ToolRegistry } from './tool-kit.js';
 
 /**
@@ -189,7 +190,7 @@ export function registerJournalTools(
                 where: { id: payload.checkpointId },
               });
               if (checkpoint) {
-                initialState = checkpoint.snapshot as Record<string, unknown>;
+                initialState = snapshotValues(checkpoint.snapshot);
               }
             }
           }
