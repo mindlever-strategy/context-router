@@ -90,6 +90,56 @@ describe('state expiry consistency', () => {
     ).toEqual({ n: 2 });
   });
 
+  it('clears an existing TTL the same way via writeState and via the atomic batch path', async () => {
+    const workspace = await queries.createWorkspace('ttl-clear-ws', owner);
+    const workflow = await queries.createWorkflow(workspace.id, owner);
+
+    // Path 1: writeState directly.
+    await queries.writeState(
+      workspace.id,
+      owner,
+      workflow.id,
+      'single',
+      { n: 1 },
+      { expiresIn: 3600 },
+    );
+    await queries.writeState(workspace.id, owner, workflow.id, 'single', {
+      n: 2,
+    });
+    const single = await queries.readState(
+      workspace.id,
+      owner,
+      workflow.id,
+      'single',
+    );
+    expect(single?.expiresAt).toBeNull();
+
+    // Path 2: writeStateBatch's atomic transaction, which goes through
+    // writeStateEntry rather than writeState.
+    await queries.writeState(
+      workspace.id,
+      owner,
+      workflow.id,
+      'batch',
+      { n: 1 },
+      { expiresIn: 3600 },
+    );
+    await queries.writeStateBatch(
+      workspace.id,
+      owner,
+      workflow.id,
+      [{ key: 'batch', value: { n: 2 } }],
+      { atomic: true },
+    );
+    const batch = await queries.readState(
+      workspace.id,
+      owner,
+      workflow.id,
+      'batch',
+    );
+    expect(batch?.expiresAt).toBeNull();
+  });
+
   it('enforces agent-role ACLs on TTL writes', async () => {
     const workspace = await queries.createWorkspace('ttl-acl-ws', owner);
     const workflow = await queries.createWorkflow(workspace.id, owner);

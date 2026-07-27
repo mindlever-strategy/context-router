@@ -429,6 +429,13 @@ async function compareAndSetState(
 /**
  * Resolves the absolute expiry for a write. `expiresAt` wins over `expiresIn`;
  * neither means the key never expires.
+ *
+ * Rule: a write without an explicit TTL clears any existing TTL on that key.
+ * `writeState`'s upsert/CAS path applies this unconditionally, and
+ * `writeStateEntry` (the batch path) must apply it the same way — otherwise
+ * a `state_write_ttl` followed by a plain `state_write_batch` on the same key
+ * would leave the old TTL in place and the key would vanish out from under
+ * whatever the batch write just wrote.
  */
 function resolveExpiry(options: WriteStateOptions): Date | null {
   if (options.expiresAt) return options.expiresAt;
@@ -1157,7 +1164,11 @@ async function writeStateEntry(
   return tx.state.upsert({
     where: { workflowId_key: { workflowId, key: entry.key } },
     create: { workspaceId, workflowId, key: entry.key, value: entry.value },
-    update: { value: entry.value, version: { increment: 1 } },
+    update: {
+      value: entry.value,
+      expiresAt: null,
+      version: { increment: 1 },
+    },
   });
 }
 
