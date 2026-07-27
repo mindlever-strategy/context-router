@@ -857,7 +857,13 @@ export async function writeStateBatch(
   }
 
   const onConflict = options.onConflict ?? 'upsert';
-  const existingKeys = new Set(
+  // Live set of keys that already have a row, in this workspace/workflow.
+  // Seeded from what's in the database, then updated as the loop below
+  // writes — otherwise a later entry with the same key as an earlier one in
+  // this same batch would still see the pre-loop snapshot and think the key
+  // doesn't exist, silently clobbering (or wrongly succeeding past) a
+  // caller-requested onConflict: 'fail' or 'skip'.
+  const presentKeys = new Set(
     (
       await prisma.state.findMany({
         where: {
@@ -878,7 +884,7 @@ export async function writeStateBatch(
     try {
       await prisma.$transaction(async (tx) => {
         for (const entry of entries) {
-          if (existingKeys.has(entry.key)) {
+          if (presentKeys.has(entry.key)) {
             if (onConflict === 'skip') {
               results.push({ key: entry.key, success: true, skipped: true });
               continue;
@@ -891,6 +897,7 @@ export async function writeStateBatch(
             workflowId,
             entry,
           );
+          presentKeys.add(entry.key);
           results.push({
             key: entry.key,
             success: true,
@@ -915,7 +922,7 @@ export async function writeStateBatch(
     }
   } else {
     for (const entry of entries) {
-      if (existingKeys.has(entry.key)) {
+      if (presentKeys.has(entry.key)) {
         if (onConflict === 'skip') {
           results.push({ key: entry.key, success: true, skipped: true });
           continue;
@@ -937,6 +944,7 @@ export async function writeStateBatch(
           entry.key,
           entry.value,
         );
+        presentKeys.add(entry.key);
         results.push({
           key: entry.key,
           success: true,

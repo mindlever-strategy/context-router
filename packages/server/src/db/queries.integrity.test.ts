@@ -285,4 +285,106 @@ describe('state layer integrity', () => {
       ).toEqual({ name: 'Acme' });
     });
   });
+
+  describe('duplicate keys within one batch', () => {
+    it('fails the second occurrence of a duplicate key (non-atomic)', async () => {
+      const workspace = await queries.createWorkspace('dup-ws', alice);
+      const workflow = await queries.createWorkflow(workspace.id, alice);
+
+      const batch = await queries.writeStateBatch(
+        workspace.id,
+        alice,
+        workflow.id,
+        [
+          { key: 'dup', value: { v: 1 } },
+          { key: 'dup', value: { v: 2 } },
+        ],
+        { onConflict: 'fail' },
+      );
+
+      expect(batch.results[0]).toMatchObject({ key: 'dup', success: true });
+      expect(batch.results[1]).toMatchObject({
+        key: 'dup',
+        success: false,
+        error: 'STATE_KEY_EXISTS',
+      });
+      expect(
+        (await queries.snapshotState(workspace.id, alice, workflow.id)).dup,
+      ).toEqual({ v: 1 });
+    });
+
+    it('skips the second occurrence of a duplicate key (non-atomic)', async () => {
+      const workspace = await queries.createWorkspace('dup-ws-2', alice);
+      const workflow = await queries.createWorkflow(workspace.id, alice);
+
+      const batch = await queries.writeStateBatch(
+        workspace.id,
+        alice,
+        workflow.id,
+        [
+          { key: 'dup', value: { v: 1 } },
+          { key: 'dup', value: { v: 2 } },
+        ],
+        { onConflict: 'skip' },
+      );
+
+      expect(batch.results[0]).toMatchObject({ key: 'dup', success: true });
+      expect(batch.results[1]).toMatchObject({
+        key: 'dup',
+        success: true,
+        skipped: true,
+      });
+      expect(
+        (await queries.snapshotState(workspace.id, alice, workflow.id)).dup,
+      ).toEqual({ v: 1 });
+    });
+
+    it('fails the second occurrence of a duplicate key (atomic)', async () => {
+      const workspace = await queries.createWorkspace('dup-ws-3', alice);
+      const workflow = await queries.createWorkflow(workspace.id, alice);
+
+      const batch = await queries.writeStateBatch(
+        workspace.id,
+        alice,
+        workflow.id,
+        [
+          { key: 'dup', value: { v: 1 } },
+          { key: 'dup', value: { v: 2 } },
+        ],
+        { atomic: true, onConflict: 'fail' },
+      );
+
+      // The whole batch rolls back because the transaction throws.
+      expect(batch.results.every((result) => !result.success)).toBe(true);
+      expect(
+        await queries.snapshotState(workspace.id, alice, workflow.id),
+      ).toEqual({});
+    });
+
+    it('skips the second occurrence of a duplicate key (atomic)', async () => {
+      const workspace = await queries.createWorkspace('dup-ws-4', alice);
+      const workflow = await queries.createWorkflow(workspace.id, alice);
+
+      const batch = await queries.writeStateBatch(
+        workspace.id,
+        alice,
+        workflow.id,
+        [
+          { key: 'dup', value: { v: 1 } },
+          { key: 'dup', value: { v: 2 } },
+        ],
+        { atomic: true, onConflict: 'skip' },
+      );
+
+      expect(batch.results[0]).toMatchObject({ key: 'dup', success: true });
+      expect(batch.results[1]).toMatchObject({
+        key: 'dup',
+        success: true,
+        skipped: true,
+      });
+      expect(
+        (await queries.snapshotState(workspace.id, alice, workflow.id)).dup,
+      ).toEqual({ v: 1 });
+    });
+  });
 });
