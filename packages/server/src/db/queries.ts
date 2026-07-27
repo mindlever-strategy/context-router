@@ -841,13 +841,28 @@ function isRecordNotFoundError(error: unknown): boolean {
 // BATCH OPERATIONS
 // ============================================================================
 
+/**
+ * Writes multiple state entries in one call.
+ *
+ * In atomic mode, a failure that happens after every entry's loop body has
+ * already run — a commit-time failure such as a Prisma interactive
+ * transaction timeout (P2028), SQLITE_BUSY on commit, or a deferred
+ * constraint — can't be pinned on any single entry. Every entry is still
+ * reported as `ROLLED_BACK` in that case, but the real error would
+ * otherwise vanish (not thrown, not logged, not in any per-entry result).
+ * The top-level `error` field on the return value carries it instead.
+ */
 export async function writeStateBatch(
   workspaceId: string,
   ownerId: string,
   workflowId: string,
   entries: StateWriteEntry[],
   options: WriteStateBatchOptions = {},
-): Promise<{ results: StateBatchResult[]; totalDurationMs: number }> {
+): Promise<{
+  results: StateBatchResult[];
+  totalDurationMs: number;
+  error?: string;
+}> {
   const startTime = Date.now();
 
   await requireRunningWorkflow(workspaceId, ownerId, workflowId);
@@ -892,6 +907,7 @@ export async function writeStateBatch(
   );
 
   const results: StateBatchResult[] = [];
+  let batchError: string | undefined;
 
   if (options.atomic) {
     // The try/catch must wrap $transaction, not live inside the callback.
@@ -934,6 +950,13 @@ export async function writeStateBatch(
             index === failedIndex ? (error as Error).message : 'ROLLED_BACK',
         });
       });
+      if (failedIndex >= entries.length) {
+        // The failure happened after every entry's loop body already ran —
+        // a commit-time failure, not a per-entry one. No entry can be
+        // blamed, so surface the real cause at the batch level instead of
+        // losing it behind a wall of ROLLED_BACK.
+        batchError = (error as Error).message;
+      }
     }
   } else {
     for (const entry of entries) {
@@ -975,7 +998,11 @@ export async function writeStateBatch(
     }
   }
 
-  return { results, totalDurationMs: Date.now() - startTime };
+  return {
+    results,
+    totalDurationMs: Date.now() - startTime,
+    ...(batchError ? { error: batchError } : {}),
+  };
 }
 
 /**
