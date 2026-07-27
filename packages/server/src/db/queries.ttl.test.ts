@@ -3,6 +3,7 @@ import {
   startSqliteHarness,
   type SqliteHarness,
 } from '../test-support/sqlite-harness.js';
+import { readCheckpointEntries } from '../services/checkpoint-format.js';
 
 describe('state expiry consistency', () => {
   let harness: SqliteHarness;
@@ -92,9 +93,10 @@ describe('state expiry consistency', () => {
       owner,
       workflow.id,
     );
-    // Asserted on keys, not shape: Task 8 changes the snapshot value format.
+    // Asserted on keys, not shape: the checkpoint snapshot format is an
+    // implementation detail (see services/checkpoint-format.ts).
     expect(
-      Object.keys(checkpoint.snapshot as Record<string, unknown>).sort(),
+      Object.keys(readCheckpointEntries(checkpoint.snapshot)).sort(),
     ).toEqual(['live']);
   });
 

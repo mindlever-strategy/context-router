@@ -7,6 +7,7 @@ import type { Server as McpServer } from '@modelcontextprotocol/sdk/server/index
 import { z } from 'zod';
 import { listCheckpoints, snapshotState } from '../db/queries.js';
 import { diffState, type StateDiffOptions } from '../services/state-diff.js';
+import { snapshotValues } from '../services/checkpoint-format.js';
 import {
   defineTool,
   string,
@@ -14,27 +15,6 @@ import {
   type ToolRegistry,
 } from './tool-kit.js';
 import { recordStateDiff } from '../telemetry/metrics.js';
-
-/**
- * Flattens a checkpoint snapshot to a plain key -> value map for diffing.
- * Handles both the current envelope format and the pre-0.6 bare-value format.
- */
-function snapshotValues(snapshot: unknown): Record<string, unknown> {
-  return Object.fromEntries(
-    Object.entries((snapshot ?? {}) as Record<string, unknown>).map(
-      ([key, raw]) => {
-        const candidate = raw as { value?: unknown; version?: unknown } | null;
-        const isEnvelope =
-          candidate !== null &&
-          typeof candidate === 'object' &&
-          !Array.isArray(candidate) &&
-          'value' in candidate &&
-          typeof candidate.version === 'number';
-        return [key, isEnvelope ? candidate.value : raw];
-      },
-    ),
-  );
-}
 
 export function registerStateDiffTools(
   _server: McpServer,

@@ -13,6 +13,10 @@ import {
   SchemaValidator,
   type FieldDefinition,
 } from '../services/schema-validator.js';
+import {
+  buildCheckpointSnapshot,
+  readCheckpointEntries,
+} from '../services/checkpoint-format.js';
 import { prisma, storageConfig } from './client.js';
 import {
   journaledStateWrite,
@@ -546,56 +550,6 @@ export async function snapshotState(
   return readStateFields(workspaceId, ownerId, workflowId, undefined, options);
 }
 
-/** A checkpoint row: the value plus the metadata a restore must reinstate. */
-type CheckpointEntry = {
-  value: Prisma.InputJsonValue;
-  version: number;
-  expiresAt: string | null;
-};
-
-/**
- * Reads a checkpoint snapshot in either format.
- *
- * Checkpoints written before version/expiry preservation stored a bare
- * key -> value map. Those still restore, defaulting to version 1 and no TTL.
- */
-function readCheckpointEntries(
-  snapshot: unknown,
-): Record<string, CheckpointEntry> {
-  const entries = Object.entries(
-    (snapshot ?? {}) as Record<string, unknown>,
-  );
-  return Object.fromEntries(
-    entries.map(([key, raw]) => {
-      const candidate = raw as Partial<CheckpointEntry> | null;
-      const isNewFormat =
-        candidate !== null &&
-        typeof candidate === 'object' &&
-        !Array.isArray(candidate) &&
-        'value' in candidate &&
-        typeof candidate.version === 'number';
-
-      return isNewFormat
-        ? [
-            key,
-            {
-              value: candidate.value as Prisma.InputJsonValue,
-              version: candidate.version as number,
-              expiresAt: candidate.expiresAt ?? null,
-            },
-          ]
-        : [
-            key,
-            {
-              value: raw as Prisma.InputJsonValue,
-              version: 1,
-              expiresAt: null,
-            },
-          ];
-    }),
-  );
-}
-
 export async function createCheckpoint(
   workspaceId: string,
   ownerId: string,
@@ -608,22 +562,13 @@ export async function createCheckpoint(
     where: { workspaceId, workflowId, ...notExpired() },
     orderBy: { key: 'asc' },
   });
-  const snapshot: Record<string, CheckpointEntry> = Object.fromEntries(
-    rows.map((row) => [
-      row.key,
-      {
-        value: row.value as Prisma.InputJsonValue,
-        version: row.version,
-        expiresAt: row.expiresAt ? row.expiresAt.toISOString() : null,
-      },
-    ]),
-  );
+  const snapshot = buildCheckpointSnapshot(rows);
 
   const checkpoint = await prisma.checkpoint.create({
     data: {
       workspaceId,
       workflowId,
-      snapshot: snapshot as Prisma.InputJsonValue,
+      snapshot: snapshot as unknown as Prisma.InputJsonValue,
       label,
     },
   });
@@ -632,7 +577,7 @@ export async function createCheckpoint(
   journaledCheckpointCreate(workspaceId, workflowId, {
     checkpointId: checkpoint.id,
     label: checkpoint.label ?? undefined,
-    stateKeys: Object.keys(snapshot),
+    stateKeys: Object.keys(snapshot.entries),
     snapshotSize: JSON.stringify(snapshot).length,
   }, { source: 'createCheckpoint' }).catch(() => {});
 
@@ -651,6 +596,21 @@ export async function listCheckpoints(
   });
 }
 
+/**
+ * Restores state rows from a checkpoint, reinstating each key's version and
+ * expiry rather than resetting them.
+ *
+ * Known, deliberate limitation (ABA hazard): this preserves the version
+ * *value* a key had at checkpoint time, but does not make versions
+ * monotonic. If a restore rewinds `k` from version 10 back to version 4, and
+ * six subsequent writes carry it back up to version 10 holding a *different*
+ * value than it held the first time, a caller that read version 10 before
+ * the restore can pass a CAS write (`expectedVersion: 10`) against a value
+ * it never actually observed. Closing this needs monotonic versions or a
+ * per-key epoch that survives restores — out of scope for this fix, which
+ * only addresses restore silently resetting version/expiry to their schema
+ * defaults.
+ */
 export async function restoreCheckpoint(
   workspaceId: string,
   ownerId: string,
