@@ -12,18 +12,20 @@ datasource db {
 }
 
 model Workspace {
-  id        String   @id @default(uuid())
-  name      String
-  ownerId   String
-  createdAt DateTime @default(now())
-  lookupKey String?
+  id             String   @id @default(uuid())
+  name           String
+  ownerId        String
+  createdAt      DateTime @default(now())
+  lookupKey      String?
+  journalEnabled  Boolean  @default(true)
 
-  schemas        Schema[]
-  states         State[]
-  checkpoints    Checkpoint[]
-  workflows      Workflow[]
-  stepExecutions StepExecution[]
-  agentRoles     AgentRole[]
+  schemas            Schema[]
+  states             State[]
+  checkpoints        Checkpoint[]
+  workflows          Workflow[]
+  stepExecutions     StepExecution[]
+  agentRoles         AgentRole[]
+  eventJournalEntries EventJournalEntry[]
 
   @@index([ownerId])
   @@unique([ownerId, lookupKey])
@@ -44,13 +46,14 @@ model Schema {
 }
 
 model State {
-  id           String   @id @default(uuid())
+  id           String    @id @default(uuid())
   workspaceId  String
   workflowId   String
   key          String
   value        Json
-  updatedAt    DateTime @updatedAt
-  version      Int      @default(1)
+  updatedAt    DateTime  @updatedAt
+  version      Int       @default(1)
+  expiresAt    DateTime? // Optional TTL for automatic expiration
 
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   workflow  Workflow  @relation(fields: [workflowId], references: [id], onDelete: Cascade)
@@ -58,6 +61,7 @@ model State {
   @@unique([workflowId, key])
   @@index([workspaceId])
   @@index([workflowId])
+  @@index([expiresAt])
 }
 
 model Checkpoint {
@@ -87,6 +91,7 @@ model Workflow {
   states         State[]
   checkpoints    Checkpoint[]
   stepExecutions StepExecution[]
+  journalEntries EventJournalEntry[]
 
   @@index([workspaceId])
   @@index([status])
@@ -137,4 +142,23 @@ model AgentRole {
 
   @@unique([workspaceId, name])
   @@index([workspaceId])
+}
+
+model EventJournalEntry {
+  id          String   @id @default(uuid())
+  workspaceId String
+  workflowId  String
+  eventType   String
+  payload     Json
+  metadata    Json
+  sequence    Int
+  createdAt   DateTime @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workflow  Workflow  @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, workflowId, sequence])
+  @@index([workspaceId, createdAt])
+  @@index([workflowId, eventType])
+  @@index([workspaceId, workflowId, eventType, createdAt])
 }

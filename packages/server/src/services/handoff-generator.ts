@@ -1,11 +1,20 @@
 import type { ProvenanceMeta } from './provenance.js';
 import { unwrapForHandoff } from './provenance.js';
+import { AIHandoffService, type AIHandoffOptions, type AIHandoffResult } from './ai-handoff-service.js';
 
-type HandoffOptions = {
+export type HandoffStyle = 'concise' | 'detailed' | 'technical';
+
+export type HandoffOptions = {
   maxTokens?: number;
   priorityKeys?: string[];
   nextGoals?: string[];
   format?: 'text' | 'structured';
+  // AI mode options
+  aiEnabled?: boolean;
+  aiStyle?: HandoffStyle;
+  aiModel?: string;
+  includeReasoning?: boolean;
+  includeOpenQuestions?: boolean;
 };
 
 export type HandoffPacket = {
@@ -20,19 +29,101 @@ export type StructuredHandoff = {
   summary: string;
   keysIncluded: string[];
   tokensEstimate: number;
+  aiEnabled?: boolean;
 };
 
 export class HandoffGenerator {
+  private aiService?: AIHandoffService;
+
+  constructor() {
+    // AI service is lazily initialized
+  }
+
+  private getAIService(): AIHandoffService {
+    if (!this.aiService) {
+      this.aiService = new AIHandoffService();
+    }
+    return this.aiService;
+  }
+
   generate(
     state: Record<string, unknown>,
     options: HandoffOptions = {},
   ): string {
-    return this.generateStructured(state, options).summary;
+    // For synchronous call, use rule-based only
+    if (!options.aiEnabled) {
+      return this.generateStructuredRuleBased(state, options).summary;
+    }
+    // For AI-enabled, return a placeholder (async operation)
+    // Use generateStructuredAsync for AI-powered handoffs
+    return this.generateStructuredRuleBased(state, options).summary;
   }
 
+  /**
+   * Async version of generate that supports AI mode
+   */
+  async generateAsync(
+    state: Record<string, unknown>,
+    options: HandoffOptions = {},
+  ): Promise<string> {
+    const structured = await this.generateStructured(state, options);
+    return structured.summary;
+  }
+
+  /**
+   * Generate a structured handoff (synchronous, rule-based)
+   */
   generateStructured(
     state: Record<string, unknown>,
     options: HandoffOptions = {},
+  ): StructuredHandoff {
+    // Always use rule-based for synchronous calls
+    return this.generateStructuredRuleBased(state, options);
+  }
+
+  /**
+   * Generate a structured handoff with optional AI enhancement (async)
+   */
+  async generateStructuredAI(
+    state: Record<string, unknown>,
+    options: HandoffOptions = {},
+  ): Promise<StructuredHandoff> {
+    // Use AI generation if enabled
+    if (options.aiEnabled) {
+      try {
+        const aiService = this.getAIService();
+        const result = await aiService.generate(state, {
+          enabled: true,
+          style: options.aiStyle ?? 'concise',
+          model: options.aiModel,
+          includeReasoning: options.includeReasoning ?? true,
+          includeOpenQuestions: options.includeOpenQuestions ?? true,
+          maxTokens: options.maxTokens,
+        });
+
+        return {
+          packet: result.packet,
+          summary: result.summary,
+          keysIncluded: Object.keys(state),
+          tokensEstimate: result.metadata.tokensUsed,
+          aiEnabled: true,
+        };
+      } catch (error) {
+        console.error('AI handoff failed, falling back to rule-based:', error);
+        // Fall through to rule-based generation
+      }
+    }
+
+    // Rule-based generation
+    return this.generateStructuredRuleBased(state, options);
+  }
+
+  /**
+   * Synchronous rule-based handoff generation
+   */
+  private generateStructuredRuleBased(
+    state: Record<string, unknown>,
+    options: HandoffOptions,
   ): StructuredHandoff {
     const maxTokens = options.maxTokens ?? 200;
     const priorityKeys = options.priorityKeys ?? [];
@@ -71,6 +162,7 @@ export class HandoffGenerator {
       summary,
       keysIncluded: orderedEntries.map(([key]) => key),
       tokensEstimate: Math.ceil(summary.length / 4),
+      aiEnabled: false,
     };
   }
 

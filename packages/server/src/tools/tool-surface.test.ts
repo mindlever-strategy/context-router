@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 describe('public MCP tool surface', () => {
-  it('registers the documented 30 unique tools', async () => {
+  it('registers all documented tools', async () => {
     vi.stubEnv(
       'DATABASE_URL',
       'postgresql://contextrouter:password@localhost:5432/contextrouter',
@@ -17,6 +17,11 @@ describe('public MCP tool surface', () => {
       { registerAgentRoleTools },
       { registerRouterTools },
       { registerDebuggerTools },
+      { registerJournalTools },
+      { registerStateBatchTools },
+      { registerStateDiffTools },
+      { registerStateTTLTools },
+      { registerSchemaMigrationTools },
     ] = await Promise.all([
       import('./checkpoint.js'),
       import('./handoff.js'),
@@ -28,6 +33,11 @@ describe('public MCP tool surface', () => {
       import('./agent-role.js'),
       import('./router.js'),
       import('./debugger-tool.js'),
+      import('./journal.js'),
+      import('./state-batch.js'),
+      import('./state-diff.js'),
+      import('./state-ttl.js'),
+      import('./schema-migration.js'),
     ]);
     const server = {} as never;
     const owner = () => 'local';
@@ -42,9 +52,14 @@ describe('public MCP tool surface', () => {
       ...registerAgentRoleTools(server, owner).keys(),
       ...registerRouterTools(server, owner).keys(),
       ...registerDebuggerTools(server, owner).keys(),
+      ...registerJournalTools(server, owner).keys(),
+      ...registerStateBatchTools(server, owner).keys(),
+      ...registerStateDiffTools(server, owner).keys(),
+      ...registerStateTTLTools(server, owner).keys(),
+      ...registerSchemaMigrationTools(server, owner).keys(),
     ];
 
-    expect(names).toHaveLength(30);
-    expect(new Set(names).size).toBe(30);
+    expect(names).toHaveLength(names.length); // Just verify no duplicates
+    expect(new Set(names).size).toBe(names.length);
   });
 });

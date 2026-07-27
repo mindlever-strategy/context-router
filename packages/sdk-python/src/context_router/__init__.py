@@ -14,7 +14,7 @@ from .types import (
     Workspace,
 )
 
-__version__ = "0.4.0"
+__version__ = "0.6.0"
 
 __all__ = [
     "ContextRouter",
