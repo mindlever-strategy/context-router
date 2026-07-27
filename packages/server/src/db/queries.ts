@@ -394,17 +394,23 @@ async function compareAndSetState(
     }
   }
 
-  const updated = await prisma.state.updateMany({
-    where: { workflowId, key, version: expectedVersion },
-    data: { value, version: { increment: 1 } },
-  });
-  if (updated.count === 0) throw new Error('VERSION_CONFLICT');
-
-  const state = await prisma.state.findUnique({
-    where: { workflowId_key: { workflowId, key } },
-  });
-  if (!state) throw new Error('STATE_NOT_FOUND');
-  return state;
+  // A separate updateMany + findUnique leaves a window where a concurrent
+  // deleteState makes the read-back return null (reporting STATE_NOT_FOUND
+  // for a CAS that did commit), or a concurrent third writer bumps the row
+  // so the read-back returns a version this call never produced — which the
+  // caller would then treat as an observed version, defeating the exact
+  // guarantee CAS exists to provide. extendedWhereUnique lets the version
+  // check ride along in the same `where` as the compound unique key, so the
+  // conditional update and the row it returns are one statement.
+  try {
+    return await prisma.state.update({
+      where: { workflowId_key: { workflowId, key }, version: expectedVersion },
+      data: { value, version: { increment: 1 } },
+    });
+  } catch (error) {
+    if (isRecordNotFoundError(error)) throw new Error('VERSION_CONFLICT');
+    throw error;
+  }
 }
 
 export async function readState(
@@ -819,6 +825,15 @@ function isUniqueConstraintError(error: unknown): boolean {
     typeof error === 'object' &&
     'code' in error &&
     error.code === 'P2002',
+  );
+}
+
+function isRecordNotFoundError(error: unknown): boolean {
+  return Boolean(
+    error &&
+    typeof error === 'object' &&
+    'code' in error &&
+    error.code === 'P2025',
   );
 }
 
