@@ -316,13 +316,6 @@ export async function writeState(
     where: { workspaceId, workflowId, key },
   });
 
-  if (options.expectedVersion !== undefined) {
-    const currentVersion = existing?.version ?? 0;
-    if (currentVersion !== options.expectedVersion) {
-      throw new Error('VERSION_CONFLICT');
-    }
-  }
-
   let finalValue = value;
   if (options.provenance) {
     finalValue = wrapStateValue(
@@ -332,11 +325,22 @@ export async function writeState(
     ) as Prisma.InputJsonValue;
   }
 
-  const state = await prisma.state.upsert({
-    where: { workflowId_key: { workflowId, key } },
-    create: { workspaceId, workflowId, key, value: finalValue },
-    update: { value: finalValue, version: { increment: 1 } },
-  });
+  // Compare-and-set must be a single conditional statement. Reading the
+  // version and then writing lets two concurrent writers both pass the check.
+  const state =
+    options.expectedVersion === undefined
+      ? await prisma.state.upsert({
+          where: { workflowId_key: { workflowId, key } },
+          create: { workspaceId, workflowId, key, value: finalValue },
+          update: { value: finalValue, version: { increment: 1 } },
+        })
+      : await compareAndSetState(
+          workspaceId,
+          workflowId,
+          key,
+          finalValue,
+          options.expectedVersion,
+        );
 
   // Journal the state write (fire and forget, don't block the operation)
   journaledStateWrite(workspaceId, workflowId, {
@@ -347,6 +351,45 @@ export async function writeState(
     schemaValidated: Boolean(options.provenance),
   }, { source: 'writeState' }).catch(() => {});
 
+  return state;
+}
+
+/**
+ * Applies a versioned write as one conditional statement.
+ *
+ * `expectedVersion: 0` means "this key must not exist yet" and maps to an
+ * insert whose unique-constraint violation is the conflict signal. Any other
+ * value maps to an UPDATE ... WHERE version = ?, where a zero row count is
+ * the conflict signal.
+ */
+async function compareAndSetState(
+  workspaceId: string,
+  workflowId: string,
+  key: string,
+  value: Prisma.InputJsonValue,
+  expectedVersion: number,
+) {
+  if (expectedVersion === 0) {
+    try {
+      return await prisma.state.create({
+        data: { workspaceId, workflowId, key, value },
+      });
+    } catch (error) {
+      if (isUniqueConstraintError(error)) throw new Error('VERSION_CONFLICT');
+      throw error;
+    }
+  }
+
+  const updated = await prisma.state.updateMany({
+    where: { workflowId, key, version: expectedVersion },
+    data: { value, version: { increment: 1 } },
+  });
+  if (updated.count === 0) throw new Error('VERSION_CONFLICT');
+
+  const state = await prisma.state.findUnique({
+    where: { workflowId_key: { workflowId, key } },
+  });
+  if (!state) throw new Error('STATE_NOT_FOUND');
   return state;
 }
 

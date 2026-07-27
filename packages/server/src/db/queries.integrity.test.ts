@@ -105,4 +105,84 @@ describe('state layer integrity', () => {
       ).toEqual({ a: { n: 1 }, b: { n: 2 } });
     });
   });
+
+  describe('compare-and-set', () => {
+    it('lets exactly one of two concurrent CAS writers win', async () => {
+      const workspace = await queries.createWorkspace('cas-ws', alice);
+      const workflow = await queries.createWorkflow(workspace.id, alice);
+      const initial = await queries.writeState(
+        workspace.id,
+        alice,
+        workflow.id,
+        'counter',
+        { n: 0 },
+      );
+
+      const outcomes = await Promise.allSettled([
+        queries.writeState(workspace.id, alice, workflow.id, 'counter', {
+          n: 1,
+        }, { expectedVersion: initial.version }),
+        queries.writeState(workspace.id, alice, workflow.id, 'counter', {
+          n: 2,
+        }, { expectedVersion: initial.version }),
+      ]);
+
+      const fulfilled = outcomes.filter((o) => o.status === 'fulfilled');
+      const rejected = outcomes.filter((o) => o.status === 'rejected');
+
+      expect(fulfilled).toHaveLength(1);
+      expect(rejected).toHaveLength(1);
+      expect((rejected[0] as PromiseRejectedResult).reason).toMatchObject({
+        message: 'VERSION_CONFLICT',
+      });
+    });
+
+    it('rejects a stale expectedVersion', async () => {
+      const workspace = await queries.createWorkspace('cas-ws-2', alice);
+      const workflow = await queries.createWorkflow(workspace.id, alice);
+      await queries.writeState(workspace.id, alice, workflow.id, 'k', {
+        n: 0,
+      });
+      await queries.writeState(workspace.id, alice, workflow.id, 'k', {
+        n: 1,
+      });
+
+      await expect(
+        queries.writeState(
+          workspace.id,
+          alice,
+          workflow.id,
+          'k',
+          { n: 2 },
+          { expectedVersion: 1 },
+        ),
+      ).rejects.toThrow('VERSION_CONFLICT');
+    });
+
+    it('treats expectedVersion 0 as "must not exist yet"', async () => {
+      const workspace = await queries.createWorkspace('cas-ws-3', alice);
+      const workflow = await queries.createWorkflow(workspace.id, alice);
+
+      const created = await queries.writeState(
+        workspace.id,
+        alice,
+        workflow.id,
+        'fresh',
+        { n: 1 },
+        { expectedVersion: 0 },
+      );
+      expect(created.version).toBe(1);
+
+      await expect(
+        queries.writeState(
+          workspace.id,
+          alice,
+          workflow.id,
+          'fresh',
+          { n: 2 },
+          { expectedVersion: 0 },
+        ),
+      ).rejects.toThrow('VERSION_CONFLICT');
+    });
+  });
 });
