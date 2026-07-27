@@ -7,5 +7,9 @@
     "moduleResolution": "NodeNext"
   },
   "include": ["src/**/*.ts"],
-  "exclude": ["src/**/*.test.ts", "src/generated/prisma/**/*"]
+  "exclude": [
+    "src/**/*.test.ts",
+    "src/test-support/**/*",
+    "src/generated/prisma/**/*"
+  ]
 }
