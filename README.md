@@ -15,7 +15,7 @@
 
 <p align="center">
   <a href="./LICENSE"><img alt="Apache-2.0 License" src="https://img.shields.io/badge/license-Apache--2.0-7C5CFC?style=flat-square"></a>
-  <img alt="Release status" src="https://img.shields.io/badge/status-v0.5.0%20preview-25D9FF?style=flat-square">
+  <img alt="Release status" src="https://img.shields.io/badge/status-v0.6.0%20preview-25D9FF?style=flat-square">
   <img alt="Node.js 20+" src="https://img.shields.io/badge/Node.js-20%2B-5FA04E?style=flat-square">
   <img alt="SQLite default" src="https://img.shields.io/badge/storage-SQLite%20%7C%20PostgreSQL-4169E1?style=flat-square">
   <img alt="Model Context Protocol" src="https://img.shields.io/badge/protocol-MCP-8B5CFF?style=flat-square">
@@ -117,7 +117,7 @@ MCP-compatible agent system a reliable place to exchange workflow state.
 - **Bounded handoff summaries** generated from selected or complete workflow state
 - **Workspace-scoped persistence** for safe local project separation
 - **TypeScript SDK** with a simple workflow session and the full explicit API
-- **Python SDK** (`ctxrouter` v0.5.0) with the same workflow session and MCP tool surface
+- **Python SDK** (`ctxrouter` v0.6.0) with the same workflow session and MCP tool surface
 - **Cursor MCP** via `@context-router/mcp-server` for multi-agent Agent chats
 - **Zero-configuration local runtime** with SQLite by default and PostgreSQL for production
 
@@ -215,6 +215,7 @@ Pick the workflow pattern that matches your use case:
 | Human-in-the-loop review    | [examples/human-in-the-loop.ts](examples/human-in-the-loop.ts)         | `node scripts/run-example.mjs human-in-the-loop` |
 | Content generation pipeline | [examples/content-pipeline.ts](examples/content-pipeline.ts)         | `node scripts/run-example.mjs content-pipeline` |
 | LangGraph integration       | [examples/langgraph-example.ts](examples/langgraph-example.ts)       | `node scripts/run-example.mjs langgraph` |
+| LlamaIndex semantic search  | [packages/llamaindex-adapter/README.md](packages/llamaindex-adapter/README.md) | Vector search over workflow state |
 | Cursor + Python cookbook    | [USING.md](USING.md)                                                   | recipes for MCP + `context_router`             |
 
 The recommended SDK entry point is `ContextRouter.local()` and `router.start()` — you do not need to learn all 30 MCP tools to get started.
@@ -371,18 +372,21 @@ See the complete
 ## MCP tool surface
 
 <details>
-<summary><strong>View all 30 tools</strong></summary>
+<summary><strong>View all 40+ tools</strong></summary>
 
 | Area       | Tools                                                                                         |
 | ---------- | --------------------------------------------------------------------------------------------- |
 | Router     | `router_status`                                                                               |
 | Workspace  | `workspace_create`, `workspace_ensure`, `workspace_list`, `workspace_get`, `workspace_delete` |
-| Schema     | `schema_create`, `schema_get`, `schema_list`, `schema_validate`                               |
+| Schema     | `schema_create`, `schema_get`, `schema_list`, `schema_validate`, `schema_migrate`, `schema_diff` |
 | Workflow   | `workflow_create`, `workflow_status`, `workflow_complete`, `workflow_fail`                    |
-| State      | `state_write`, `state_read`, `state_delete`, `state_snapshot`                                 |
+| State      | `state_write`, `state_read`, `state_delete`, `state_snapshot`, `state_write_batch`, `state_read_batch` |
 | Checkpoint | `checkpoint_create`, `checkpoint_list`, `checkpoint_restore`, `checkpoint_delete`             |
-| Handoff    | `handoff_generate`, `handoff_apply`                                                           |
+| Handoff    | `handoff_generate`, `handoff_generate_ai`, `handoff_generate_structured`, `handoff_apply`   |
 | Step       | `step_run_start`, `step_run_complete`, `step_run_fail`                                        |
+| Journal    | `journal_query`, `journal_replay`, `journal_stats`, `journal_export`, `journal_append`         |
+| State Diff | `state_diff`, `state_diff_current_vs_checkpoint`, `state_diff_recent_changes`                 |
+| State TTL  | `state_write_ttl`, `state_delete_expired`, `ttl_service_status`                              |
 | Agent role | `agent_role_create`, `agent_role_list`                                                        |
 | Debugger   | `debugger_inspect` (list/inspect/diff/tail workflows)                                         |
 
@@ -425,22 +429,28 @@ context-router/
 
 ## Current status
 
-Context Router is an **early open-source preview** (npm packages at **v0.5.0**;
-Python SDK at **v0.5.0**).
+Context Router is an **early open-source preview** (npm packages at **v0.6.0**;
+Python SDK at **v0.6.0**).
 
 Already working:
 
 - TypeScript build and type-checking
-- unit and SDK contract tests (TypeScript + Python)
-- MCP discovery smoke test for all 30 tools
-- SQLite and PostgreSQL integration test suites in CI
+- unit and SDK contract tests (136 tests passing)
+- MCP discovery smoke test for all 40+ tools
+- SQLite and PostgreSQL integration test suites
 - clean npm package generation (`@context-router/mcp-server`, `@context-router/sdk`)
 - Python SDK with MCP stdio transport and TypeScript API parity
 - zero-config Cursor MCP via `npx @context-router/mcp-server`
-- LangGraph and CREWAI adapter packages
+- LangGraph, CREWAI, AutoGen, and LlamaIndex adapter packages
+- Event Journal — full audit trail with replay capability
+- AI-powered handoffs with natural language summaries
+- Batch operations for efficient state reads/writes
+- State TTL support for automatic data expiration
+- Schema migration tools for evolving data models
+- State diff tools for comparing checkpoints
 - Visual workflow debugger (`debugger_inspect` tool)
+- OpenTelemetry-ready observability layer
 - Improved error messages with actionable suggestions
-- zero known production dependency vulnerabilities
 
 Deliberately outside the current preview:
 
@@ -459,6 +469,8 @@ Please do not expose the stdio server directly to an untrusted network.
 - **v0.3.1 / Python 0.4.0:** workflow guides, Python SDK, Cursor zero-config docs
 - **v0.4.0:** LangGraph/CREWAI adapters, workflow debugger, improved error messages
 - **v0.5.0:** AutoGen adapter + coordinated npm/Python 0.5.0 publish line
+- **v0.6.0:** Event Journal, AI Handoffs, LlamaIndex adapter, Operational tools (batch ops, TTL, schema migration, state diff)
+- **Coming next:** Remote MCP transport, hosted authentication, automatic agent execution
 - **Next:** PyPI publish, visual debugger, event journal, AI-assisted handoffs
 - **Later evaluation:** remote transport, authentication, observability, hosted deployment
 
