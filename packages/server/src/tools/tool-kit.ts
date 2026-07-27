@@ -149,6 +149,11 @@ function messageForCode(code: string): string {
     // Concurrency errors
     VERSION_CONFLICT: 'Version conflict: another operation modified this value. Use expectedVersion for compare-and-swap.',
 
+    // Batch write errors
+    STATE_KEY_EXISTS: 'State key already exists. This entry was rejected because onConflict is set to "fail".',
+    ROLLED_BACK: 'This entry was part of an atomic batch that rolled back due to another entry failing.',
+    NOT_ATTEMPTED: 'This entry was never attempted because another entry in the same batch failed schema validation.',
+
     // Permission errors
     WRITE_FORBIDDEN: 'Agent role cannot write this state key. Check allowedWriteKeys in agent_role_create().',
     READ_FORBIDDEN: 'Agent role cannot read this state key. Check allowedReadKeys in agent_role_create().',
@@ -182,6 +187,7 @@ function suggestionForCode(code: string): string | undefined {
     WORKFLOW_NOT_RUNNING: 'Tip: Use router.start() to create a new running workflow.',
     VERSION_CONFLICT: 'Tip: Read the current version with state_read() and pass it as expectedVersion.',
     SCHEMA_VALIDATION_FAILED: 'Tip: Use schema_validate() to check your data against the schema before writing.',
+    STATE_KEY_EXISTS: 'Tip: Set onConflict to "upsert" to overwrite, or "skip" to leave the existing value untouched.',
     CHECKPOINT_NOT_FOUND: 'Tip: Use checkpoint_list() to see available checkpoints.',
     WRITE_FORBIDDEN: 'Tip: Check the agent role permissions or write without specifying agentRole.',
   };
