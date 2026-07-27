@@ -360,6 +360,39 @@ export async function journaledJournalExport(
 }
 
 // ============================================================================
+// Drop accounting
+// ============================================================================
+
+let droppedEvents = 0;
+let lastDropError: string | null = null;
+
+/**
+ * Records a journal write that failed.
+ *
+ * Journaling is deliberately non-blocking — a failed audit write must not fail
+ * the operation it describes — but silent loss makes the journal untrustworthy.
+ * Drops are counted and surfaced through `router_status`.
+ */
+export function recordJournalDrop(eventType: string, error: unknown): void {
+  droppedEvents += 1;
+  const reason = error instanceof Error ? error.message : String(error);
+  lastDropError = `${eventType}: ${reason}`;
+  console.error(`[context-router] journal drop (${lastDropError})`);
+}
+
+export function readJournalDrops(): {
+  count: number;
+  lastError: string | null;
+} {
+  return { count: droppedEvents, lastError: lastDropError };
+}
+
+export function resetJournalDrops(): void {
+  droppedEvents = 0;
+  lastDropError = null;
+}
+
+// ============================================================================
 // Re-export journal service for convenience
 // ============================================================================
 

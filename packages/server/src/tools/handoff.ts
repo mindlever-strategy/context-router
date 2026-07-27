@@ -8,7 +8,7 @@ import {
   type HandoffStyle,
 } from '../services/handoff-generator.js';
 import { AIHandoffService } from '../services/ai-handoff-service.js';
-import { journaledHandoffGenerate } from '../services/journal-hooks.js';
+import { journaledHandoffGenerate, recordJournalDrop } from '../services/journal-hooks.js';
 import { defineTool, string, uuid, type ToolRegistry } from './tool-kit.js';
 
 const generator = new HandoffGenerator();
@@ -108,7 +108,9 @@ export function registerHandoffTools(
           keysIncluded: structured.keysIncluded,
           tokensEstimate: structured.tokensEstimate,
           format: input.format,
-        }, { source: 'handoff_generate' }).catch(() => {});
+        }, { source: 'handoff_generate' }).catch((error) => {
+          recordJournalDrop('handoff.generated', error);
+        });
 
         if (input.format === 'structured') return structured;
         return {
@@ -218,7 +220,9 @@ export function registerHandoffTools(
             durationMs: result.metadata.durationMs,
             fromCache: result.metadata.fromCache,
           },
-        }, { source: 'handoff_generate_ai' }).catch(() => {});
+        }, { source: 'handoff_generate_ai' }).catch((error) => {
+          recordJournalDrop('handoff.generated', error);
+        });
 
         return {
           summary: result.summary,

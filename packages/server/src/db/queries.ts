@@ -30,6 +30,8 @@ import {
   journaledWorkflowCreated,
   journaledWorkflowComplete,
   journaledWorkflowFail,
+  recordJournalDrop,
+  readJournalDrops,
 } from '../services/journal-hooks.js';
 
 export type WriteStateOptions = {
@@ -256,6 +258,7 @@ export async function getRouterStatus(ownerId: string) {
       ...(storageConfig.location ? { location: storageConfig.location } : {}),
     },
     totals: { workspaces, workflows, runningWorkflows, checkpoints },
+    journal: readJournalDrops(),
     recentWorkflows,
   };
 }
@@ -265,7 +268,9 @@ export async function createWorkflow(workspaceId: string, ownerId: string) {
   const workflow = await prisma.workflow.create({ data: { workspaceId } });
 
   // Journal the workflow creation (fire and forget)
-  journaledWorkflowCreated(workspaceId, workflow.id, { source: 'createWorkflow' }).catch(() => {});
+  journaledWorkflowCreated(workspaceId, workflow.id, { source: 'createWorkflow' }).catch((error) => {
+    recordJournalDrop('workflow.created', error);
+  });
 
   return workflow;
 }
@@ -305,9 +310,13 @@ export async function transitionWorkflow(
 
   // Journal the workflow transition (fire and forget)
   if (status === 'COMPLETED') {
-    journaledWorkflowComplete(workspaceId, workflowId, previousStatus, { source: 'transitionWorkflow' }).catch(() => {});
+    journaledWorkflowComplete(workspaceId, workflowId, previousStatus, { source: 'transitionWorkflow' }).catch((error) => {
+      recordJournalDrop('workflow.completed', error);
+    });
   } else if (status === 'FAILED') {
-    journaledWorkflowFail(workspaceId, workflowId, previousStatus, failureReason ?? 'Unknown', { source: 'transitionWorkflow' }).catch(() => {});
+    journaledWorkflowFail(workspaceId, workflowId, previousStatus, failureReason ?? 'Unknown', { source: 'transitionWorkflow' }).catch((error) => {
+      recordJournalDrop('workflow.failed', error);
+    });
   }
 
   return updated;
@@ -375,7 +384,9 @@ export async function writeState(
     newValue: finalValue,
     version: state.version,
     schemaValidated: Boolean(options.provenance),
-  }, { source: 'writeState' }).catch(() => {});
+  }, { source: 'writeState' }).catch((error) => {
+    recordJournalDrop('state.written', error);
+  });
 
   return state;
 }
@@ -543,7 +554,9 @@ export async function deleteState(
   journaledStateDelete(workspaceId, workflowId, {
     key,
     previousValue: existing.value as Prisma.InputJsonValue,
-  }, { source: 'deleteState' }).catch(() => {});
+  }, { source: 'deleteState' }).catch((error) => {
+    recordJournalDrop('state.deleted', error);
+  });
 
   return { key };
 }
@@ -586,7 +599,9 @@ export async function createCheckpoint(
     label: checkpoint.label ?? undefined,
     stateKeys: Object.keys(snapshot.entries),
     snapshotSize: JSON.stringify(snapshot).length,
-  }, { source: 'createCheckpoint' }).catch(() => {});
+  }, { source: 'createCheckpoint' }).catch((error) => {
+    recordJournalDrop('checkpoint.created', error);
+  });
 
   return checkpoint;
 }
@@ -655,7 +670,9 @@ export async function restoreCheckpoint(
   journaledCheckpointRestore(workspaceId, checkpoint.workflowId, {
     checkpointId,
     stateKeysRestored,
-  }, { source: 'restoreCheckpoint' }).catch(() => {});
+  }, { source: 'restoreCheckpoint' }).catch((error) => {
+    recordJournalDrop('checkpoint.restored', error);
+  });
 
   return checkpoint;
 }
@@ -676,7 +693,9 @@ export async function deleteCheckpoint(
   journaledCheckpointDelete(workspaceId, checkpoint.workflowId, {
     checkpointId,
     label: checkpoint.label ?? undefined,
-  }, { source: 'deleteCheckpoint' }).catch(() => {});
+  }, { source: 'deleteCheckpoint' }).catch((error) => {
+    recordJournalDrop('checkpoint.deleted', error);
+  });
 
   return { checkpointId };
 }
@@ -740,7 +759,9 @@ export async function startStepRun(
     agentId: agentId ?? existing?.agentId ?? undefined,
     checkpointId: checkpoint.id,
     attempt: isRetry ? (existing?.attempt ?? 0) + 1 : 1,
-  }, { source: 'startStepRun', agentId }).catch(() => {});
+  }, { source: 'startStepRun', agentId }).catch((error) => {
+    recordJournalDrop('step.started', error);
+  });
 
   return { cached: false, execution, checkpoint };
 }
@@ -785,7 +806,9 @@ export async function completeStepRun(
     executionId,
     durationMs,
     resultKeys,
-  }, { source: 'completeStepRun', agentId: execution.agentId ?? undefined }).catch(() => {});
+  }, { source: 'completeStepRun', agentId: execution.agentId ?? undefined }).catch((error) => {
+    recordJournalDrop('step.completed', error);
+  });
 
   return updated;
 }
@@ -820,7 +843,9 @@ export async function failStepRun(
     executionId,
     reason,
     attempt: execution.attempt,
-  }, { source: 'failStepRun', agentId: execution.agentId ?? undefined }).catch(() => {});
+  }, { source: 'failStepRun', agentId: execution.agentId ?? undefined }).catch((error) => {
+    recordJournalDrop('step.failed', error);
+  });
 
   return updated;
 }

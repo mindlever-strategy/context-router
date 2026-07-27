@@ -8,7 +8,7 @@
 import type { Server as McpServer } from '@modelcontextprotocol/sdk/server/index.js';
 import { z } from 'zod';
 import { journalService } from '../services/journal-service.js';
-import { journaledJournalExport } from '../services/journal-hooks.js';
+import { journaledJournalExport, recordJournalDrop } from '../services/journal-hooks.js';
 import type { EventType } from '../services/event-types.js';
 import { EVENT_TYPE_VALUES } from '../services/event-types.js';
 import { snapshotValues } from '../services/checkpoint-format.js';
@@ -329,7 +329,9 @@ export function registerJournalTools(
             since: since ?? new Date(0).toISOString(),
             until: until ?? new Date().toISOString(),
           },
-        ).catch(() => {});
+        ).catch((error) => {
+          recordJournalDrop('journal.exported', error);
+        });
 
         return {
           data: result.data,
