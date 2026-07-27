@@ -52,6 +52,76 @@ export interface JournalExportParams {
   format?: 'json' | 'jsonl';
 }
 
+// ============================================================================
+// Per-workflow sequence lock
+// ============================================================================
+//
+// Journal appends are fire-and-forget (see journal-hooks.ts): callers never
+// await them, so several can be in flight for the same workflow at once.
+// `append` reads max(sequence) and inserts in two separate statements, so
+// without serialization two concurrent appends can both read the same max
+// and collide on the same sequence number, breaking ordered replay.
+//
+// A `prisma.$transaction` around those two statements was tried and
+// rejected: wrapping an un-awaited call in an interactive transaction holds
+// BEGIN..COMMIT open across a JS scheduling gap, and better-sqlite3's
+// synchronous driver then deadlocks against any second connection that
+// touches the same database file while that transaction is still open
+// (`src/sqlite.integration.test.ts` failed deterministically on exactly
+// this). Serializing the critical section in-process, per workflow, closes
+// the race without ever holding a database-level lock across an await
+// boundary.
+const sequenceLocks = new Map<string, Promise<unknown>>();
+
+/**
+ * Runs `operation` after every previously-queued operation for the same
+ * `workflowId` has settled, and before any operation queued after it.
+ * Operations for different workflow IDs run fully concurrently.
+ *
+ * A rejected operation does not wedge the chain: the next operation queued
+ * for the same workflow still runs. The map entry for a workflow is removed
+ * once its chain drains, so this does not grow unbounded as workflows come
+ * and go.
+ */
+export function withSequenceLock<T>(
+  workflowId: string,
+  operation: () => Promise<T>,
+): Promise<T> {
+  const previous = sequenceLocks.get(workflowId) ?? Promise.resolve();
+  // Run `operation` once whatever is already queued has settled, whether it
+  // resolved or rejected -- a failed append must not block appends queued
+  // behind it.
+  const result = previous.then(operation, operation);
+
+  // Track the tail with a promise that never rejects, so the next append's
+  // `previous.then(operation, operation)` always has a settled value to
+  // chain off, regardless of whether `result` itself rejects.
+  const tail = result.then(
+    () => undefined,
+    () => undefined,
+  );
+  sequenceLocks.set(workflowId, tail);
+  void tail.finally(() => {
+    // Only clear the entry if we are still the current tail. If another
+    // append for this workflow started while we were running, it has
+    // already replaced the map entry with its own tail; deleting here would
+    // let a third, later append skip waiting on that one.
+    if (sequenceLocks.get(workflowId) === tail) {
+      sequenceLocks.delete(workflowId);
+    }
+  });
+
+  return result;
+}
+
+/**
+ * Number of workflows with a sequence-allocation chain currently in flight.
+ * Exposed for tests and diagnostics; not part of the public journal API.
+ */
+export function pendingSequenceLockCount(): number {
+  return sequenceLocks.size;
+}
+
 /**
  * Journal Service
  *
@@ -80,31 +150,43 @@ export class JournalService {
     payload: Record<string, unknown>,
     metadata: Partial<EventMetadata> = {},
   ): Promise<{ id: string; sequence: number }> {
-    // Get current max sequence for this workflow
-    const maxSequence = await prisma.eventJournalEntry.aggregate({
-      where: { workspaceId, workflowId },
-      _max: { sequence: true },
-    });
+    // Recorded decision: sequence allocation is serialized in-process, per
+    // workflow (see withSequenceLock above), not via a database transaction
+    // or constraint. That's sufficient for the shipped deployment -- Context
+    // Router is a local stdio MCP server, one process per client, SQLite by
+    // default -- but it does NOT protect against two server processes
+    // sharing one PostgreSQL database; a second process has its own
+    // in-memory lock map and can't see the first's. The durable,
+    // cross-process fix is a `@@unique([workflowId, sequence])` constraint
+    // on EventJournalEntry plus retry-on-conflict, deferred because it needs
+    // a migration on both the Postgres and SQLite schemas.
+    return withSequenceLock(workflowId, async () => {
+      // Get current max sequence for this workflow
+      const maxSequence = await prisma.eventJournalEntry.aggregate({
+        where: { workspaceId, workflowId },
+        _max: { sequence: true },
+      });
 
-    const nextSequence = (maxSequence._max.sequence ?? 0) + 1;
+      const nextSequence = (maxSequence._max.sequence ?? 0) + 1;
 
-    const entry = await prisma.eventJournalEntry.create({
-      data: {
-        workspaceId,
-        workflowId,
-        eventType,
-        payload: payload as Prisma.InputJsonValue,
-        metadata: {
+      const entry = await prisma.eventJournalEntry.create({
+        data: {
           workspaceId,
           workflowId,
-          timestamp: new Date().toISOString(),
-          ...metadata,
-        } as unknown as Prisma.InputJsonValue,
-        sequence: nextSequence,
-      },
-    });
+          eventType,
+          payload: payload as Prisma.InputJsonValue,
+          metadata: {
+            workspaceId,
+            workflowId,
+            timestamp: new Date().toISOString(),
+            ...metadata,
+          } as unknown as Prisma.InputJsonValue,
+          sequence: nextSequence,
+        },
+      });
 
-    return { id: entry.id, sequence: entry.sequence };
+      return { id: entry.id, sequence: entry.sequence };
+    });
   }
 
   /**
