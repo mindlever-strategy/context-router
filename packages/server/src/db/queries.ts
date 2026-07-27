@@ -1173,7 +1173,11 @@ async function writeStateEntry(
 }
 
 // ============================================================================
-// STATE TTL OPERATIONS
+// STATE TTL CLEANUP
+//
+// Writing and reading expiring state happens through the core writeState/
+// readState path above (see resolveExpiry and notExpired). This is just the
+// background sweep that deletes rows past their expiresAt.
 // ============================================================================
 
 export async function cleanupExpiredStates(batchSize: number = 100): Promise<number> {

@@ -140,6 +140,56 @@ describe('state expiry consistency', () => {
     expect(batch?.expiresAt).toBeNull();
   });
 
+  it('applies TTL through the compare-and-set path (expectedVersion + TTL)', async () => {
+    const workspace = await queries.createWorkspace('ttl-cas-ws', owner);
+    const workflow = await queries.createWorkflow(workspace.id, owner);
+    const future = new Date(Date.now() + 600_000);
+
+    const first = await queries.writeState(
+      workspace.id,
+      owner,
+      workflow.id,
+      'k',
+      { n: 1 },
+    );
+    expect(first.version).toBe(1);
+
+    // The update branch of compareAndSetState (expectedVersion !== 0).
+    const second = await queries.writeState(
+      workspace.id,
+      owner,
+      workflow.id,
+      'k',
+      { n: 2 },
+      { expectedVersion: first.version, expiresAt: future },
+    );
+    expect(second.version).toBe(2);
+    expect(second.expiresAt?.getTime()).toBe(future.getTime());
+
+    // A stale expectedVersion must still be rejected even with a TTL attached.
+    await expect(
+      queries.writeState(
+        workspace.id,
+        owner,
+        workflow.id,
+        'k',
+        { n: 3 },
+        { expectedVersion: first.version, expiresAt: future },
+      ),
+    ).rejects.toThrow('VERSION_CONFLICT');
+
+    // The create branch of compareAndSetState (expectedVersion === 0).
+    const created = await queries.writeState(
+      workspace.id,
+      owner,
+      workflow.id,
+      'fresh',
+      { n: 1 },
+      { expectedVersion: 0, expiresIn: 3600 },
+    );
+    expect(created.expiresAt).not.toBeNull();
+  });
+
   it('enforces agent-role ACLs on TTL writes', async () => {
     const workspace = await queries.createWorkspace('ttl-acl-ws', owner);
     const workflow = await queries.createWorkflow(workspace.id, owner);
