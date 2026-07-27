@@ -13,6 +13,7 @@ import {
   getWorkflow,
   readStateFields,
 } from '../db/queries.js';
+import { snapshotValues } from '../services/checkpoint-format.js';
 
 // ANSI color codes for terminal output
 const colors = {
@@ -332,7 +333,7 @@ export class WorkflowDebugger {
       for (let i = 0; i < checkpoints.length; i++) {
         const cp = checkpoints[i];
         const label = cp.label || `Checkpoint ${i + 1}`;
-        const snapshot = cp.snapshot as Record<string, unknown>;
+        const snapshot = snapshotValues(cp.snapshot);
         const keys = Object.keys(snapshot);
 
         console.log(
@@ -395,8 +396,8 @@ export class WorkflowDebugger {
       return;
     }
 
-    const snapshot1 = cp1.snapshot as Record<string, unknown>;
-    const snapshot2 = cp2.snapshot as Record<string, unknown>;
+    const snapshot1 = snapshotValues(cp1.snapshot);
+    const snapshot2 = snapshotValues(cp2.snapshot);
 
     const label1 = cp1.label || `Checkpoint ${checkpointId1.substring(0, 8)}`;
     const label2 = cp2.label || `Checkpoint ${checkpointId2.substring(0, 8)}`;
@@ -540,7 +541,7 @@ export class WorkflowDebugger {
 
         for (const cp of newCPs.reverse()) {
           const label = cp.label || 'Unnamed checkpoint';
-          const snapshot = cp.snapshot as Record<string, unknown>;
+          const snapshot = snapshotValues(cp.snapshot);
           printRow('Label', label);
           printRow('Keys', Object.keys(snapshot).length);
         }

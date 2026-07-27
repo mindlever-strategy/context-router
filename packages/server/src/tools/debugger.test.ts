@@ -1,5 +1,24 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { WorkflowDebugger } from './debugger.js';
+import {
+  CHECKPOINT_FORMAT,
+  type CheckpointSnapshot,
+} from '../services/checkpoint-format.js';
+
+/** Builds a current-format checkpoint snapshot for tests. */
+function envelopeSnapshot(
+  entries: Record<string, { value: unknown; version: number }>,
+): CheckpointSnapshot {
+  return {
+    __format: CHECKPOINT_FORMAT,
+    entries: Object.fromEntries(
+      Object.entries(entries).map(([key, { value, version }]) => [
+        key,
+        { value: value as never, version, expiresAt: null },
+      ]),
+    ),
+  };
+}
 
 // Mock the database client
 vi.mock('../db/client.js', () => ({
@@ -203,6 +222,57 @@ describe('WorkflowDebugger', () => {
       expect(logs.some((log) => log.includes('before-step-1'))).toBe(true);
       expect(logs.some((log) => log.includes('Checkpoints'))).toBe(true);
     });
+
+    it('shows real key count and unwrapped values for current-format snapshots', async () => {
+      const { prisma } = await import('../db/client.js');
+      const { listCheckpoints } = await import('../db/queries.js');
+      const { readStateFields } = await import('../db/queries.js');
+
+      vi.mocked(prisma.workflow.findFirst).mockResolvedValueOnce({
+        id: 'wf-1',
+        workspaceId: 'ws-1',
+        status: 'RUNNING' as const,
+        createdAt: new Date('2024-01-01'),
+        completedAt: null,
+        failureReason: null,
+        workspace: { name: 'Test Workspace' },
+      });
+      vi.mocked(listCheckpoints).mockResolvedValueOnce([
+        {
+          id: 'cp-1',
+          workflowId: 'wf-1',
+          label: 'envelope-checkpoint',
+          createdAt: new Date('2024-01-01'),
+          // A raw checkpoint.snapshot naively cast to Record<string, unknown>
+          // would report 2 top-level keys (__format, entries) and print the
+          // envelope object itself instead of 'value1'.
+          snapshot: envelopeSnapshot({
+            key1: { value: 'value1', version: 3 },
+            key2: { value: 'value2', version: 1 },
+            key3: { value: 'value3', version: 7 },
+          }),
+        },
+      ]);
+      vi.mocked(readStateFields).mockResolvedValueOnce({ currentKey: 'currentValue' });
+
+      const logs: string[] = [];
+      const originalLog = console.log;
+      console.log = (...args) => {
+        logs.push(args.map(String).join(' '));
+      };
+
+      await workflowDebugger.inspectWorkflow('wf-1');
+
+      console.log = originalLog;
+
+      // A raw, unwrapped read would report 2 top-level keys (__format,
+      // entries) here regardless of how many state keys the checkpoint
+      // actually holds — 3 only appears once the envelope is unwrapped.
+      expect(logs.some((log) => log.includes('[3 keys]'))).toBe(true);
+      expect(logs.some((log) => log.includes('[2 keys]'))).toBe(false);
+      expect(logs.some((log) => log.includes('value1'))).toBe(true);
+      expect(logs.some((log) => log.includes('__format'))).toBe(false);
+    });
   });
 
   describe('diffCheckpoints', () => {
@@ -322,6 +392,53 @@ describe('WorkflowDebugger', () => {
           label: 'same2',
           createdAt: new Date('2024-01-02'),
           snapshot: { key1: 'value' },
+        });
+
+      const logs: string[] = [];
+      const originalLog = console.log;
+      console.log = (...args) => {
+        logs.push(args.map(String).join(' '));
+      };
+
+      await workflowDebugger.diffCheckpoints('wf-1', 'cp-1', 'cp-2');
+
+      console.log = originalLog;
+
+      expect(logs.some((log) => log.includes('No differences found'))).toBe(true);
+    });
+
+    it('shows no differences for current-format snapshots with identical values but different versions', async () => {
+      const { prisma } = await import('../db/client.js');
+
+      vi.mocked(prisma.workflow.findFirst).mockResolvedValueOnce({
+        id: 'wf-1',
+        workspaceId: 'ws-1',
+        status: 'RUNNING' as const,
+        createdAt: new Date(),
+        completedAt: null,
+        failureReason: null,
+        workspace: { name: 'Test' },
+      });
+      vi.mocked(prisma.checkpoint.findFirst)
+        .mockResolvedValueOnce({
+          id: 'cp-1',
+          workflowId: 'wf-1',
+          workspaceId: 'ws-1',
+          label: 'same1',
+          createdAt: new Date('2024-01-01'),
+          // Same value, but version 1 -- if the diff logic compared raw
+          // envelopes instead of unwrapped values, this would look changed
+          // purely because of a checkpoint restore or CAS write bumping
+          // the version, even though nothing the caller cares about moved.
+          snapshot: envelopeSnapshot({ key1: { value: 'value', version: 1 } }),
+        })
+        .mockResolvedValueOnce({
+          id: 'cp-2',
+          workflowId: 'wf-1',
+          workspaceId: 'ws-1',
+          label: 'same2',
+          createdAt: new Date('2024-01-02'),
+          snapshot: envelopeSnapshot({ key1: { value: 'value', version: 5 } }),
         });
 
       const logs: string[] = [];
