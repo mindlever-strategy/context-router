@@ -47,6 +47,47 @@ describe('state expiry consistency', () => {
         'dead',
       ]),
     ).toEqual({ live: { n: 1 } });
+    expect(
+      await queries.readStateBatch(workspace.id, owner, workflow.id, [
+        'live',
+        'dead',
+      ]),
+    ).toEqual({
+      results: [
+        { key: 'live', found: true, value: { n: 1 }, version: 1 },
+        { key: 'dead', found: false },
+      ],
+    });
+  });
+
+  it('does not skip an expired key during batch writes with onConflict: skip', async () => {
+    const workspace = await queries.createWorkspace('ttl-batch-ws', owner);
+    const workflow = await queries.createWorkflow(workspace.id, owner);
+
+    await queries.writeState(
+      workspace.id,
+      owner,
+      workflow.id,
+      'expired',
+      { n: 1 },
+      { expiresAt: new Date(Date.now() - 1000) },
+    );
+
+    const result = await queries.writeStateBatch(
+      workspace.id,
+      owner,
+      workflow.id,
+      [{ key: 'expired', value: { n: 2 } }],
+      { onConflict: 'skip' },
+    );
+
+    expect(result.results).toEqual([
+      { key: 'expired', success: true, version: 2 },
+    ]);
+    expect(
+      (await queries.readState(workspace.id, owner, workflow.id, 'expired'))
+        ?.value,
+    ).toEqual({ n: 2 });
   });
 
   it('enforces agent-role ACLs on TTL writes', async () => {

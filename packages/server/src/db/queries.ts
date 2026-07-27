@@ -953,6 +953,7 @@ export async function writeStateBatch(
           workspaceId,
           workflowId,
           key: { in: entries.map((entry) => entry.key) },
+          ...notExpired(),
         },
         select: { key: true },
       })
@@ -1122,6 +1123,7 @@ export async function readStateBatch(
       workspaceId,
       workflowId,
       key: { in: keys },
+      ...notExpired(),
     },
   });
 
