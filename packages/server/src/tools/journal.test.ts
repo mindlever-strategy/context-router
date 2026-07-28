@@ -292,6 +292,30 @@ describe('journal_query tool', () => {
   // Bug 5: export view should handle malformed JSON gracefully
   // =========================================================================
   describe('Bug 5: export view JSON parsing', () => {
+    it('should return parseError flag when JSON parse fails', async () => {
+      mockJournalService.export.mockResolvedValue({
+        data: '{ not valid json }',
+        contentType: 'application/json',
+        size: 17,
+      });
+
+      const tools = registerJournalTools({} as never, () => 'test-user');
+      const queryTool = tools.get('journal_query');
+      expect(queryTool).toBeDefined();
+
+      const result = await queryTool!.handler({
+        workspaceId: WORKSPACE_ID,
+        workflowId: WORKFLOW_ID,
+        view: 'export',
+        exportFormat: 'json',
+      });
+
+      expect(result.isError).toBeFalsy();
+      const responseData = JSON.parse(result.content[0].text);
+      expect(responseData.data.parseError).toBe(true);
+      expect(responseData.data.eventCount).toBe(0);
+    });
+
     it('should handle malformed JSON export data without crashing', async () => {
       mockJournalService.export.mockResolvedValue({
         data: 'not-valid-json{{{{{',
@@ -519,6 +543,77 @@ describe('journal_query tool', () => {
       expect(mockJournaledJournalExport).toHaveBeenCalled();
       const callArgs = mockJournaledJournalExport.mock.calls[0];
       expect(callArgs[4].since).not.toBe('1970-01-01T00:00:00.000Z');
+    });
+  });
+
+  // =========================================================================
+  // Bug 10 (part 2): eventTypes filter should apply to checkpoint lookup
+  // =========================================================================
+  describe('Bug 10: eventTypes filter on checkpoint lookup', () => {
+    it('applies eventTypes filter to checkpoint lookup for initialState', async () => {
+      const { prisma } = await import('../db/client.js');
+      (prisma.eventJournalEntry.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({
+        payload: { checkpointId: 'checkpoint-1' },
+      });
+      (prisma.checkpoint.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({
+        snapshot: JSON.stringify({ key: 'from-checkpoint' }),
+      });
+      mockJournalService.replay.mockResolvedValue({});
+      mockJournalService.getCurrentSequence.mockResolvedValue(10);
+
+      const tools = registerJournalTools({} as never, () => 'test-user');
+      const queryTool = tools.get('journal_query');
+      expect(queryTool).toBeDefined();
+
+      await queryTool!.handler({
+        workspaceId: WORKSPACE_ID,
+        workflowId: WORKFLOW_ID,
+        view: 'replay',
+        eventTypes: ['checkpoint_created'],
+        untilSequence: 10,
+      });
+
+      // The checkpoint lookup should use the same eventTypes filter
+      expect(prisma.eventJournalEntry.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            eventType: { in: ['checkpoint_created'] },
+          }),
+        }),
+      );
+    });
+
+    it('uses default checkpoint_created when no eventTypes provided', async () => {
+      const { prisma } = await import('../db/client.js');
+      (prisma.eventJournalEntry.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({
+        payload: { checkpointId: 'checkpoint-1' },
+      });
+      (prisma.checkpoint.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({
+        snapshot: JSON.stringify({ key: 'from-checkpoint' }),
+      });
+      mockJournalService.replay.mockResolvedValue({});
+      mockJournalService.getCurrentSequence.mockResolvedValue(10);
+
+      const tools = registerJournalTools({} as never, () => 'test-user');
+      const queryTool = tools.get('journal_query');
+      expect(queryTool).toBeDefined();
+
+      await queryTool!.handler({
+        workspaceId: WORKSPACE_ID,
+        workflowId: WORKFLOW_ID,
+        view: 'replay',
+        untilSequence: 10,
+        // No eventTypes provided
+      });
+
+      // Should use default 'checkpoint_created' filter
+      expect(prisma.eventJournalEntry.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            eventType: 'checkpoint_created',
+          }),
+        }),
+      );
     });
   });
 

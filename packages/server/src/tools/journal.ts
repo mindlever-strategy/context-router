@@ -13,6 +13,7 @@ import type { EventType } from '../services/event-types.js';
 import { EVENT_TYPE_VALUES } from '../services/event-types.js';
 import { snapshotValues } from '../services/checkpoint-format.js';
 import { defineTool, ToolOperationError, uuid, type ToolRegistry } from './tool-kit.js';
+import type { Prisma } from '@prisma/client';
 
 /**
  * Register all journal tools with the MCP server
@@ -176,13 +177,21 @@ export function registerJournalTools(
           let initialState: Record<string, unknown> = {};
 
           if (untilSequence) {
+            // Build checkpoint lookup filter - apply eventTypes if provided,
+            // otherwise default to 'checkpoint_created' for backward compatibility
+            const checkpointWhere: Prisma.EventJournalEntryWhereInput = {
+              workspaceId,
+              workflowId,
+              sequence: { lte: untilSequence },
+              eventType: 'checkpoint_created',
+            };
+
+            if (eventTypes && eventTypes.length > 0) {
+              checkpointWhere.eventType = { in: eventTypes };
+            }
+
             const entryAtSequence = await prisma.eventJournalEntry.findFirst({
-              where: {
-                workspaceId,
-                workflowId,
-                sequence: { lte: untilSequence },
-                eventType: 'checkpoint_created',
-              },
+              where: checkpointWhere,
               orderBy: { sequence: 'desc' },
             });
 
@@ -252,6 +261,7 @@ export function registerJournalTools(
           });
 
           let entryCount: number;
+          let parseError = false;
           if (exportFormat === 'jsonl') {
             entryCount = result.data.split('\n').filter(Boolean).length;
           } else {
@@ -259,6 +269,7 @@ export function registerJournalTools(
               entryCount = JSON.parse(result.data).length;
             } catch {
               entryCount = 0;
+              parseError = true;
             }
           }
 
@@ -281,6 +292,7 @@ export function registerJournalTools(
             size: result.size,
             eventCount: entryCount,
             format: exportFormat,
+            ...(parseError ? { parseError: true } : {}),
           };
         }
 
