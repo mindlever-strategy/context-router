@@ -526,6 +526,111 @@ describe('journal_query tool', () => {
   // Bug 9: currentSequence should use untilSequence atomically, not query separately
   // =========================================================================
   describe('Bug 9: atomic currentSequence from replay', () => {
+
+  // =========================================================================
+  // Bug 10: sequence view should reject incompatible filters
+  // =========================================================================
+  describe('Bug 10: sequence view filter validation', () => {
+    it('rejects eventTypes filter with VALIDATION_ERROR', async () => {
+      mockJournalService.getCurrentSequence.mockResolvedValue(5);
+
+      const tools = registerJournalTools({} as never, () => 'test-user');
+      const queryTool = tools.get('journal_query');
+      expect(queryTool).toBeDefined();
+
+      const result = await queryTool!.handler({
+        workspaceId: WORKSPACE_ID,
+        workflowId: WORKFLOW_ID,
+        view: 'sequence',
+        eventTypes: ['checkpoint_created'],
+      });
+
+      expect(result.isError).toBe(true);
+      const errorText = JSON.parse(result.content[0].text);
+      expect(errorText.error.code).toBe('VALIDATION_ERROR');
+      expect(errorText.error.message).toContain('eventTypes');
+    });
+
+    it('rejects agentId filter with VALIDATION_ERROR', async () => {
+      mockJournalService.getCurrentSequence.mockResolvedValue(5);
+
+      const tools = registerJournalTools({} as never, () => 'test-user');
+      const queryTool = tools.get('journal_query');
+      expect(queryTool).toBeDefined();
+
+      const result = await queryTool!.handler({
+        workspaceId: WORKSPACE_ID,
+        workflowId: WORKFLOW_ID,
+        view: 'sequence',
+        agentId: 'agent-123',
+      });
+
+      expect(result.isError).toBe(true);
+      const errorText = JSON.parse(result.content[0].text);
+      expect(errorText.error.code).toBe('VALIDATION_ERROR');
+      expect(errorText.error.message).toContain('agentId');
+    });
+
+    it('rejects since filter with VALIDATION_ERROR', async () => {
+      mockJournalService.getCurrentSequence.mockResolvedValue(5);
+
+      const tools = registerJournalTools({} as never, () => 'test-user');
+      const queryTool = tools.get('journal_query');
+      expect(queryTool).toBeDefined();
+
+      const result = await queryTool!.handler({
+        workspaceId: WORKSPACE_ID,
+        workflowId: WORKFLOW_ID,
+        view: 'sequence',
+        since: '2024-01-15T10:00:00.000Z',
+      });
+
+      expect(result.isError).toBe(true);
+      const errorText = JSON.parse(result.content[0].text);
+      expect(errorText.error.code).toBe('VALIDATION_ERROR');
+      expect(errorText.error.message).toContain('since');
+    });
+
+    it('rejects until filter with VALIDATION_ERROR', async () => {
+      mockJournalService.getCurrentSequence.mockResolvedValue(5);
+
+      const tools = registerJournalTools({} as never, () => 'test-user');
+      const queryTool = tools.get('journal_query');
+      expect(queryTool).toBeDefined();
+
+      const result = await queryTool!.handler({
+        workspaceId: WORKSPACE_ID,
+        workflowId: WORKFLOW_ID,
+        view: 'sequence',
+        until: '2024-01-15T10:00:00.000Z',
+      });
+
+      expect(result.isError).toBe(true);
+      const errorText = JSON.parse(result.content[0].text);
+      expect(errorText.error.code).toBe('VALIDATION_ERROR');
+      expect(errorText.error.message).toContain('until');
+    });
+
+    it('accepts sequence view with only workspaceId and workflowId', async () => {
+      mockJournalService.getCurrentSequence.mockResolvedValue(10);
+
+      const tools = registerJournalTools({} as never, () => 'test-user');
+      const queryTool = tools.get('journal_query');
+      expect(queryTool).toBeDefined();
+
+      const result = await queryTool!.handler({
+        workspaceId: WORKSPACE_ID,
+        workflowId: WORKFLOW_ID,
+        view: 'sequence',
+      });
+
+      expect(result.isError).toBeFalsy();
+      expect(mockJournalService.getCurrentSequence).toHaveBeenCalledWith(
+        WORKSPACE_ID,
+        WORKFLOW_ID,
+      );
+    });
+  });
     it('returns currentSequence from replay entries, not a separate query', async () => {
       // Simulate entries returned from replay
       mockJournalService.replay.mockResolvedValue({ key: 'value' });

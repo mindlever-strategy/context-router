@@ -288,6 +288,13 @@ export function registerJournalTools(
         if (!workflowId) {
           throw new Error('VALIDATION_ERROR: workflowId is required for sequence view');
         }
+        // Warn about unsupported filters - sequence view doesn't support these
+        if (eventTypes || agentId || since || until) {
+          throw new ToolOperationError(
+            'VALIDATION_ERROR',
+            'sequence view does not support eventTypes, agentId, since, or until filters',
+          );
+        }
         const sequence = await journalService.getCurrentSequence(
           workspaceId,
           workflowId,
