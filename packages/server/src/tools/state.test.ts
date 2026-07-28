@@ -23,10 +23,10 @@ describe('state_diff mode validation', () => {
     const stateDiffTool = tools.get('state_diff');
     if (!stateDiffTool) throw new Error('state_diff tool not registered');
 
-    // Use valid UUIDs but no mode
+    // Use valid UUIDs (with proper version/variant bits) but no mode
     const result = await stateDiffTool.handler({
-      workspaceId: '11111111-1111-1111-1111-111111111111',
-      workflowId: '22222222-2222-2222-2222-222222222222',
+      workspaceId: '11111111-1111-4111-8111-111111111111',
+      workflowId: '22222222-2222-4222-8222-222222222222',
       // mode is intentionally omitted
     });
 
@@ -50,9 +50,9 @@ describe('state_diff mode validation', () => {
     const stateDiffTool = tools.get('state_diff');
     if (!stateDiffTool) throw new Error('state_diff tool not registered');
 
-    // Use valid UUID but no mode or other params
+    // Use valid UUID (with proper version/variant bits) but no mode or other params
     const result = await stateDiffTool.handler({
-      workspaceId: '33333333-3333-3333-3333-333333333333',
+      workspaceId: '33333333-3333-4333-8333-333333333333',
     });
 
     expect(result).toHaveProperty('content');

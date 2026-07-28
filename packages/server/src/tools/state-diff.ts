@@ -28,11 +28,21 @@ export function registerStateDiffTools(
       {
         name: 'state_diff',
         description:
-          'Compare state between two checkpoints. Returns added, removed, and modified keys.',
+          'Compare state between checkpoints or current state. Returns added, removed, and modified keys.',
         inputSchema: {
           type: 'object',
           properties: {
             workspaceId: uuid,
+            mode: {
+              type: 'string',
+              enum: ['checkpoints', 'current-vs-checkpoint', 'recent'],
+              description:
+                'checkpoints: compare two checkpoints. current-vs-checkpoint: compare live state to one checkpoint. recent: compare the newest checkpoint to one N back.',
+            },
+            workflowId: {
+              type: 'string',
+              description: 'Required for current-vs-checkpoint and recent modes',
+            },
             sourceCheckpointId: {
               type: 'string',
               description: 'Source checkpoint ID (the "before" state)',
@@ -40,6 +50,14 @@ export function registerStateDiffTools(
             targetCheckpointId: {
               type: 'string',
               description: 'Target checkpoint ID (the "after" state)',
+            },
+            checkpointId: {
+              type: 'string',
+              description: 'Checkpoint ID for current-vs-checkpoint mode',
+            },
+            checkpointsBack: {
+              type: 'number',
+              description: 'recent mode: how many checkpoints back to compare',
             },
             options: {
               type: 'object',
@@ -55,18 +73,24 @@ export function registerStateDiffTools(
                 format: {
                   type: 'string',
                   enum: ['summary', 'detailed', 'json'],
-                  description: 'Output format',
+                  description: 'Output format (checkpoints mode only)',
                 },
               },
             },
           },
-          required: ['workspaceId', 'sourceCheckpointId', 'targetCheckpointId'],
+          required: ['workspaceId'],
         },
       },
       z.object({
         workspaceId: z.string().uuid(),
-        sourceCheckpointId: z.string(),
-        targetCheckpointId: z.string(),
+        mode: z
+          .enum(['checkpoints', 'current-vs-checkpoint', 'recent'])
+          .optional(),
+        workflowId: z.string().uuid().optional(),
+        sourceCheckpointId: z.string().optional(),
+        targetCheckpointId: z.string().optional(),
+        checkpointId: z.string().optional(),
+        checkpointsBack: z.number().int().min(1).default(1),
         options: z
           .object({
             deepDiff: z.boolean().default(false),
@@ -75,178 +99,95 @@ export function registerStateDiffTools(
           })
           .optional(),
       }),
-      async ({ workspaceId, sourceCheckpointId, targetCheckpointId, options }) => {
+      async ({ workspaceId, mode, workflowId, sourceCheckpointId, targetCheckpointId, checkpointId, checkpointsBack, options }) => {
+        // Validate: when no checkpoint IDs are provided, mode is required
+        if (!mode && !sourceCheckpointId && !targetCheckpointId) {
+          throw new Error(
+            'VALIDATION_ERROR: mode is required when comparing without checkpoint IDs. Use "checkpoints", "current-vs-checkpoint", or "recent".',
+          );
+        }
+
+        // Apply default mode after validation
+        const resolvedMode = mode ?? 'checkpoints';
         const { prisma } = await import('../db/client.js');
-        const startTime = Date.now();
-
-        // Fetch both checkpoints
-        const [sourceCp, targetCp] = await Promise.all([
-          prisma.checkpoint.findFirst({
-            where: { id: sourceCheckpointId, workspaceId },
-          }),
-          prisma.checkpoint.findFirst({
-            where: { id: targetCheckpointId, workspaceId },
-          }),
-        ]);
-
-        if (!sourceCp) throw new Error('SOURCE_CHECKPOINT_NOT_FOUND');
-        if (!targetCp) throw new Error('TARGET_CHECKPOINT_NOT_FOUND');
 
         const diffOptions: StateDiffOptions = {
           deepDiff: options?.deepDiff ?? false,
           includeUnchanged: options?.includeUnchanged ?? false,
         };
 
-        const sourceSnapshot = snapshotValues(sourceCp.snapshot);
-        const targetSnapshot = snapshotValues(targetCp.snapshot);
+        // Mode: checkpoints (compare two checkpoints)
+        if (resolvedMode === 'checkpoints') {
+          if (!sourceCheckpointId || !targetCheckpointId) {
+            throw new Error('VALIDATION_ERROR: sourceCheckpointId and targetCheckpointId are required for checkpoints mode');
+          }
 
-        const result = diffState(sourceSnapshot, targetSnapshot, diffOptions);
+          const [sourceCp, targetCp] = await Promise.all([
+            prisma.checkpoint.findFirst({
+              where: { id: sourceCheckpointId, workspaceId },
+            }),
+            prisma.checkpoint.findFirst({
+              where: { id: targetCheckpointId, workspaceId },
+            }),
+          ]);
 
-        // Record metrics
-        const fieldsChanged = result.summary.addedKeys.length + result.summary.removedKeys.length + result.summary.modifiedKeys.length;
-        recordStateDiff(fieldsChanged, result.summary.modifiedKeys.length);
+          if (!sourceCp) throw new Error('SOURCE_CHECKPOINT_NOT_FOUND');
+          if (!targetCp) throw new Error('TARGET_CHECKPOINT_NOT_FOUND');
 
-        if (options?.format === 'summary') {
-          return {
-            added: result.summary.addedKeys.length,
-            removed: result.summary.removedKeys.length,
-            modified: result.summary.modifiedKeys.length,
-            unchanged: result.summary.unchangedKeys.length,
-            keys: result.summary,
-          };
+          const sourceSnapshot = snapshotValues(sourceCp.snapshot);
+          const targetSnapshot = snapshotValues(targetCp.snapshot);
+          const result = diffState(sourceSnapshot, targetSnapshot, diffOptions);
+
+          const fieldsChanged = result.summary.addedKeys.length + result.summary.removedKeys.length + result.summary.modifiedKeys.length;
+          recordStateDiff(fieldsChanged, result.summary.modifiedKeys.length);
+
+          if (options?.format === 'summary') {
+            return {
+              added: result.summary.addedKeys.length,
+              removed: result.summary.removedKeys.length,
+              modified: result.summary.modifiedKeys.length,
+              unchanged: result.summary.unchangedKeys.length,
+              keys: result.summary,
+            };
+          }
+          if (options?.format === 'json') {
+            return JSON.stringify(result, null, 2);
+          }
+          return result;
         }
 
-        if (options?.format === 'json') {
-          return JSON.stringify(result, null, 2);
+        // Mode: current-vs-checkpoint
+        if (resolvedMode === 'current-vs-checkpoint') {
+          if (!workflowId || !checkpointId) {
+            throw new Error('VALIDATION_ERROR: workflowId and checkpointId are required for current-vs-checkpoint mode');
+          }
+
+          const [checkpoint, currentState] = await Promise.all([
+            prisma.checkpoint.findFirst({
+              where: { id: checkpointId, workspaceId },
+            }),
+            snapshotState(workspaceId, getCurrentUserId(), workflowId),
+          ]);
+
+          if (!checkpoint) throw new Error('CHECKPOINT_NOT_FOUND');
+
+          const result = diffState(
+            snapshotValues(checkpoint.snapshot),
+            (currentState ?? {}) as Record<string, unknown>,
+            diffOptions,
+          );
+
+          const fieldsChanged = result.summary.addedKeys.length + result.summary.removedKeys.length + result.summary.modifiedKeys.length;
+          recordStateDiff(fieldsChanged, result.summary.modifiedKeys.length);
+
+          return result;
         }
 
-        return result;
-      },
-    ),
-  );
+        // Mode: recent
+        if (!workflowId) {
+          throw new Error('VALIDATION_ERROR: workflowId is required for recent mode');
+        }
 
-  tools.set(
-    'state_diff_current_vs_checkpoint',
-    defineTool(
-      {
-        name: 'state_diff_current_vs_checkpoint',
-        description:
-          'Compare current workflow state against a checkpoint. Shows what changed since the checkpoint was created.',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            workspaceId: uuid,
-            workflowId: uuid,
-            checkpointId: {
-              type: 'string',
-              description: 'Checkpoint ID to compare against',
-            },
-            options: {
-              type: 'object',
-              properties: {
-                deepDiff: {
-                  type: 'boolean',
-                  description: 'Compare nested object fields',
-                },
-                includeUnchanged: {
-                  type: 'boolean',
-                  description: 'Include keys with unchanged values',
-                },
-              },
-            },
-          },
-          required: ['workspaceId', 'workflowId', 'checkpointId'],
-        },
-      },
-      z.object({
-        workspaceId: z.string().uuid(),
-        workflowId: z.string().uuid(),
-        checkpointId: z.string(),
-        options: z
-          .object({
-            deepDiff: z.boolean().default(false),
-            includeUnchanged: z.boolean().default(false),
-          })
-          .optional(),
-      }),
-      async ({ workspaceId, workflowId, checkpointId, options }) => {
-        const { prisma } = await import('../db/client.js');
-        const startTime = Date.now();
-
-        // Fetch checkpoint and current state in parallel
-        const [checkpoint, currentState] = await Promise.all([
-          prisma.checkpoint.findFirst({
-            where: { id: checkpointId, workspaceId },
-          }),
-          snapshotState(workspaceId, getCurrentUserId(), workflowId),
-        ]);
-
-        if (!checkpoint) throw new Error('CHECKPOINT_NOT_FOUND');
-
-        const result = diffState(
-          snapshotValues(checkpoint.snapshot),
-          (currentState ?? {}) as Record<string, unknown>,
-          options ?? {},
-        );
-
-        // Record metrics
-        const fieldsChanged = result.summary.addedKeys.length + result.summary.removedKeys.length + result.summary.modifiedKeys.length;
-        recordStateDiff(fieldsChanged, result.summary.modifiedKeys.length);
-
-        return result;
-      },
-    ),
-  );
-
-  tools.set(
-    'state_diff_recent_changes',
-    defineTool(
-      {
-        name: 'state_diff_recent_changes',
-        description:
-          'Compare workflow state now vs N checkpoints ago. Useful for seeing recent changes.',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            workspaceId: uuid,
-            workflowId: uuid,
-            checkpointsBack: {
-              type: 'number',
-              description: 'How many checkpoints back to compare (default: 1)',
-            },
-            options: {
-              type: 'object',
-              properties: {
-                deepDiff: {
-                  type: 'boolean',
-                  description: 'Compare nested object fields',
-                },
-                includeUnchanged: {
-                  type: 'boolean',
-                  description: 'Include keys with unchanged values',
-                },
-              },
-            },
-          },
-          required: ['workspaceId', 'workflowId'],
-        },
-      },
-      z.object({
-        workspaceId: z.string().uuid(),
-        workflowId: z.string().uuid(),
-        checkpointsBack: z.number().int().min(1).default(1),
-        options: z
-          .object({
-            deepDiff: z.boolean().default(false),
-            includeUnchanged: z.boolean().default(false),
-          })
-          .optional(),
-      }),
-      async ({ workspaceId, workflowId, checkpointsBack, options }) => {
-        const { prisma } = await import('../db/client.js');
-        const startTime = Date.now();
-
-        // Get checkpoints ordered by creation time (newest first)
         const checkpoints = await prisma.checkpoint.findMany({
           where: { workspaceId, workflowId },
           orderBy: { createdAt: 'desc' },
@@ -257,7 +198,6 @@ export function registerStateDiffTools(
           throw new Error(`Not enough checkpoints. Found ${checkpoints.length}, need ${checkpointsBack}`);
         }
 
-        // checkpoints[0] is newest, checkpoints[checkpointsBack - 1] is the older one
         const sourceCheckpoint = checkpoints[checkpointsBack - 1];
         const targetCheckpoint = checkpoints[0];
 
@@ -268,10 +208,9 @@ export function registerStateDiffTools(
         const result = diffState(
           snapshotValues(sourceCheckpoint.snapshot),
           snapshotValues(targetCheckpoint.snapshot),
-          options ?? {},
+          diffOptions,
         );
 
-        // Record metrics
         const fieldsChanged = result.summary.addedKeys.length + result.summary.removedKeys.length + result.summary.modifiedKeys.length;
         recordStateDiff(fieldsChanged, result.summary.modifiedKeys.length);
 
