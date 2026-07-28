@@ -173,12 +173,6 @@ export function registerStateTools(
         ),
       async (input) => {
         if (input.entries) {
-          if (input.provenance || input.provenanceMode) {
-            throw new ToolOperationError(
-              'VALIDATION_ERROR',
-              'provenance and provenanceMode are not supported with batch entries. Use single key/value writes instead.',
-            );
-          }
           return writeStateBatch(
             input.workspaceId,
             getCurrentUserId(),
