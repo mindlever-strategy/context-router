@@ -210,10 +210,10 @@ export function registerJournalTools(
           return {
             state: { ...initialState, ...state },
             replayedSequence: untilSequence,
-            currentSequence: await journalService.getCurrentSequence(
+            currentSequence: untilSequence ?? (await journalService.getCurrentSequence(
               workspaceId,
               workflowId,
-            ),
+            )),
           };
         }
 

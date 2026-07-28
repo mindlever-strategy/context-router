@@ -521,4 +521,55 @@ describe('journal_query tool', () => {
       expect(callArgs[4].since).not.toBe('1970-01-01T00:00:00.000Z');
     });
   });
+
+  // =========================================================================
+  // Bug 9: currentSequence should use untilSequence atomically, not query separately
+  // =========================================================================
+  describe('Bug 9: atomic currentSequence from replay', () => {
+    it('returns currentSequence from replay entries, not a separate query', async () => {
+      // Simulate entries returned from replay
+      mockJournalService.replay.mockResolvedValue({ key: 'value' });
+      mockJournalService.getCurrentSequence.mockResolvedValue(5); // stale value
+
+      const tools = registerJournalTools({} as never, () => 'test-user');
+      const queryTool = tools.get('journal_query');
+      expect(queryTool).toBeDefined();
+
+      const result = await queryTool!.handler({
+        workspaceId: WORKSPACE_ID,
+        workflowId: WORKFLOW_ID,
+        view: 'replay',
+        untilSequence: 7,
+      });
+
+      // After fix: getCurrentSequence should NOT be called when untilSequence is provided
+      expect(mockJournalService.getCurrentSequence).not.toHaveBeenCalled();
+      // Verify the result was successful (wrapped in content array format)
+      expect(result.isError).toBeFalsy();
+      const responseData = JSON.parse(result.content[0].text);
+      expect(responseData.data.currentSequence).toBe(7);
+    });
+
+    it('falls back to getCurrentSequence when untilSequence is not provided', async () => {
+      mockJournalService.replay.mockResolvedValue({ key: 'value' });
+      mockJournalService.getCurrentSequence.mockResolvedValue(10);
+
+      const tools = registerJournalTools({} as never, () => 'test-user');
+      const queryTool = tools.get('journal_query');
+      expect(queryTool).toBeDefined();
+
+      const result = await queryTool!.handler({
+        workspaceId: WORKSPACE_ID,
+        workflowId: WORKFLOW_ID,
+        view: 'replay',
+        // No untilSequence
+      });
+
+      // When no untilSequence, should fall back to getCurrentSequence
+      expect(mockJournalService.getCurrentSequence).toHaveBeenCalled();
+      expect(result.isError).toBeFalsy();
+      const responseData = JSON.parse(result.content[0].text);
+      expect(responseData.data.currentSequence).toBe(10);
+    });
+  });
 });
