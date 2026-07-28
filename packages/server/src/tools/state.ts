@@ -1,13 +1,16 @@
 import type { Server as McpServer } from '@modelcontextprotocol/sdk/server/index.js';
 import { z } from 'zod';
 import {
+  cleanupExpiredStates,
   deleteState,
   getSchema,
   readState,
   readStateFields,
   snapshotState,
   writeState,
+  writeStateBatch,
 } from '../db/queries.js';
+import { isTTLCleanupRunning } from '../services/state-ttl.js';
 import {
   SchemaValidator,
   type FieldDefinition,
@@ -50,7 +53,7 @@ export function registerStateTools(
       {
         name: 'state_write',
         description:
-          'Write structured state with optional schema validation, CAS, provenance, and agent role ACL',
+          'Write one state key or a batch. Supports schema validation, compare-and-set, TTL expiry, provenance, and agent role ACL.',
         inputSchema: {
           type: 'object',
           properties: {
@@ -72,8 +75,50 @@ export function registerStateTools(
                 { type: 'null' },
               ],
             },
+            entries: {
+              type: 'array',
+              description:
+                'Batch mode: write many keys at once. Mutually exclusive with key/value.',
+              items: {
+                type: 'object',
+                properties: {
+                  key: string,
+                  value: {
+                    description:
+                      'Any JSON value: object, array, string, number, boolean, or null',
+                    anyOf: [
+                      { type: 'object' },
+                      { type: 'array' },
+                      { type: 'string' },
+                      { type: 'number' },
+                      { type: 'boolean' },
+                      { type: 'null' },
+                    ],
+                  },
+                  schemaName: string,
+                },
+                required: ['key', 'value'],
+              },
+            },
+            atomic: {
+              type: 'boolean',
+              description: 'Batch mode: commit all entries or none',
+            },
+            onConflict: {
+              type: 'string',
+              enum: ['upsert', 'skip', 'fail'],
+              description: 'Batch mode: behaviour when a key already exists',
+            },
             schemaName: string,
             expectedVersion: number,
+            expiresIn: {
+              type: 'number',
+              description: 'TTL in seconds from now',
+            },
+            expiresAt: {
+              type: 'string',
+              description: 'Absolute expiry as an ISO 8601 timestamp',
+            },
             agentRole: string,
             provenance: object,
             provenanceMode: {
@@ -81,40 +126,66 @@ export function registerStateTools(
               enum: ['per-field', 'whole-object'],
             },
           },
-          required: ['workspaceId', 'workflowId', 'key', 'value'],
+          required: ['workspaceId', 'workflowId'],
         },
       },
-      z.object({
-        ...identifiers,
-        key: z.string().min(1).max(255),
-        value: z.unknown(), // Accept any JSON value including arrays and nested objects
-        schemaName: z.string().min(1).max(100).optional(),
-        expectedVersion: z.number().int().min(0).optional(),
-        agentRole: z.string().min(1).max(100).optional(),
-        provenance: provenanceSchema,
-        provenanceMode: z.enum(['per-field', 'whole-object']).optional(),
-      }),
-      async ({
-        workspaceId,
-        workflowId,
-        key,
-        value,
-        schemaName,
-        expectedVersion,
-        agentRole,
-        provenance,
-        provenanceMode,
-      }) => {
-        if (schemaName) {
-          const schema = await getSchema(
-            workspaceId,
+      z
+        .object({
+          ...identifiers,
+          key: z.string().min(1).max(255).optional(),
+          value: z.unknown(),
+          entries: z
+            .array(
+              z.object({
+                key: z.string().min(1).max(255),
+                value: z.unknown(),
+                schemaName: z.string().min(1).max(100).optional(),
+              }),
+            )
+            .min(1)
+            .max(100)
+            .optional(),
+          atomic: z.boolean().optional(),
+          onConflict: z.enum(['upsert', 'skip', 'fail']).optional(),
+          schemaName: z.string().min(1).max(100).optional(),
+          expectedVersion: z.number().int().min(0).optional(),
+          expiresIn: z.number().int().positive().optional(),
+          expiresAt: z.string().datetime().optional(),
+          agentRole: z.string().min(1).max(100).optional(),
+          provenance: provenanceSchema,
+          provenanceMode: z.enum(['per-field', 'whole-object']).optional(),
+        })
+        .refine((input) => Boolean(input.key) !== Boolean(input.entries), {
+          message: 'Provide exactly one of key or entries',
+        })
+        .refine((input) => !(input.expiresIn && input.expiresAt), {
+          message: 'Provide either expiresIn or expiresAt, not both',
+        }),
+      async (input) => {
+        if (input.entries) {
+          return writeStateBatch(
+            input.workspaceId,
             getCurrentUserId(),
-            schemaName,
+            input.workflowId,
+            input.entries.map((entry) => ({
+              key: entry.key,
+              value: entry.value as Prisma.InputJsonValue,
+              schemaName: entry.schemaName,
+            })),
+            { atomic: input.atomic, onConflict: input.onConflict },
+          );
+        }
+
+        if (input.schemaName) {
+          const schema = await getSchema(
+            input.workspaceId,
+            getCurrentUserId(),
+            input.schemaName,
           );
           if (!schema) throw new Error('SCHEMA_NOT_FOUND');
           const errors = validator.validate(
             schema.fields as Record<string, FieldDefinition>,
-            value,
+            input.value,
           );
           if (errors.length > 0) {
             throw new ToolOperationError(
@@ -125,30 +196,37 @@ export function registerStateTools(
           }
         }
         if (
-          !schemaName &&
+          !input.schemaName &&
           process.env.CONTEXT_ROUTER_LOG_UNVALIDATED_STATE === 'true'
         ) {
           console.warn(
-            `[context-router] state_write key="${key}" without schemaName: UNVALIDATED_STATE`,
+            `[context-router] state_write key="${input.key}" without schemaName: UNVALIDATED_STATE`,
           );
         }
+
         const state = await writeState(
-          workspaceId,
+          input.workspaceId,
           getCurrentUserId(),
-          workflowId,
-          key,
-          value as Prisma.InputJsonValue,
+          input.workflowId,
+          input.key!,
+          input.value as Prisma.InputJsonValue,
           {
-            expectedVersion,
-            agentRole,
-            provenance,
-            provenanceMode,
+            expectedVersion: input.expectedVersion,
+            agentRole: input.agentRole,
+            provenance: input.provenance,
+            provenanceMode: input.provenanceMode,
+            expiresIn: input.expiresIn,
+            expiresAt: input.expiresAt
+              ? new Date(input.expiresAt)
+              : undefined,
           },
         );
         return {
           written: true,
           state,
-          ...(schemaName ? {} : { warning: 'UNVALIDATED_STATE' as const }),
+          ...(input.schemaName
+            ? {}
+            : { warning: 'UNVALIDATED_STATE' as const }),
         };
       },
     ),
@@ -160,7 +238,7 @@ export function registerStateTools(
       {
         name: 'state_read',
         description:
-          'Read one state key or selected keys with optional role filtering and unwrap',
+          'Read one state key or several. Expired keys are never returned. Supports role filtering and provenance unwrap.',
         inputSchema: {
           type: 'object',
           properties: {
@@ -187,14 +265,16 @@ export function registerStateTools(
         }),
       async ({ workspaceId, workflowId, key, keys, agentRole, unwrap }) => {
         if (keys) {
+          const values = await readStateFields(
+            workspaceId,
+            getCurrentUserId(),
+            workflowId,
+            keys,
+            { agentRole, unwrap },
+          );
           return {
-            values: await readStateFields(
-              workspaceId,
-              getCurrentUserId(),
-              workflowId,
-              keys,
-              { agentRole, unwrap },
-            ),
+            values,
+            missing: keys.filter((candidate) => !(candidate in values)),
           };
         }
         const state = await readState(
@@ -205,7 +285,12 @@ export function registerStateTools(
           { agentRole, unwrap },
         );
         if (!state) throw new Error('STATE_NOT_FOUND');
-        return { key: state.key, value: state.value, version: state.version };
+        return {
+          key: state.key,
+          value: state.value,
+          version: state.version,
+          expiresAt: state.expiresAt,
+        };
       },
     ),
   );
@@ -260,6 +345,33 @@ export function registerStateTools(
           agentRole,
           unwrap,
         }),
+    ),
+  );
+
+  tools.set(
+    'state_delete_expired',
+    defineTool(
+      {
+        name: 'state_delete_expired',
+        description:
+          'Delete expired state entries now. The background cleanup service does this automatically.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            batchSize: {
+              type: 'number',
+              description: 'Maximum entries to delete in this call',
+            },
+          },
+        },
+      },
+      z.object({
+        batchSize: z.number().int().positive().max(1000).default(100),
+      }),
+      async ({ batchSize }) => ({
+        deleted: await cleanupExpiredStates(batchSize),
+        cleanupRunning: isTTLCleanupRunning(),
+      }),
     ),
   );
 
