@@ -13,7 +13,7 @@ import type { EventType } from '../services/event-types.js';
 import { EVENT_TYPE_VALUES } from '../services/event-types.js';
 import { snapshotValues } from '../services/checkpoint-format.js';
 import { defineTool, ToolOperationError, uuid, type ToolRegistry } from './tool-kit.js';
-import type { Prisma } from '@prisma/client';
+import type { Prisma } from '../generated/postgresql/client.js';
 
 /**
  * Register all journal tools with the MCP server

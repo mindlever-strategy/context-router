@@ -18,6 +18,7 @@ import {
   readCheckpointEntries,
 } from '../services/checkpoint-format.js';
 import { prisma, storageConfig } from './client.js';
+import { SERVER_VERSION } from '../version.js';
 import {
   journaledStateWrite,
   journaledStateDelete,
@@ -252,7 +253,7 @@ export async function getRouterStatus(ownerId: string) {
     }),
   ]);
   return {
-    version: '0.3.1',
+    version: SERVER_VERSION,
     storage: {
       engine: storageConfig.engine,
       ...(storageConfig.location ? { location: storageConfig.location } : {}),

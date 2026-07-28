@@ -343,7 +343,7 @@ export async function journaledJournalExport(
   workflowId: string | null,
   eventCount: number,
   format: 'json' | 'jsonl',
-  dateRange: { since: string | null; until: string },
+  dateRange: { since: string | null; until: string | null },
 ): Promise<void> {
   try {
     // Use a placeholder workflowId if null to maintain data integrity

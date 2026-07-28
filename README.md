@@ -107,7 +107,7 @@ MCP-compatible agent system a reliable place to exchange workflow state.
 
 ## What you get
 
-- **30 MCP tools** across workspaces, schemas, workflows, state, checkpoints,
+- **37 MCP tools** across workspaces, schemas, workflows, state, checkpoints,
   handoffs, step execution, and agent roles
 - **Schema-enforced state** with nested objects, arrays, enums, and required fields
 - **Selective context reads** so each agent receives only relevant state keys
@@ -218,7 +218,7 @@ Pick the workflow pattern that matches your use case:
 | LlamaIndex semantic search  | [packages/llamaindex-adapter/README.md](packages/llamaindex-adapter/README.md) | Vector search over workflow state |
 | Cursor + Python cookbook    | [USING.md](USING.md)                                                   | recipes for MCP + `context_router`             |
 
-The recommended SDK entry point is `ContextRouter.local()` and `router.start()` — you do not need to learn all 30 MCP tools to get started.
+The recommended SDK entry point is `ContextRouter.local()` and `router.start()` — you do not need to learn all 37 MCP tools to get started.
 
 ## Runnable examples
 

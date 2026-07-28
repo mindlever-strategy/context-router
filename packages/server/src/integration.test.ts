@@ -75,7 +75,7 @@ integration('PostgreSQL vertical slice', () => {
     const second = await ensureWorkspace('integration named', ownerId);
     expect(second.id).toBe(first.id);
     const status = await getRouterStatus(ownerId);
-    expect(status.version).toBe('0.3.1');
+    expect(status.version).toBe('0.5.0');
     expect(status.totals.workspaces).toBeGreaterThanOrEqual(2);
   });
 
