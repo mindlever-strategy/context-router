@@ -46,6 +46,7 @@ vi.mock('../db/client.js', () => ({
     },
     checkpoint: {
       findUnique: vi.fn(),
+      findFirst: vi.fn(),
     },
     workspace: {
       findUnique: vi.fn(),
@@ -226,6 +227,64 @@ describe('journal_query tool', () => {
       // Check that eventTypes and agentId were passed (3rd and 4th args)
       expect(callArgs[3]).toEqual(['state_written']);
       expect(callArgs[4]).toBe('agent-123');
+    });
+  });
+
+  // =========================================================================
+  // Bug 4: replay view should apply workspaceId filter on checkpoint lookup
+  // =========================================================================
+  describe('Bug 4: replay view workspace isolation', () => {
+    it('should include workspaceId when looking up checkpoint', async () => {
+      const mockCheckpoint = {
+        snapshot: JSON.stringify({ key: 'initial' }),
+      };
+      const { prisma } = await import('../db/client.js');
+      (prisma.checkpoint.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(mockCheckpoint);
+      mockJournalService.replay.mockResolvedValue({ key: 'from-replay' });
+      mockJournalService.getCurrentSequence.mockResolvedValue(10);
+
+      // Also need to mock the entry lookup to return a checkpoint
+      const mockEntry = {
+        payload: { checkpointId: 'checkpoint-123' },
+      };
+      (prisma.eventJournalEntry.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(mockEntry);
+
+      const tools = registerJournalTools({} as never, () => 'test-user');
+      const queryTool = tools.get('journal_query');
+      expect(queryTool).toBeDefined();
+
+      await queryTool!.handler({
+        workspaceId: WORKSPACE_ID,
+        workflowId: WORKFLOW_ID,
+        view: 'replay',
+        untilSequence: 10,
+      });
+
+      // After fix, should include workspaceId in the checkpoint lookup
+      expect(prisma.checkpoint.findFirst).toHaveBeenCalledWith({
+        where: { id: 'checkpoint-123', workspaceId: WORKSPACE_ID },
+      });
+    });
+
+    it('should not query checkpoint if no checkpoint entry found', async () => {
+      const { prisma } = await import('../db/client.js');
+      (prisma.eventJournalEntry.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+      mockJournalService.replay.mockResolvedValue({});
+      mockJournalService.getCurrentSequence.mockResolvedValue(10);
+
+      const tools = registerJournalTools({} as never, () => 'test-user');
+      const queryTool = tools.get('journal_query');
+      expect(queryTool).toBeDefined();
+
+      await queryTool!.handler({
+        workspaceId: WORKSPACE_ID,
+        workflowId: WORKFLOW_ID,
+        view: 'replay',
+        untilSequence: 10,
+      });
+
+      // Should not call checkpoint.findFirst when no checkpoint entry exists
+      expect(prisma.checkpoint.findFirst).not.toHaveBeenCalled();
     });
   });
 

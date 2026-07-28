@@ -189,8 +189,8 @@ export function registerJournalTools(
             if (entryAtSequence) {
               const payload = entryAtSequence.payload as { checkpointId?: string };
               if (payload.checkpointId) {
-                const checkpoint = await prisma.checkpoint.findUnique({
-                  where: { id: payload.checkpointId },
+                const checkpoint = await prisma.checkpoint.findFirst({
+                  where: { id: payload.checkpointId, workspaceId },
                 });
                 if (checkpoint) {
                   initialState = snapshotValues(checkpoint.snapshot);
