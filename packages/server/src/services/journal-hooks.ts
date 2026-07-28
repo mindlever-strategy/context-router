@@ -340,16 +340,21 @@ export async function journaledHandoffGenerate(
  */
 export async function journaledJournalExport(
   workspaceId: string,
-  workflowId: string,
+  workflowId: string | null,
   eventCount: number,
   format: 'json' | 'jsonl',
-  dateRange: { since: string; until: string },
+  dateRange: { since: string | null; until: string },
 ): Promise<void> {
   try {
-    await journalService.append(workspaceId, workflowId, 'journal_exported', {
+    // Use a placeholder workflowId if null to maintain data integrity
+    const effectiveWorkflowId = workflowId ?? 'no-workflow';
+    await journalService.append(workspaceId, effectiveWorkflowId, 'journal_exported', {
       format,
       eventCount,
-      dateRange,
+      dateRange: {
+        since: dateRange.since ?? 'beginning',
+        until: dateRange.until,
+      },
     }, {
       source: 'journal_export',
     });

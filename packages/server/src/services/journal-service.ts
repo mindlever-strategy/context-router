@@ -266,12 +266,16 @@ export class JournalService {
    * @param workspaceId - The workspace ID
    * @param workflowId - The workflow ID
    * @param untilSequence - Only replay events up to this sequence number
+   * @param eventTypes - Filter by event types (default: all state mutation types)
+   * @param agentId - Filter by agent ID
    * @returns The reconstructed state
    */
   async replay(
     workspaceId: string,
     workflowId: string,
     untilSequence?: number,
+    eventTypes?: EventType[],
+    agentId?: string,
   ): Promise<Record<string, unknown>> {
     const where: Prisma.EventJournalEntryWhereInput = {
       workspaceId,
@@ -280,6 +284,17 @@ export class JournalService {
 
     if (untilSequence !== undefined) {
       where.sequence = { lte: untilSequence };
+    }
+
+    if (eventTypes?.length) {
+      where.eventType = { in: eventTypes };
+    }
+
+    if (agentId) {
+      (where as unknown as Record<string, unknown>).metadata = {
+        path: ['agentId'],
+        string_equals: agentId,
+      };
     }
 
     const entries = await prisma.eventJournalEntry.findMany({
@@ -318,6 +333,8 @@ export class JournalService {
     workspaceId: string,
     options?: {
       workflowId?: string;
+      eventTypes?: EventType[];
+      agentId?: string;
       since?: Date;
     },
   ): Promise<JournalStats> {
@@ -325,6 +342,15 @@ export class JournalService {
 
     if (options?.workflowId) {
       where.workflowId = options.workflowId;
+    }
+    if (options?.eventTypes?.length) {
+      where.eventType = { in: options.eventTypes };
+    }
+    if (options?.agentId) {
+      (where as unknown as Record<string, unknown>).metadata = {
+        path: ['agentId'],
+        string_equals: options.agentId,
+      };
     }
     if (options?.since) {
       where.createdAt = { gte: options.since };
