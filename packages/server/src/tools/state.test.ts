@@ -155,6 +155,66 @@ describe('state_write batch entries schemaName optionality', () => {
   });
 });
 
+describe('state_write provenance with batch entries', () => {
+  it('rejects provenance with batch entries', async () => {
+    vi.stubEnv(
+      'DATABASE_URL',
+      'postgresql://contextrouter:password@localhost:5432/contextrouter',
+    );
+    vi.mock('../db/queries.js', () => ({
+      writeStateBatch: vi.fn().mockResolvedValue({ results: [] }),
+    }));
+
+    const { registerStateTools } = await import('./state.js');
+    const tools = registerStateTools({} as never, () => 'user');
+    const stateWrite = tools.get('state_write')!;
+
+    const result = await stateWrite.handler({
+      workspaceId: '11111111-1111-4111-8111-111111111111',
+      workflowId: '22222222-2222-4222-8222-222222222222',
+      entries: [{ key: 'k1', value: 'v1' }],
+      provenance: { source: 'test' },
+    });
+
+    expect(result.isError).toBe(true);
+    const content = JSON.parse(result.content[0].text);
+    expect(content.error.code).toBe('VALIDATION_ERROR');
+    // The message or details should contain the provenance error
+    const errorText = JSON.stringify(content.error);
+    expect(errorText).toContain('provenance');
+    vi.unstubAllEnvs();
+  });
+
+  it('rejects provenanceMode with batch entries', async () => {
+    vi.stubEnv(
+      'DATABASE_URL',
+      'postgresql://contextrouter:password@localhost:5432/contextrouter',
+    );
+    vi.mock('../db/queries.js', () => ({
+      writeStateBatch: vi.fn().mockResolvedValue({ results: [] }),
+    }));
+
+    const { registerStateTools } = await import('./state.js');
+    const tools = registerStateTools({} as never, () => 'user');
+    const stateWrite = tools.get('state_write')!;
+
+    const result = await stateWrite.handler({
+      workspaceId: '11111111-1111-4111-8111-111111111111',
+      workflowId: '22222222-2222-4222-8222-222222222222',
+      entries: [{ key: 'k1', value: 'v1' }],
+      provenanceMode: 'per-field',
+    });
+
+    expect(result.isError).toBe(true);
+    const content = JSON.parse(result.content[0].text);
+    expect(content.error.code).toBe('VALIDATION_ERROR');
+    // The message or details should contain the provenance error
+    const errorText = JSON.stringify(content.error);
+    expect(errorText).toContain('provenance');
+    vi.unstubAllEnvs();
+  });
+});
+
 describe('state_write published MCP schema', () => {
   it('accepts any JSON value via anyOf (not object-only)', async () => {
     vi.stubEnv(

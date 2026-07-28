@@ -136,7 +136,7 @@ export function registerStateTools(
         .object({
           ...identifiers,
           key: z.string().min(1).max(255).optional(),
-          value: z.unknown(),
+          value: z.unknown().optional(),
           entries: z
             .array(
               z.object({
@@ -163,9 +163,22 @@ export function registerStateTools(
         })
         .refine((input) => !(input.expiresIn && input.expiresAt), {
           message: 'Provide either expiresIn or expiresAt, not both',
-        }),
+        })
+        .refine(
+          (input) => !(input.entries && (input.provenance || input.provenanceMode)),
+          {
+            message:
+              'provenance and provenanceMode are not supported with batch entries. Use single key/value writes instead.',
+          },
+        ),
       async (input) => {
         if (input.entries) {
+          if (input.provenance || input.provenanceMode) {
+            throw new ToolOperationError(
+              'VALIDATION_ERROR',
+              'provenance and provenanceMode are not supported with batch entries. Use single key/value writes instead.',
+            );
+          }
           return writeStateBatch(
             input.workspaceId,
             getCurrentUserId(),
