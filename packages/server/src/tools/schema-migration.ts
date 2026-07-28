@@ -91,9 +91,12 @@ export function registerSchemaMigrationTools(
         batchSize: z.number().int().min(1).max(1000).default(100),
       }),
       async ({ workspaceId, schemaName, fromVersion, toVersion, transforms, dryRun, batchSize }) => {
-        // Validate versions are different
-        if (fromVersion === toVersion) {
-          throw new ToolOperationError('VALIDATION_ERROR', 'fromVersion and toVersion must be different');
+        // Validate version range before Zod validation
+        if (fromVersion >= toVersion) {
+          throw new ToolOperationError(
+            'INVALID_VERSION_RANGE',
+            'toVersion must be greater than fromVersion',
+          );
         }
 
         // Preview mode - no changes applied
