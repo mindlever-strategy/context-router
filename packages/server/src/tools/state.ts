@@ -95,7 +95,10 @@ export function registerStateTools(
                       { type: 'null' },
                     ],
                   },
-                  schemaName: string,
+                  schemaName: {
+                    type: 'string',
+                    description: 'Optional schema name for validation',
+                  },
                 },
                 required: ['key', 'value'],
               },

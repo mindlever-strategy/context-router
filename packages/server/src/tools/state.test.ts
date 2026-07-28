@@ -130,6 +130,31 @@ describe('state_write batch entries value schema', () => {
   });
 });
 
+describe('state_write batch entries schemaName optionality', () => {
+  it('schemaName in batch entries is optional in MCP schema', async () => {
+    vi.stubEnv(
+      'DATABASE_URL',
+      'postgresql://contextrouter:password@localhost:5432/contextrouter',
+    );
+    const { registerStateTools } = await import('./state.js');
+    const stateWrite = registerStateTools({} as never, () => 'local').get(
+      'state_write',
+    );
+    expect(stateWrite).toBeDefined();
+
+    const entriesSchema = stateWrite!.definition.inputSchema.properties
+      .entries as Record<string, unknown>;
+    const entryItemSchema = entriesSchema.items as Record<string, unknown>;
+    const properties = entryItemSchema.properties as Record<string, unknown>;
+
+    // schemaName should NOT be in required array
+    expect(entryItemSchema.required).not.toContain('schemaName');
+    // And should exist in properties
+    expect(properties).toHaveProperty('schemaName');
+    vi.unstubAllEnvs();
+  });
+});
+
 describe('state_write published MCP schema', () => {
   it('accepts any JSON value via anyOf (not object-only)', async () => {
     vi.stubEnv(
