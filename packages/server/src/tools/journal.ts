@@ -269,7 +269,7 @@ export function registerJournalTools(
             exportFormat,
             {
               since: since ?? null,
-              until: until ?? new Date().toISOString(),
+              until: until ?? null,
             },
           ).catch((error) => {
             console.error('[journal] failed to record export:', error);

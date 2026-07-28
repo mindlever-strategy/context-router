@@ -523,6 +523,80 @@ describe('journal_query tool', () => {
   });
 
   // =========================================================================
+  // Bug 11: until should use null default for symmetry with since
+  // =========================================================================
+  describe('Bug 11: until null vs new Date().toISOString()', () => {
+    it('should pass null when until is undefined', async () => {
+      mockJournalService.export.mockResolvedValue({
+        data: JSON.stringify([]),
+        contentType: 'application/json',
+        size: 2,
+      });
+
+      const tools = registerJournalTools({} as never, () => 'test-user');
+      const queryTool = tools.get('journal_query');
+      expect(queryTool).toBeDefined();
+
+      await queryTool!.handler({
+        workspaceId: WORKSPACE_ID,
+        view: 'export',
+        // No until
+      });
+
+      expect(mockJournaledJournalExport).toHaveBeenCalled();
+      const callArgs = mockJournaledJournalExport.mock.calls[0];
+      expect(callArgs[4].until).toBeNull();
+    });
+
+    it('should pass until when provided', async () => {
+      mockJournalService.export.mockResolvedValue({
+        data: JSON.stringify([]),
+        contentType: 'application/json',
+        size: 2,
+      });
+
+      const tools = registerJournalTools({} as never, () => 'test-user');
+      const queryTool = tools.get('journal_query');
+      expect(queryTool).toBeDefined();
+
+      const untilDate = '2024-01-15T10:00:00.000Z';
+      await queryTool!.handler({
+        workspaceId: WORKSPACE_ID,
+        view: 'export',
+        until: untilDate,
+      });
+
+      expect(mockJournaledJournalExport).toHaveBeenCalled();
+      const callArgs = mockJournaledJournalExport.mock.calls[0];
+      expect(callArgs[4].until).toBe(untilDate);
+    });
+
+    it('should not use current date as default for until', async () => {
+      mockJournalService.export.mockResolvedValue({
+        data: JSON.stringify([]),
+        contentType: 'application/json',
+        size: 2,
+      });
+
+      const tools = registerJournalTools({} as never, () => 'test-user');
+      const queryTool = tools.get('journal_query');
+      expect(queryTool).toBeDefined();
+
+      await queryTool!.handler({
+        workspaceId: WORKSPACE_ID,
+        view: 'export',
+      });
+
+      expect(mockJournaledJournalExport).toHaveBeenCalled();
+      const callArgs = mockJournaledJournalExport.mock.calls[0];
+      // until should be null, not a current timestamp
+      expect(callArgs[4].until).toBeNull();
+      // Verify it's not a recent date (would fail if it was new Date().toISOString())
+      expect(new Date(callArgs[4].until).getTime()).not.toBeGreaterThan(Date.now());
+    });
+  });
+
+  // =========================================================================
   // Bug 9: currentSequence should use untilSequence atomically, not query separately
   // =========================================================================
   describe('Bug 9: atomic currentSequence from replay', () => {
