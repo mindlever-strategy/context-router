@@ -1,14 +1,26 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { createAutoGenAdapter, AutoGenContextManager, ContextRouterAgentWrapper } from './index.js';
+import {
+  createAutoGenAdapter,
+  AutoGenContextManager,
+  ContextRouterAgentWrapper,
+} from './index.js';
 import { createHandlers, MCPHandlers } from './mcp/handlers.js';
 import type { CallToolRequest } from '@modelcontextprotocol/sdk/types.js';
 import type { ContextRouter } from '@context-router/sdk';
 
-function toolRequest(name: string, args: Record<string, unknown>): CallToolRequest {
-  return { method: 'tools/call', params: { name, arguments: args } } as CallToolRequest;
+function toolRequest(
+  name: string,
+  args: Record<string, unknown>,
+): CallToolRequest {
+  return {
+    method: 'tools/call',
+    params: { name, arguments: args },
+  } as CallToolRequest;
 }
 
-function parseToolJson(result: { content: Array<{ type: string; text?: string }> }) {
+function parseToolJson(result: {
+  content: Array<{ type: string; text?: string }>;
+}) {
   const text = result.content[0]?.text;
   expect(text).toBeDefined();
   return JSON.parse(text!) as Record<string, unknown>;
@@ -19,7 +31,12 @@ function createMockRouter() {
   const set = vi.fn(async () => undefined);
   const complete = vi.fn(async () => undefined);
   const start = vi.fn(async () => ({ set, complete }));
-  return { start, set, complete, router: { start } as unknown as ContextRouter };
+  return {
+    start,
+    set,
+    complete,
+    router: { start } as unknown as ContextRouter,
+  };
 }
 
 function managerConfig(router?: ContextRouter) {
@@ -45,7 +62,9 @@ describe('AutoGen Adapter', () => {
     });
 
     it('should create a session with a workflow name', async () => {
-      const session = await adapter.createSession({ workflowName: 'test-workflow' });
+      const session = await adapter.createSession({
+        workflowName: 'test-workflow',
+      });
       expect(session).toBeDefined();
       expect(session.sessionId).toBeDefined();
       expect(session.workflowName).toBe('test-workflow');
@@ -95,7 +114,7 @@ describe('AutoGen Adapter', () => {
           senderId: 'user',
           timestamp: Date.now(),
           type: 'user',
-        })
+        }),
       ).rejects.toThrow('Session not found: missing-session');
     });
 
@@ -153,7 +172,7 @@ describe('AutoGen Adapter', () => {
       const manager = new AutoGenContextManager(managerConfig());
 
       await expect(
-        manager.replaceMessages('missing-session', [])
+        manager.replaceMessages('missing-session', []),
       ).rejects.toThrow('Session not found: missing-session');
     });
 
@@ -178,7 +197,7 @@ describe('AutoGen Adapter', () => {
           messages: expect.arrayContaining([
             expect.objectContaining({ content: 'Persisted' }),
           ]),
-        })
+        }),
       );
     });
   });
@@ -256,7 +275,9 @@ describe('AutoGen Adapter', () => {
 
   describe('adapter wrapAgent shared contextManager', () => {
     it('should share adapter contextManager so wrapper getContext sees messages', async () => {
-      const { sessionId } = await adapter.createSession({ workflowName: 'shared-mgr' });
+      const { sessionId } = await adapter.createSession({
+        workflowName: 'shared-mgr',
+      });
       const manager = adapter.getContextManager();
 
       await manager.addMessage(sessionId, {
@@ -267,7 +288,10 @@ describe('AutoGen Adapter', () => {
         type: 'user',
       });
 
-      const wrapper = adapter.wrapAgent({ id: 'agent-shared' }, { agentId: 'agent-shared' });
+      const wrapper = adapter.wrapAgent(
+        { id: 'agent-shared' },
+        { agentId: 'agent-shared' },
+      );
       const context = await wrapper.getContext(sessionId);
 
       expect(context.relevantMessages).toHaveLength(1);
@@ -282,7 +306,9 @@ describe('AutoGen Adapter', () => {
     it('should persist user and assistant messages with senderId user for inbound', async () => {
       const handlers = createHandlers(config);
       const created = parseToolJson(
-        await handlers.handleToolCall(toolRequest('autogen_create_session', { workflowName: 'mcp-chat' }))
+        await handlers.handleToolCall(
+          toolRequest('autogen_create_session', { workflowName: 'mcp-chat' }),
+        ),
       );
       expect(created.success).toBe(true);
       const sessionId = created.sessionId as string;
@@ -293,17 +319,23 @@ describe('AutoGen Adapter', () => {
             sessionId,
             agentId: 'agent-1',
             message: 'Hello agent',
-          })
-        )
+          }),
+        ),
       );
       expect(sent.success).toBe(true);
       expect(sent.response).toBeDefined();
 
       const history = parseToolJson(
-        await handlers.handleToolCall(toolRequest('autogen_get_history', { sessionId }))
+        await handlers.handleToolCall(
+          toolRequest('autogen_get_history', { sessionId }),
+        ),
       );
       expect(history.success).toBe(true);
-      const messages = history.messages as Array<{ type: string; senderId: string; content: string }>;
+      const messages = history.messages as Array<{
+        type: string;
+        senderId: string;
+        content: string;
+      }>;
       expect(messages.length).toBeGreaterThanOrEqual(2);
 
       const userMsg = messages.find((m) => m.type === 'user');
@@ -321,7 +353,11 @@ describe('AutoGen Adapter', () => {
       const handlers = createHandlers(config, manager);
 
       const created = parseToolJson(
-        await handlers.handleToolCall(toolRequest('autogen_create_session', { workflowName: 'mcp-restore' }))
+        await handlers.handleToolCall(
+          toolRequest('autogen_create_session', {
+            workflowName: 'mcp-restore',
+          }),
+        ),
       );
       const sessionId = created.sessionId as string;
 
@@ -330,13 +366,16 @@ describe('AutoGen Adapter', () => {
           sessionId,
           agentId: 'agent-1',
           message: 'before checkpoint',
-        })
+        }),
       );
 
       const checkpointed = parseToolJson(
         await handlers.handleToolCall(
-          toolRequest('autogen_checkpoint', { sessionId, checkpointName: 'snap-1' })
-        )
+          toolRequest('autogen_checkpoint', {
+            sessionId,
+            checkpointName: 'snap-1',
+          }),
+        ),
       );
       expect(checkpointed.success).toBe(true);
       const checkpointId = checkpointed.checkpointId as string;
@@ -348,30 +387,46 @@ describe('AutoGen Adapter', () => {
           sessionId,
           agentId: 'agent-1',
           message: 'after checkpoint',
-        })
+        }),
       );
 
       const beforeRestore = await manager.getContext(sessionId, 'agent-1');
-      expect(beforeRestore.relevantMessages.length).toBeGreaterThan(messageCountAtCheckpoint);
+      expect(beforeRestore.relevantMessages.length).toBeGreaterThan(
+        messageCountAtCheckpoint,
+      );
 
       const restored = parseToolJson(
         await handlers.handleToolCall(
-          toolRequest('autogen_restore', { sessionId, checkpointId })
-        )
+          toolRequest('autogen_restore', { sessionId, checkpointId }),
+        ),
       );
       expect(restored.success).toBe(true);
       expect(restored.restored).toBe(true);
 
       const afterRestore = await manager.getContext(sessionId, 'agent-1');
-      expect(afterRestore.relevantMessages).toHaveLength(messageCountAtCheckpoint);
-      expect(afterRestore.relevantMessages.some((m) => m.content === 'after checkpoint')).toBe(false);
-      expect(afterRestore.relevantMessages.some((m) => m.content === 'before checkpoint')).toBe(true);
+      expect(afterRestore.relevantMessages).toHaveLength(
+        messageCountAtCheckpoint,
+      );
+      expect(
+        afterRestore.relevantMessages.some(
+          (m) => m.content === 'after checkpoint',
+        ),
+      ).toBe(false);
+      expect(
+        afterRestore.relevantMessages.some(
+          (m) => m.content === 'before checkpoint',
+        ),
+      ).toBe(true);
     });
 
     it('should fail restore when checkpoint is missing', async () => {
       const handlers = createHandlers(config);
       const created = parseToolJson(
-        await handlers.handleToolCall(toolRequest('autogen_create_session', { workflowName: 'mcp-missing-cp' }))
+        await handlers.handleToolCall(
+          toolRequest('autogen_create_session', {
+            workflowName: 'mcp-missing-cp',
+          }),
+        ),
       );
 
       const result = parseToolJson(
@@ -379,8 +434,8 @@ describe('AutoGen Adapter', () => {
           toolRequest('autogen_restore', {
             sessionId: created.sessionId,
             checkpointId: 'checkpoint-does-not-exist',
-          })
-        )
+          }),
+        ),
       );
       expect(result.success).toBe(false);
       expect(result.error).toBeDefined();
@@ -393,7 +448,7 @@ describe('AutoGen Adapter', () => {
           sessionId: 'session-unknown-xyz',
           agentId: 'agent-1',
           message: 'orphan',
-        })
+        }),
       );
       const body = parseToolJson(result);
       expect(body.success).toBe(false);

@@ -29,6 +29,9 @@ import { registerWorkflowTools } from './tools/workflow.js';
 import { registerWorkspaceTools } from './tools/workspace.js';
 import { registerRouterTools } from './tools/router.js';
 import { registerDebuggerTools } from './tools/debugger-tool.js';
+import { registerJournalTools } from './tools/journal.js';
+import { registerStateDiffTools } from './tools/state-diff.js';
+import { registerSchemaMigrationTools } from './tools/schema-migration.js';
 
 const hasDatabase = Boolean(process.env.DATABASE_URL);
 const integration = hasDatabase ? describe : describe.skip;
@@ -50,7 +53,7 @@ integration('PostgreSQL vertical slice', () => {
     await prisma.$disconnect();
   });
 
-  it('registers the stable 30-tool MCP surface', () => {
+  it('registers the stable 37-tool MCP surface', () => {
     const server = {} as never;
     const owner = () => ownerId;
     const registries = [
@@ -64,10 +67,13 @@ integration('PostgreSQL vertical slice', () => {
       registerAgentRoleTools(server, owner),
       registerRouterTools(server, owner),
       registerDebuggerTools(server, owner),
+      registerJournalTools(server, owner),
+      registerStateDiffTools(server, owner),
+      registerSchemaMigrationTools(server, owner),
     ];
     expect(
       registries.reduce((count, registry) => count + registry.size, 0),
-    ).toBe(30);
+    ).toBe(37);
   });
 
   it('ensures one named workspace and reports owner-scoped status', async () => {
@@ -75,7 +81,7 @@ integration('PostgreSQL vertical slice', () => {
     const second = await ensureWorkspace('integration named', ownerId);
     expect(second.id).toBe(first.id);
     const status = await getRouterStatus(ownerId);
-    expect(status.version).toBe('0.3.1');
+    expect(status.version).toBe('0.5.0');
     expect(status.totals.workspaces).toBeGreaterThanOrEqual(2);
   });
 

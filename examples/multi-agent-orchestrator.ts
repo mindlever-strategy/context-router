@@ -37,14 +37,19 @@ async function analysisAgent(sources: string[], facts: string[]) {
 async function reviewAgent(insights: string[], recommendations: string[]) {
   return {
     approved: true,
-    feedback: insights.length > 2 ? 'Comprehensive analysis' : 'Needs more depth',
+    feedback:
+      insights.length > 2 ? 'Comprehensive analysis' : 'Needs more depth',
     revisionsNeeded: insights.length <= 2 ? ['Add more sources'] : [],
   };
 }
 
 async function synthesisAgent(
-  analysis: { insights: string[]; recommendations: string[]; riskLevel: string },
-  review: { approved: boolean; feedback: string }
+  analysis: {
+    insights: string[];
+    recommendations: string[];
+    riskLevel: string;
+  },
+  review: { approved: boolean; feedback: string },
 ) {
   return {
     executiveSummary: `${analysis.insights.length} key insights identified`,
@@ -70,29 +75,43 @@ async function main() {
     const collectionResult = await dataCollectionAgent(topic);
     await flow.set('collectedData', collectionResult);
     await flow.checkpoint('data-collected');
-    console.log(`[Data Agent] Collected ${collectionResult.sources.length} sources`);
+    console.log(
+      `[Data Agent] Collected ${collectionResult.sources.length} sources`,
+    );
 
     // Step 3: Handoff to analysis agent (selective context)
     const handoffToAnalysis = await flow.handoff({
       keys: ['collectedData'],
       maxTokens: 200,
     });
-    console.log(`[Coordinator] Handoff to Analysis: ${handoffToAnalysis.summary.substring(0, 50)}...`);
+    console.log(
+      `[Coordinator] Handoff to Analysis: ${handoffToAnalysis.summary.substring(0, 50)}...`,
+    );
 
     // Step 4: Analysis specialist
     const analysisResult = await analysisAgent(
       collectionResult.sources,
-      collectionResult.keyFacts
+      collectionResult.keyFacts,
     );
     await flow.set('analysis', analysisResult);
     console.log(`[Analysis Agent] Risk level: ${analysisResult.riskLevel}`);
 
     // Step 5: Conditional branching - only proceed to review if confidence is high
     if (collectionResult.confidence >= 0.8) {
-      await flow.set('review', await reviewAgent(analysisResult.insights, analysisResult.recommendations));
+      await flow.set(
+        'review',
+        await reviewAgent(
+          analysisResult.insights,
+          analysisResult.recommendations,
+        ),
+      );
       console.log('[Review Agent] Proceeding to review');
     } else {
-      await flow.set('review', { approved: false, feedback: 'Confidence too low', revisionsNeeded: ['Re-collect data'] });
+      await flow.set('review', {
+        approved: false,
+        feedback: 'Confidence too low',
+        revisionsNeeded: ['Re-collect data'],
+      });
       console.log('[Review Agent] Skipped due to low confidence');
     }
 
@@ -102,7 +121,10 @@ async function main() {
       maxTokens: 300,
     });
 
-    const finalResult = await synthesisAgent(analysisResult, (await flow.get('review')).value);
+    const finalResult = await synthesisAgent(
+      analysisResult,
+      (await flow.get('review')).value,
+    );
     await flow.set('finalOutput', finalResult);
 
     await flow.complete();

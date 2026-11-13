@@ -31,12 +31,14 @@ All IDs are UUID strings. All tools return one JSON text content block.
 
 ## Schema
 
-| Tool              | Required input                      | Behavior                           |
-| ----------------- | ----------------------------------- | ---------------------------------- |
-| `schema_create`   | `workspaceId`, `name`, `fields`     | `rules`                            | Creates the next schema version with optional semantic rules. |
-| `schema_get`      | `workspaceId`, `name`               | Gets the latest version.           |
-| `schema_list`     | `workspaceId`                       | Lists all versions.                |
-| `schema_validate` | `workspaceId`, `schemaName`, `data` | Returns validity and field errors. |
+| Tool              | Required input                                                        | Optional input        | Behavior                                                                              |
+| ----------------- | --------------------------------------------------------------------- | --------------------- | ------------------------------------------------------------------------------------- |
+| `schema_create`   | `workspaceId`, `name`, `fields`                                       | `rules`               | Creates the next schema version with optional rules.                                  |
+| `schema_get`      | `workspaceId`, `name`                                                 | —                     | Gets the latest version.                                                              |
+| `schema_list`     | `workspaceId`                                                         | —                     | Lists all versions.                                                                   |
+| `schema_validate` | `workspaceId`, `schemaName`, `data`                                   | —                     | Returns validity and field errors.                                                    |
+| `schema_diff`     | `workspaceId`, `schemaName`, `versionA`, `versionB`                   | —                     | Compares two schema versions.                                                         |
+| `schema_migrate`  | `workspaceId`, `schemaName`, `fromVersion`, `toVersion`, `transforms` | `dryRun`, `batchSize` | Migrates state data between versions. Set `dryRun: true` to preview without applying. |
 
 Field types are `string`, `integer`, `number`, `boolean`, `enum`, `object`, and
 `array`. Definitions may use `required`, enum `values`, nested `fields`, and
@@ -55,12 +57,19 @@ Terminal workflows cannot transition again or mutate state.
 
 ## State
 
-| Tool             | Required input                                              | Optional input                                                               | Behavior                                                                                                                                                                                                                                   |
-| ---------------- | ----------------------------------------------------------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `state_write`    | `workspaceId`, `workflowId`, `key`, `value`                 | `schemaName`, `expectedVersion`, `agentRole`, `provenance`, `provenanceMode` | Upserts structured state with optional CAS, ACL, and provenance wrapping. When `schemaName` is omitted, the response includes `warning: UNVALIDATED_STATE`. Set `CONTEXT_ROUTER_LOG_UNVALIDATED_STATE=true` to also emit a stderr warning. |
-| `state_read`     | `workspaceId`, `workflowId`, exactly one of `key` or `keys` | `agentRole`, `unwrap`                                                        | Reads one state value or selected state keys                                                                                                                                                                                               |
-| `state_delete`   | `workspaceId`, `workflowId`, `key`                          | —                                                                            | Deletes state from a running workflow                                                                                                                                                                                                      |
-| `state_snapshot` | `workspaceId`, `workflowId`                                 | `agentRole`, `unwrap`                                                        | Returns all state keys and values                                                                                                                                                                                                          |
+| Tool                   | Required input                                                             | Optional input                                                                                                                 | Behavior                                                                                                                                                                                                                                                                            |
+| ---------------------- | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `state_write`          | `workspaceId`, `workflowId`, and exactly one of `key`+`value` or `entries` | `schemaName`, `expectedVersion`, `expiresIn`, `expiresAt`, `agentRole`, `provenance`, `provenanceMode`, `atomic`, `onConflict` | Single or batch write. Batch mode (`entries` array) commits with `atomic: true` for all-or-nothing semantics. `onConflict` controls existing-key behaviour (`upsert`, `skip`, `fail`). `expiresIn`/`expiresAt` set TTL. Omitting `schemaName` returns `warning: UNVALIDATED_STATE`. |
+| `state_read`           | `workspaceId`, `workflowId`, exactly one of `key` or `keys`                | `agentRole`, `unwrap`                                                                                                          | Expired keys are never returned. Multi-key reads return a `missing` array for keys not found.                                                                                                                                                                                       |
+| `state_delete`         | `workspaceId`, `workflowId`, `key`                                         | —                                                                                                                              | Deletes state from a running workflow                                                                                                                                                                                                                                               |
+| `state_snapshot`       | `workspaceId`, `workflowId`                                                | `agentRole`, `unwrap`                                                                                                          | Returns all live state keys and values                                                                                                                                                                                                                                              |
+| `state_delete_expired` | —                                                                          | `batchSize`                                                                                                                    | Forces an expiry sweep. The background cleanup service runs this automatically.                                                                                                                                                                                                     |
+
+## State Diff
+
+| Tool         | Required input | Optional input                                                                                                 | Behavior                                                                                                                                                                        |
+| ------------ | -------------- | -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `state_diff` | `workspaceId`  | `mode`, `workflowId`, `sourceCheckpointId`, `targetCheckpointId`, `checkpointId`, `checkpointsBack`, `options` | Compare state between checkpoints or current state. `mode`: `checkpoints` (compare two checkpoints), `current-vs-checkpoint` (live vs checkpoint), `recent` (newest vs N back). |
 
 ## Step execution
 
@@ -90,13 +99,27 @@ Key patterns support exact keys, prefix wildcards (`lead*`), and `*`.
 
 ## Handoff
 
-| Tool               | Required input              | Optional input                                                                    | Behavior                                            |
-| ------------------ | --------------------------- | --------------------------------------------------------------------------------- | --------------------------------------------------- |
-| `handoff_generate` | `workspaceId`, `workflowId` | `keys`, `maxTokens`, `agentRole`, `priorityKeys`, `nextGoals`, `format`           | Summarizes selected keys with role-aware projection |
-| `handoff_apply`    | `workspaceId`, `workflowId` | `keys`, `prefix`, `maxTokens`, `agentRole`, `priorityKeys`, `nextGoals`, `format` | Returns prefix plus generated summary               |
+| Tool                  | Required input              | Optional input                                                                                               | Behavior                                                                                                                                                                                  |
+| --------------------- | --------------------------- | ------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `handoff_generate`    | `workspaceId`, `workflowId` | `keys`, `maxTokens`, `agentRole`, `priorityKeys`, `nextGoals`, `format`                                      | Summarizes selected keys with role-aware projection                                                                                                                                       |
+| `handoff_generate_ai` | `workspaceId`, `workflowId` | `keys`, `priorityKeys`, `style`, `model`, `includeReasoning`, `includeOpenQuestions`, `maxTokens`, `context` | Summarizes selected keys with an LLM (`ANTHROPIC_API_KEY` or `OPENAI_API_KEY`), with optional reasoning and open questions. Falls back to the rule-based summary if the model call fails. |
+| `handoff_apply`       | `workspaceId`, `workflowId` | `keys`, `prefix`, `maxTokens`, `agentRole`, `priorityKeys`, `nextGoals`, `format`                            | Returns prefix plus generated summary                                                                                                                                                     |
 
 `maxTokens` accepts 50–1000 and defaults to 200. It is enforced using a
 deterministic four-characters-per-token approximation.
+
+## Journal
+
+| Tool             | Required input                                      | Optional input                                                                                                    | Behavior                                                                                                                                                                 |
+| ---------------- | --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `journal_query`  | `workspaceId`                                       | `workflowId`, `eventTypes`, `since`, `until`, `limit`, `cursor`, `order`, `view`, `untilSequence`, `exportFormat` | Query journal events with filters. `view`: `entries` (raw rows), `replay` (rebuilt state), `stats` (counts by type), `export` (serialized), `sequence` (current number). |
+| `journal_append` | `workspaceId`, `workflowId`, `eventType`, `payload` | `metadata`                                                                                                        | Append a custom event to the journal.                                                                                                                                    |
+
+## Debugger
+
+| Tool               | Required input              | Behavior                           |
+| ------------------ | --------------------------- | ---------------------------------- |
+| `debugger_inspect` | `workspaceId`, `workflowId` | Inspect workflow state and history |
 
 ## Stable error codes
 

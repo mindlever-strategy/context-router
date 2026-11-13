@@ -4,8 +4,15 @@
  * Handles tool calls from Claude Desktop by delegating to the AutoGen adapter classes.
  */
 
-import type { CallToolRequest, CallToolResult } from '@modelcontextprotocol/sdk/types.js';
-import type { AutoGenAdapterConfig, ConversationMessage, AgentContext } from '../types.js';
+import type {
+  CallToolRequest,
+  CallToolResult,
+} from '@modelcontextprotocol/sdk/types.js';
+import type {
+  AutoGenAdapterConfig,
+  ConversationMessage,
+  AgentContext,
+} from '../types.js';
 import { AutoGenContextManager } from '../context-manager.js';
 import { ContextRouterAgentWrapper } from '../agent-wrapper.js';
 
@@ -28,7 +35,10 @@ export class MCPHandlers {
   private wrappedAgents: Map<string, ContextRouterAgentWrapper> = new Map();
   private checkpoints: Map<string, Checkpoint> = new Map();
 
-  constructor(config: AutoGenAdapterConfig, contextManager?: AutoGenContextManager) {
+  constructor(
+    config: AutoGenAdapterConfig,
+    contextManager?: AutoGenContextManager,
+  ) {
     this.contextManager = contextManager ?? new AutoGenContextManager(config);
   }
 
@@ -74,11 +84,15 @@ export class MCPHandlers {
   /**
    * Handle autogen_create_session
    */
-  private async handleCreateSession(args: Record<string, unknown>): Promise<CallToolResult> {
+  private async handleCreateSession(
+    args: Record<string, unknown>,
+  ): Promise<CallToolResult> {
     const { workflowName } = args as { workflowName: string };
 
     if (!workflowName || typeof workflowName !== 'string') {
-      return this.createErrorResponse('workflowName is required and must be a string');
+      return this.createErrorResponse(
+        'workflowName is required and must be a string',
+      );
     }
 
     const result = await this.contextManager.createSession(workflowName);
@@ -100,7 +114,9 @@ export class MCPHandlers {
   /**
    * Handle autogen_send_message
    */
-  private async handleSendMessage(args: Record<string, unknown>): Promise<CallToolResult> {
+  private async handleSendMessage(
+    args: Record<string, unknown>,
+  ): Promise<CallToolResult> {
     const { sessionId, agentId, message } = args as {
       sessionId: string;
       agentId: string;
@@ -108,7 +124,9 @@ export class MCPHandlers {
     };
 
     if (!sessionId || !agentId || !message) {
-      return this.createErrorResponse('sessionId, agentId, and message are required');
+      return this.createErrorResponse(
+        'sessionId, agentId, and message are required',
+      );
     }
 
     // Add the inbound user message (sender is the user, not the target agent)
@@ -123,7 +141,10 @@ export class MCPHandlers {
     await this.contextManager.addMessage(sessionId, conversationMessage);
 
     // Get context for the agent
-    const context: AgentContext = await this.contextManager.getContext(sessionId, agentId);
+    const context: AgentContext = await this.contextManager.getContext(
+      sessionId,
+      agentId,
+    );
 
     // Check if agent is wrapped
     const wrappedAgent = this.wrappedAgents.get(agentId);
@@ -170,8 +191,13 @@ export class MCPHandlers {
   /**
    * Handle autogen_get_history
    */
-  private async handleGetHistory(args: Record<string, unknown>): Promise<CallToolResult> {
-    const { sessionId, limit = 50 } = args as { sessionId: string; limit?: number };
+  private async handleGetHistory(
+    args: Record<string, unknown>,
+  ): Promise<CallToolResult> {
+    const { sessionId, limit = 50 } = args as {
+      sessionId: string;
+      limit?: number;
+    };
 
     if (!sessionId) {
       return this.createErrorResponse('sessionId is required');
@@ -198,7 +224,9 @@ export class MCPHandlers {
   /**
    * Handle autogen_handoff
    */
-  private async handleHandoff(args: Record<string, unknown>): Promise<CallToolResult> {
+  private async handleHandoff(
+    args: Record<string, unknown>,
+  ): Promise<CallToolResult> {
     const { sessionId, fromAgentId, toAgentId, summary } = args as {
       sessionId: string;
       fromAgentId: string;
@@ -207,7 +235,9 @@ export class MCPHandlers {
     };
 
     if (!sessionId || !fromAgentId || !toAgentId) {
-      return this.createErrorResponse('sessionId, fromAgentId, and toAgentId are required');
+      return this.createErrorResponse(
+        'sessionId, fromAgentId, and toAgentId are required',
+      );
     }
 
     // Create a system message for the handoff
@@ -240,8 +270,13 @@ export class MCPHandlers {
   /**
    * Handle autogen_checkpoint
    */
-  private async handleCheckpoint(args: Record<string, unknown>): Promise<CallToolResult> {
-    const { sessionId, checkpointName } = args as { sessionId: string; checkpointName?: string };
+  private async handleCheckpoint(
+    args: Record<string, unknown>,
+  ): Promise<CallToolResult> {
+    const { sessionId, checkpointName } = args as {
+      sessionId: string;
+      checkpointName?: string;
+    };
 
     if (!sessionId) {
       return this.createErrorResponse('sessionId is required');
@@ -277,11 +312,18 @@ export class MCPHandlers {
   /**
    * Handle autogen_restore
    */
-  private async handleRestore(args: Record<string, unknown>): Promise<CallToolResult> {
-    const { sessionId, checkpointId } = args as { sessionId: string; checkpointId: string };
+  private async handleRestore(
+    args: Record<string, unknown>,
+  ): Promise<CallToolResult> {
+    const { sessionId, checkpointId } = args as {
+      sessionId: string;
+      checkpointId: string;
+    };
 
     if (!sessionId || !checkpointId) {
-      return this.createErrorResponse('sessionId and checkpointId are required');
+      return this.createErrorResponse(
+        'sessionId and checkpointId are required',
+      );
     }
 
     const checkpoint = this.checkpoints.get(checkpointId);
@@ -291,7 +333,9 @@ export class MCPHandlers {
     }
 
     if (checkpoint.sessionId !== sessionId) {
-      return this.createErrorResponse(`Checkpoint ${checkpointId} belongs to a different session`);
+      return this.createErrorResponse(
+        `Checkpoint ${checkpointId} belongs to a different session`,
+      );
     }
 
     await this.contextManager.replaceMessages(sessionId, checkpoint.messages);
@@ -316,9 +360,15 @@ export class MCPHandlers {
   /**
    * Handle autogen_wrap_agent
    */
-  private async handleWrapAgent(args: Record<string, unknown>): Promise<CallToolResult> {
+  private async handleWrapAgent(
+    args: Record<string, unknown>,
+  ): Promise<CallToolResult> {
     const { agentConfig } = args as {
-      agentConfig: { agentId: string; roleDescription?: string; systemPromptPrefix?: string };
+      agentConfig: {
+        agentId: string;
+        roleDescription?: string;
+        systemPromptPrefix?: string;
+      };
     };
 
     if (!agentConfig || !agentConfig.agentId) {
@@ -374,7 +424,7 @@ export class MCPHandlers {
  */
 export function createHandlers(
   config: AutoGenAdapterConfig,
-  contextManager?: AutoGenContextManager
+  contextManager?: AutoGenContextManager,
 ): MCPHandlers {
   return new MCPHandlers(config, contextManager);
 }

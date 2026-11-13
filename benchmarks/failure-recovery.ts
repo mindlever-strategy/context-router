@@ -27,7 +27,7 @@ interface SimulatedTask {
  * Simulate a task that takes time to complete
  */
 async function simulateTask(task: SimulatedTask): Promise<void> {
-  await new Promise(resolve => setTimeout(resolve, task.durationMs));
+  await new Promise((resolve) => setTimeout(resolve, task.durationMs));
 }
 
 /**
@@ -66,7 +66,8 @@ async function runContentPipelineBenchmark(): Promise<RecoveryResult> {
 
   // Simulate failure at 60% through
   const failurePoint = 0.6;
-  const completedDuration = tasks.reduce((sum, t) => sum + t.durationMs, 0) * failurePoint;
+  const completedDuration =
+    tasks.reduce((sum, t) => sum + t.durationMs, 0) * failurePoint;
 
   let traditionalRecovery = 0;
   let checkpointRecovery = 0;
@@ -86,7 +87,9 @@ async function runContentPipelineBenchmark(): Promise<RecoveryResult> {
   }
 
   // Only redo the interrupted task
-  const interruptedTask = tasks.find(t => t.durationMs > (completedDuration - checkpointRecovery));
+  const interruptedTask = tasks.find(
+    (t) => t.durationMs > completedDuration - checkpointRecovery,
+  );
   if (interruptedTask) {
     checkpointRecovery += interruptedTask.durationMs * 0.4; // 40% done
   }
@@ -94,7 +97,8 @@ async function runContentPipelineBenchmark(): Promise<RecoveryResult> {
   await router.close();
 
   const speedup = traditionalRecovery / checkpointRecovery;
-  const workSaved = ((traditionalRecovery - checkpointRecovery) / traditionalRecovery) * 100;
+  const workSaved =
+    ((traditionalRecovery - checkpointRecovery) / traditionalRecovery) * 100;
 
   console.log(`  Traditional recovery: ${traditionalRecovery}ms`);
   console.log(`  Checkpoint recovery: ${checkpointRecovery}ms`);
@@ -120,7 +124,8 @@ async function runResearchPipelineBenchmark(): Promise<RecoveryResult> {
   ];
 
   const failurePoint = 0.5;
-  const completedDuration = tasks.reduce((sum, t) => sum + t.durationMs, 0) * failurePoint;
+  const completedDuration =
+    tasks.reduce((sum, t) => sum + t.durationMs, 0) * failurePoint;
 
   let traditionalRecovery = 0;
   let checkpointRecovery = 0;
@@ -138,7 +143,8 @@ async function runResearchPipelineBenchmark(): Promise<RecoveryResult> {
   }
 
   const speedup = traditionalRecovery / checkpointRecovery;
-  const workSaved = ((traditionalRecovery - checkpointRecovery) / traditionalRecovery) * 100;
+  const workSaved =
+    ((traditionalRecovery - checkpointRecovery) / traditionalRecovery) * 100;
 
   console.log(`  Traditional recovery: ${traditionalRecovery}ms`);
   console.log(`  Checkpoint recovery: ${checkpointRecovery}ms`);
@@ -165,7 +171,8 @@ async function runDataProcessingBenchmark(): Promise<RecoveryResult> {
   ];
 
   const failurePoint = 0.7;
-  const completedDuration = tasks.reduce((sum, t) => sum + t.durationMs, 0) * failurePoint;
+  const completedDuration =
+    tasks.reduce((sum, t) => sum + t.durationMs, 0) * failurePoint;
 
   let traditionalRecovery = 0;
   let checkpointRecovery = 0;
@@ -183,7 +190,8 @@ async function runDataProcessingBenchmark(): Promise<RecoveryResult> {
   }
 
   const speedup = traditionalRecovery / checkpointRecovery;
-  const workSaved = ((traditionalRecovery - checkpointRecovery) / traditionalRecovery) * 100;
+  const workSaved =
+    ((traditionalRecovery - checkpointRecovery) / traditionalRecovery) * 100;
 
   console.log(`  Traditional recovery: ${traditionalRecovery}ms`);
   console.log(`  Checkpoint recovery: ${checkpointRecovery}ms`);
@@ -206,12 +214,12 @@ export { benchmarkFailureRecovery, type RecoveryResult };
 if (import.meta.url === `file://${process.argv[1]}`) {
   console.log('🚀 Starting Failure Recovery Benchmark...\n');
   benchmarkFailureRecovery()
-    .then(results => {
+    .then((results) => {
       console.log('\n📊 Summary:');
       console.table(results);
       process.exit(0);
     })
-    .catch(err => {
+    .catch((err) => {
       console.error('Benchmark failed:', err);
       process.exit(1);
     });

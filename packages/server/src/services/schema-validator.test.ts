@@ -228,7 +228,11 @@ describe('SchemaValidator - Error Messages', () => {
 
     it('validates array items with path including index', () => {
       const schema: Record<string, FieldDefinition> = {
-        numbers: { type: 'array', required: true, itemType: { type: 'number' } },
+        numbers: {
+          type: 'array',
+          required: true,
+          itemType: { type: 'number' },
+        },
       };
       const errors = validator.validate(schema, { numbers: [1, 'two', 3] });
       expect(errors).toHaveLength(1);
@@ -366,7 +370,9 @@ describe('SchemaValidator - edge cases', () => {
   it('ignores __semanticRules in field schema extraction', () => {
     const schema = {
       name: { type: 'string' as const, required: true },
-      __semanticRules: [{ type: 'requires', when: { field: 'x', eq: 1 }, fields: ['name'] }],
+      __semanticRules: [
+        { type: 'requires', when: { field: 'x', eq: 1 }, fields: ['name'] },
+      ],
     };
     const errors = validator.validate(schema, { name: 'test' });
     expect(errors).toHaveLength(0);
@@ -386,8 +392,12 @@ describe('SchemaValidator - edge cases', () => {
         },
       },
     };
-    expect(validator.validate(schema, { level1: { level2: { level3: 'deep' } } })).toHaveLength(0);
-    const errors = validator.validate(schema, { level1: { level2: { level3: 123 } } });
+    expect(
+      validator.validate(schema, { level1: { level2: { level3: 'deep' } } }),
+    ).toHaveLength(0);
+    const errors = validator.validate(schema, {
+      level1: { level2: { level3: 123 } },
+    });
     expect(errors).toHaveLength(1);
     expect(errors[0].path).toBe('level1.level2.level3');
   });

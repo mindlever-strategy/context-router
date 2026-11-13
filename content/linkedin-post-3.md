@@ -89,17 +89,17 @@ Agents get focused context, not full history.
 
 ```typescript
 // Write
-await flow.set("research", {
-  topic: "AI market",
-  findings: ["...", "...", "..."]
+await flow.set('research', {
+  topic: 'AI market',
+  findings: ['...', '...', '...'],
 });
 
 // Read
-const research = await flow.get("research");
+const research = await flow.get('research');
 
 // Atomic updates with versioning
-await flow.set("counter", value, {
-  expectedVersion: currentVersion
+await flow.set('counter', value, {
+  expectedVersion: currentVersion,
 });
 ```
 
@@ -120,11 +120,11 @@ That means it works with:
 
 **Benchmark Results:**
 
-| Metric | Before | After |
-|--------|--------|-------|
-| Tokens | 10,000 | 2,800 |
-| API Cost | $5.25/workflow | $2.34/workflow |
-| Failures | Full restart | Instant restore |
+| Metric   | Before         | After           |
+| -------- | -------------- | --------------- |
+| Tokens   | 10,000         | 2,800           |
+| API Cost | $5.25/workflow | $2.34/workflow  |
+| Failures | Full restart   | Instant restore |
 
 ---
 

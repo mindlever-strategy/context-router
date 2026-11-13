@@ -24,7 +24,11 @@
  * ```
  */
 
-import { ContextRouter, WorkflowSession, type StateValue } from '@context-router/sdk';
+import {
+  ContextRouter,
+  WorkflowSession,
+  type StateValue,
+} from '@context-router/sdk';
 import { randomUUID } from 'node:crypto';
 
 // Re-export types for convenience
@@ -87,7 +91,9 @@ export function __resetDefaultCheckerForTests(): void {
 }
 
 /** @internal — inject shared default (tests only) */
-export function __setDefaultCheckerForTests(checker: ContextRouterChecker): void {
+export function __setDefaultCheckerForTests(
+  checker: ContextRouterChecker,
+): void {
   defaultChecker = checker;
 }
 
@@ -151,7 +157,10 @@ export class ContextRouterChecker {
   /**
    * Get a checkpoint (retrieve state from Context Router)
    */
-  async get(config: ThreadConfig): Promise<{ data: Record<string, unknown>; config: Record<string, unknown> } | null> {
+  async get(config: ThreadConfig): Promise<{
+    data: Record<string, unknown>;
+    config: Record<string, unknown>;
+  } | null> {
     const threadId = config?.thread_id;
     if (!threadId) {
       throw new Error('thread_id is required for Context Router checkpointer');
@@ -170,7 +179,8 @@ export class ContextRouterChecker {
         data: snapshot['__state__'] as Record<string, unknown>,
         config: {
           thread_id: threadId,
-          checkpoint_id: this.latestCheckpointIds.get(key) ?? config.checkpoint_id,
+          checkpoint_id:
+            this.latestCheckpointIds.get(key) ?? config.checkpoint_id,
         },
       };
     } catch (error) {
@@ -186,7 +196,7 @@ export class ContextRouterChecker {
    */
   async put(
     config: ThreadConfig,
-    data: Record<string, unknown>
+    data: Record<string, unknown>,
   ): Promise<Record<string, unknown>> {
     const threadId = config?.thread_id;
     if (!threadId) {
@@ -203,7 +213,7 @@ export class ContextRouterChecker {
     let checkpointId: string;
     if (this.autoCheckpoint) {
       const checkpoint = (await session.checkpoint(
-        `checkpoint-${Date.now()}`
+        `checkpoint-${Date.now()}`,
       )) as CheckpointRecord;
       checkpointId = checkpoint.id;
     } else {
@@ -221,7 +231,9 @@ export class ContextRouterChecker {
   /**
    * List available checkpoints for a thread
    */
-  async list(config: ThreadConfig): Promise<Array<{ id: string; metadata?: unknown }>> {
+  async list(
+    config: ThreadConfig,
+  ): Promise<Array<{ id: string; metadata?: unknown }>> {
     const threadId = config?.thread_id;
     if (!threadId) {
       throw new Error('thread_id is required');
@@ -229,10 +241,10 @@ export class ContextRouterChecker {
 
     try {
       const { session, router } = await this.getSessionDetails(threadId);
-      const checkpoints = await router.checkpoint.list(
+      const checkpoints = (await router.checkpoint.list(
         session.workspace.id,
-        session.workflow.id
-      ) as Array<{ id: string; label?: string; createdAt: string }>;
+        session.workflow.id,
+      )) as Array<{ id: string; label?: string; createdAt: string }>;
 
       return checkpoints.map((cp) => ({
         id: cp.id,
@@ -246,7 +258,9 @@ export class ContextRouterChecker {
   /**
    * Restore from a specific checkpoint
    */
-  async restore(config: ThreadConfig & { checkpoint_id: string }): Promise<void> {
+  async restore(
+    config: ThreadConfig & { checkpoint_id: string },
+  ): Promise<void> {
     const { thread_id, checkpoint_id } = config;
     if (!thread_id || !checkpoint_id) {
       throw new Error('thread_id and checkpoint_id are required');
@@ -274,7 +288,9 @@ export class ContextRouterChecker {
 /**
  * Create a Context Router checkpointer for LangGraph
  */
-export function createContextRouterChecker(config?: ContextRouterCheckerConfig): ContextRouterChecker {
+export function createContextRouterChecker(
+  config?: ContextRouterCheckerConfig,
+): ContextRouterChecker {
   return new ContextRouterChecker(config);
 }
 
@@ -308,7 +324,7 @@ export interface ContextRouterNodeOptions {
 export async function contextRouterNode(
   graphState: Record<string, unknown>,
   config: ThreadConfig,
-  options: ContextRouterNodeOptions = {}
+  options: ContextRouterNodeOptions = {},
 ): Promise<Partial<Record<string, unknown>>> {
   const { keys, nodeName = 'node', checker: checkerOpt } = options;
 
@@ -345,7 +361,7 @@ export async function contextRouterNode(
 export async function writeContextRouterNode(
   graphState: Record<string, unknown>,
   config: ThreadConfig,
-  options: ContextRouterNodeOptions = {}
+  options: ContextRouterNodeOptions = {},
 ): Promise<void> {
   const { nodeName = 'node', checker: checkerOpt } = options;
 
@@ -386,9 +402,14 @@ export async function generateHandoff(
     nextGoals?: string[];
     /** Shared checkpointer — see ContextRouterNodeOptions.checker */
     checker?: ContextRouterChecker;
-  } = {}
+  } = {},
 ): Promise<{ summary: string; keysIncluded: string[]; packet?: unknown }> {
-  const { keys, maxTokens = 300, nextGoals = [], checker: checkerOpt } = options;
+  const {
+    keys,
+    maxTokens = 300,
+    nextGoals = [],
+    checker: checkerOpt,
+  } = options;
 
   try {
     const checker = resolveChecker(checkerOpt);
@@ -435,7 +456,7 @@ export async function generateHandoff(
  */
 export function contextRouterChannel(
   threadId: string,
-  checker?: ContextRouterChecker
+  checker?: ContextRouterChecker,
 ) {
   // Capture once so reader/writer share the same session map (same workflow)
   const shared = resolveChecker(checker);

@@ -74,7 +74,11 @@ describe('tool-kit - success/failure helpers', () => {
           name: ['Required field'],
         },
       };
-      const result = failure('VALIDATION_ERROR', 'Validation failed', fieldErrors);
+      const result = failure(
+        'VALIDATION_ERROR',
+        'Validation failed',
+        fieldErrors,
+      );
       const parsed = JSON.parse(result.content[0].text);
 
       expect(parsed.error.hint).toBeDefined();
@@ -177,7 +181,10 @@ describe('tool-kit - success/failure helpers', () => {
     });
 
     it('provides suggestion for SCHEMA_VALIDATION_FAILED', () => {
-      const result = failure('SCHEMA_VALIDATION_FAILED', 'Schema validation failed');
+      const result = failure(
+        'SCHEMA_VALIDATION_FAILED',
+        'Schema validation failed',
+      );
       const parsed = JSON.parse(result.content[0].text);
 
       expect(parsed.error.suggestion).toContain('schema_validate()');
@@ -208,7 +215,9 @@ describe('tool-kit - success/failure helpers', () => {
 
 describe('ToolOperationError', () => {
   it('creates error with code, message, and details', () => {
-    const error = new ToolOperationError('TEST_CODE', 'Test message', { extra: 'data' });
+    const error = new ToolOperationError('TEST_CODE', 'Test message', {
+      extra: 'data',
+    });
 
     expect(error.code).toBe('TEST_CODE');
     expect(error.message).toBe('Test message');

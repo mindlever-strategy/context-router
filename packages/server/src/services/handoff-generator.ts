@@ -1,6 +1,10 @@
 import type { ProvenanceMeta } from './provenance.js';
 import { unwrapForHandoff } from './provenance.js';
-import { AIHandoffService, type AIHandoffOptions, type AIHandoffResult } from './ai-handoff-service.js';
+import {
+  AIHandoffService,
+  type AIHandoffOptions,
+  type AIHandoffResult,
+} from './ai-handoff-service.js';
 
 export type HandoffStyle = 'concise' | 'detailed' | 'technical';
 

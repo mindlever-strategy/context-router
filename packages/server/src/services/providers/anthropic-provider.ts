@@ -35,8 +35,10 @@ export class AnthropicProvider implements HandoffLLMProvider {
       throw new Error('ANTHROPIC_API_KEY not configured');
     }
 
-    const systemMessage = request.messages.find(m => m.role === 'system');
-    const nonSystemMessages = request.messages.filter(m => m.role !== 'system');
+    const systemMessage = request.messages.find((m) => m.role === 'system');
+    const nonSystemMessages = request.messages.filter(
+      (m) => m.role !== 'system',
+    );
 
     const response = await fetch(`${this.baseUrl}/v1/messages`, {
       method: 'POST',
@@ -50,7 +52,7 @@ export class AnthropicProvider implements HandoffLLMProvider {
         model: request.model || this.defaultModel,
         max_tokens: request.maxTokens ?? 200,
         system: systemMessage?.content,
-        messages: nonSystemMessages.map(m => ({
+        messages: nonSystemMessages.map((m) => ({
           role: m.role,
           content: m.content,
         })),
@@ -64,14 +66,14 @@ export class AnthropicProvider implements HandoffLLMProvider {
       throw new Error(`Anthropic API error: ${response.status} - ${errorText}`);
     }
 
-    const data = await response.json() as {
+    const data = (await response.json()) as {
       content: Array<{ type: string; text?: string }>;
       model: string;
       usage: { input_tokens: number; output_tokens: number };
       stop_reason?: string;
     };
 
-    const textContent = data.content.find(c => c.type === 'text');
+    const textContent = data.content.find((c) => c.type === 'text');
 
     return {
       content: textContent?.text ?? '',

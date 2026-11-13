@@ -13,6 +13,7 @@ This document covers publishing the various packages to their respective package
 ### Setup
 
 1. Create `~/.pypirc`:
+
 ```ini
 [pypi]
 username = __token__
@@ -25,6 +26,7 @@ password = tpypi-XXXXXXXXXXXXXXXXXXXX
 ```
 
 2. Or use environment variables:
+
 ```bash
 export TWINE_USERNAME=__token__
 export TWINE_PASSWORD=pypi-XXXXXXXXXXXXXXXXXXXX
@@ -68,13 +70,13 @@ twine upload dist/*
 
 ### Packages to Publish
 
-| Package | Location | Command |
-|---------|----------|---------|
-| `@context-router/mcp-server` | `packages/server/` | `npm publish` |
-| `@context-router/sdk` | `packages/sdk-typescript/` | `npm publish` |
-| `@context-router/langgraph-adapter` | `packages/langgraph-adapter/` | `npm publish` |
-| `@context-router/crewai-adapter` | `packages/crewai-adapter/` | `npm publish` |
-| `@context-router/autogen-adapter` | `packages/autogen-adapter/` | `npm publish` |
+| Package                              | Location                       | Command       |
+| ------------------------------------ | ------------------------------ | ------------- |
+| `@context-router/mcp-server`         | `packages/server/`             | `npm publish` |
+| `@context-router/sdk`                | `packages/sdk-typescript/`     | `npm publish` |
+| `@context-router/langgraph-adapter`  | `packages/langgraph-adapter/`  | `npm publish` |
+| `@context-router/crewai-adapter`     | `packages/crewai-adapter/`     | `npm publish` |
+| `@context-router/autogen-adapter`    | `packages/autogen-adapter/`    | `npm publish` |
 | `@context-router/llamaindex-adapter` | `packages/llamaindex-adapter/` | `npm publish` |
 
 Publish order (also used by `.github/workflows/publish-npm-manual.yml`): `mcp-server` → `sdk` → adapters.

@@ -24,7 +24,7 @@ type LatencyCallback = () => Promise<void> | void;
 async function benchmark(
   name: string,
   fn: LatencyCallback,
-  iterations: number = 1000
+  iterations: number = 1000,
 ): Promise<LatencyResult> {
   const times: number[] = [];
 
@@ -94,7 +94,8 @@ async function benchmarkContextRouterWorkflow(): Promise<{
   stateOps: LatencyResult[];
   totalWorkflowMs: number;
 }> {
-  const { ContextRouter } = await import('../packages/sdk-typescript/dist/index.js');
+  const { ContextRouter } =
+    await import('../packages/sdk-typescript/dist/index.js');
 
   const router = await ContextRouter.local();
   const flow = await router.start('latency-benchmark');
@@ -202,16 +203,24 @@ async function benchmarkInMemoryWorkflow(): Promise<{
   const stateOps: LatencyResult[] = [];
 
   // Benchmark state write
-  const writeResult = await benchmark('state_write (in-memory)', async () => {
-    await memory.set(`key_${Math.random()}`, { data: 'value' });
-  }, 100);
+  const writeResult = await benchmark(
+    'state_write (in-memory)',
+    async () => {
+      await memory.set(`key_${Math.random()}`, { data: 'value' });
+    },
+    100,
+  );
   stateOps.push(writeResult);
 
   // Benchmark state read
   await memory.set('test_key', { data: 'value' });
-  const readResult = await benchmark('state_read (in-memory)', async () => {
-    await memory.get('test_key');
-  }, 100);
+  const readResult = await benchmark(
+    'state_read (in-memory)',
+    async () => {
+      await memory.get('test_key');
+    },
+    100,
+  );
   stateOps.push(readResult);
 
   // No checkpoint in in-memory (would need serialization)
@@ -227,10 +236,14 @@ async function benchmarkInMemoryWorkflow(): Promise<{
   });
 
   // Handoff is just JSON serialization
-  const handoffResult = await benchmark('handoff_generate (in-memory)', async () => {
-    const state = await memory.getMany(['test_key']);
-    JSON.stringify(state);
-  }, 20);
+  const handoffResult = await benchmark(
+    'handoff_generate (in-memory)',
+    async () => {
+      const state = await memory.getMany(['test_key']);
+      JSON.stringify(state);
+    },
+    20,
+  );
   handoffResult.operation = 'handoff_generate (in-memory)';
   stateOps.push(handoffResult);
 

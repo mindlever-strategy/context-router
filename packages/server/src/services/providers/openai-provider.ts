@@ -35,21 +35,28 @@ export class OpenAIProvider implements HandoffLLMProvider {
       throw new Error('OPENAI_API_KEY not configured');
     }
 
-    const systemMessage = request.messages.find(m => m.role === 'system');
-    const nonSystemMessages = request.messages.filter(m => m.role !== 'system');
+    const systemMessage = request.messages.find((m) => m.role === 'system');
+    const nonSystemMessages = request.messages.filter(
+      (m) => m.role !== 'system',
+    );
 
     const response = await fetch(`${this.baseUrl}/chat/completions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${this.apiKey}`,
+        Authorization: `Bearer ${this.apiKey}`,
       },
       body: JSON.stringify({
         model: request.model || this.defaultModel,
         max_tokens: request.maxTokens ?? 200,
         messages: [
-          ...(systemMessage ? [{ role: 'system', content: systemMessage.content }] : []),
-          ...nonSystemMessages.map(m => ({ role: m.role, content: m.content })),
+          ...(systemMessage
+            ? [{ role: 'system', content: systemMessage.content }]
+            : []),
+          ...nonSystemMessages.map((m) => ({
+            role: m.role,
+            content: m.content,
+          })),
         ],
         temperature: request.temperature ?? 0.3,
         stop: request.stop,
@@ -61,7 +68,7 @@ export class OpenAIProvider implements HandoffLLMProvider {
       throw new Error(`OpenAI API error: ${response.status} - ${errorText}`);
     }
 
-    const data = await response.json() as {
+    const data = (await response.json()) as {
       choices: Array<{
         message: { content: string | null };
         finish_reason: string;
@@ -79,7 +86,8 @@ export class OpenAIProvider implements HandoffLLMProvider {
         input: data.usage.prompt_tokens,
         output: data.usage.completion_tokens,
       },
-      finishReason: (choice?.finish_reason as LLMResponse['finishReason']) ?? 'stop',
+      finishReason:
+        (choice?.finish_reason as LLMResponse['finishReason']) ?? 'stop',
     };
   }
 }

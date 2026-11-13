@@ -10,9 +10,9 @@ import { recordTTLCleanup } from '../telemetry/metrics.js';
 let cleanupInterval: NodeJS.Timeout | null = null;
 
 export interface TTLCleanupConfig {
-  intervalMs: number;       // Default: 60000 (1 minute)
-  batchSize: number;        // Default: 100
-  enabled: boolean;         // Default: true
+  intervalMs: number; // Default: 60000 (1 minute)
+  batchSize: number; // Default: 100
+  enabled: boolean; // Default: true
 }
 
 /**
@@ -64,7 +64,10 @@ async function runCleanup(batchSize: number): Promise<void> {
     const deleted = await cleanupExpiredStates(batchSize);
     const durationMs = Date.now() - startTime;
     if (deleted > 0) {
-      logger.debug('[TTL] Cleaned up expired states', { count: deleted, durationMs });
+      logger.debug('[TTL] Cleaned up expired states', {
+        count: deleted,
+        durationMs,
+      });
       recordTTLCleanup(deleted, durationMs);
     }
   } catch (error) {
@@ -93,7 +96,10 @@ export function getTTLCleanupConfig(): TTLCleanupConfig {
 /**
  * Calculate expiration date from seconds or timestamp
  */
-export function calculateExpiresAt(expiresIn?: number, expiresAt?: string | Date): Date | null {
+export function calculateExpiresAt(
+  expiresIn?: number,
+  expiresAt?: string | Date,
+): Date | null {
   if (expiresAt) {
     const date = expiresAt instanceof Date ? expiresAt : new Date(expiresAt);
     return isNaN(date.getTime()) ? null : date;

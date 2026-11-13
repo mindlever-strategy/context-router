@@ -3,11 +3,11 @@
 This repo publishes **two npm packages** and **one Python package** with
 independent version numbers:
 
-| Package | Registry | Current version | Path |
-|---------|----------|-----------------|------|
-| `@context-router/mcp-server` | npm | see `packages/server/package.json` | `packages/server` |
-| `@context-router/sdk` | npm | see `packages/sdk-typescript/package.json` | `packages/sdk-typescript` |
-| `ctxrouter` | PyPI | see `packages/sdk-python/pyproject.toml` | `packages/sdk-python` |
+| Package                      | Registry | Current version                            | Path                      |
+| ---------------------------- | -------- | ------------------------------------------ | ------------------------- |
+| `@context-router/mcp-server` | npm      | see `packages/server/package.json`         | `packages/server`         |
+| `@context-router/sdk`        | npm      | see `packages/sdk-typescript/package.json` | `packages/sdk-typescript` |
+| `ctxrouter`                  | PyPI     | see `packages/sdk-python/pyproject.toml`   | `packages/sdk-python`     |
 
 ---
 
@@ -246,18 +246,18 @@ twine upload dist/*
 
 Use this order:
 
-| # | Task | Owner |
-|---|------|--------|
-| 1 | Create npm org `@context-router` | You |
-| 2 | Configure GitHub environment `npm` (trusted publishing or `NPM_TOKEN`) | You |
-| 3 | Run **Publish npm (manual)** workflow OR local `npm publish` for 0.3.1 | You |
-| 4 | Tag `v0.3.1` and create GitHub Release with CHANGELOG | You |
-| 5 | Register PyPI trusted publisher for `ctxrouter` | You |
-| 6 | Create GitHub environment `pypi` | You |
-| 7 | Run **Release Python SDK** workflow for 0.4.0 | You |
-| 8 | Tag `python-v0.4.0` (optional) | You |
-| 9 | Update README install snippets if needed | Optional |
-| 10 | Fix `GITLEAKS_LICENSE` or disable secret-scan | Optional |
+| #   | Task                                                                   | Owner    |
+| --- | ---------------------------------------------------------------------- | -------- |
+| 1   | Create npm org `@context-router`                                       | You      |
+| 2   | Configure GitHub environment `npm` (trusted publishing or `NPM_TOKEN`) | You      |
+| 3   | Run **Publish npm (manual)** workflow OR local `npm publish` for 0.3.1 | You      |
+| 4   | Tag `v0.3.1` and create GitHub Release with CHANGELOG                  | You      |
+| 5   | Register PyPI trusted publisher for `ctxrouter`                        | You      |
+| 6   | Create GitHub environment `pypi`                                       | You      |
+| 7   | Run **Release Python SDK** workflow for 0.4.0                          | You      |
+| 8   | Tag `python-v0.4.0` (optional)                                         | You      |
+| 9   | Update README install snippets if needed                               | Optional |
+| 10  | Fix `GITLEAKS_LICENSE` or disable secret-scan                          | Optional |
 
 ---
 
@@ -284,25 +284,25 @@ Python does **not** use Changesets today; version is manual in `pyproject.toml`.
 
 ## Troubleshooting
 
-| Symptom | Likely cause | Fix |
-|---------|--------------|-----|
-| npm **404** on publish | `@context-router` org missing | Create org; retry manual publish workflow |
-| npm **403** | Token lacks publish rights | Regenerate automation token; check org membership |
-| npm **EOTP** | Token requires 2FA in browser | Use **Classic → Automation** token, not Granular Publish |
-| npm publish skipped | No pending changesets / already published | Use manual publish workflow for retry |
-| PyPI **403** | Trusted publisher mismatch | Match owner/repo/workflow/environment exactly on PyPI |
-| PyPI **400** file already exists | Version already on PyPI | Bump version in pyproject.toml |
-| Release workflow green but no npm packages | Version Packages PR not merged yet | Merge changesets version PR first |
+| Symptom                                    | Likely cause                              | Fix                                                      |
+| ------------------------------------------ | ----------------------------------------- | -------------------------------------------------------- |
+| npm **404** on publish                     | `@context-router` org missing             | Create org; retry manual publish workflow                |
+| npm **403**                                | Token lacks publish rights                | Regenerate automation token; check org membership        |
+| npm **EOTP**                               | Token requires 2FA in browser             | Use **Classic → Automation** token, not Granular Publish |
+| npm publish skipped                        | No pending changesets / already published | Use manual publish workflow for retry                    |
+| PyPI **403**                               | Trusted publisher mismatch                | Match owner/repo/workflow/environment exactly on PyPI    |
+| PyPI **400** file already exists           | Version already on PyPI                   | Bump version in pyproject.toml                           |
+| Release workflow green but no npm packages | Version Packages PR not merged yet        | Merge changesets version PR first                        |
 
 ---
 
 ## Files reference
 
-| File | Purpose |
-|------|---------|
-| `.github/workflows/release.yml` | Changesets npm publish on `main` |
-| `.github/workflows/publish-npm-manual.yml` | Manual npm retry / first publish |
-| `.github/workflows/release-python.yml` | PyPI publish via trusted publishing |
-| `scripts/release-python-check.mjs` | Local Python build + test gate |
-| `.changeset/config.json` | Changesets monorepo config |
-| `docs/release-checklist.md` | Short owner checklist |
+| File                                       | Purpose                             |
+| ------------------------------------------ | ----------------------------------- |
+| `.github/workflows/release.yml`            | Changesets npm publish on `main`    |
+| `.github/workflows/publish-npm-manual.yml` | Manual npm retry / first publish    |
+| `.github/workflows/release-python.yml`     | PyPI publish via trusted publishing |
+| `scripts/release-python-check.mjs`         | Local Python build + test gate      |
+| `.changeset/config.json`                   | Changesets monorepo config          |
+| `docs/release-checklist.md`                | Short owner checklist               |

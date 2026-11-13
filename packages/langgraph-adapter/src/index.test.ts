@@ -82,10 +82,7 @@ describe('ContextRouterChecker', () => {
     const { router, workflow } = createMockRouter();
     const checker = createContextRouterChecker({ router: router as any });
 
-    const result = await checker.put(
-      { thread_id: 'thread-1' },
-      { count: 1 }
-    );
+    const result = await checker.put({ thread_id: 'thread-1' }, { count: 1 });
 
     expect(result.checkpoint_id).toBe('checkpoint-1');
     expect(result.checkpoint_id).not.toBe(workflow.id);
@@ -133,13 +130,13 @@ describe('helper sharing', () => {
     await writeContextRouterNode(
       { draft: 'hello' },
       { thread_id: 'shared-thread' },
-      { nodeName: 'write', checker }
+      { nodeName: 'write', checker },
     );
 
     const read = await contextRouterNode(
       {},
       { thread_id: 'shared-thread' },
-      { checker }
+      { checker },
     );
 
     expect(start).toHaveBeenCalledTimes(1);
@@ -154,16 +151,10 @@ describe('helper sharing', () => {
     await writeContextRouterNode(
       { draft: 'via-default' },
       { thread_id: 'default-thread' },
-      { nodeName: 'write' }
+      { nodeName: 'write' },
     );
-    const read = await contextRouterNode(
-      {},
-      { thread_id: 'default-thread' }
-    );
-    await generateHandoff(
-      { analysis: 'z' },
-      { thread_id: 'default-thread' }
-    );
+    const read = await contextRouterNode({}, { thread_id: 'default-thread' });
+    await generateHandoff({ analysis: 'z' }, { thread_id: 'default-thread' });
 
     expect(start).toHaveBeenCalledTimes(1);
     expect(read).toEqual({ draft: 'via-default' });

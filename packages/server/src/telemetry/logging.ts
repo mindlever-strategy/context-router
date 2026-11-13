@@ -23,14 +23,21 @@ interface ChildLogger {
   debug(message: string, context?: Record<string, unknown>): void;
   info(message: string, context?: Record<string, unknown>): void;
   warn(message: string, context?: Record<string, unknown>): void;
-  error(message: string, error?: Error, context?: Record<string, unknown>): void;
+  error(
+    message: string,
+    error?: Error,
+    context?: Record<string, unknown>,
+  ): void;
   audit(message: string, context: Record<string, unknown>): void;
 }
 
 // Configuration
 const LOG_LEVEL = (process.env.LOG_LEVEL ?? 'info') as LogLevel;
 const LOG_FORMAT = process.env.LOG_FORMAT ?? 'json';
-const REDACT_FIELDS = (process.env.LOG_REDACT_FIELDS ?? 'apiKey,password,token,secret,authorization,bearer')
+const REDACT_FIELDS = (
+  process.env.LOG_REDACT_FIELDS ??
+  'apiKey,password,token,secret,authorization,bearer'
+)
   .split(',')
   .map((s) => s.trim());
 
@@ -97,7 +104,12 @@ function formatLog(entry: LogEntry): string {
   }
 
   // Text format
-  const parts = [`[${entry.timestamp}]`, entry.level.toUpperCase(), `[${SERVICE_NAME}]`, entry.message];
+  const parts = [
+    `[${entry.timestamp}]`,
+    entry.level.toUpperCase(),
+    `[${SERVICE_NAME}]`,
+    entry.message,
+  ];
 
   if (redacted && Object.keys(redacted).length > 0) {
     parts.push(JSON.stringify(redacted));
@@ -116,7 +128,12 @@ function formatLog(entry: LogEntry): string {
 /**
  * Create a log entry and output it
  */
-function log(level: LogLevel, message: string, context?: Record<string, unknown>, error?: Error): void {
+function log(
+  level: LogLevel,
+  message: string,
+  context?: Record<string, unknown>,
+  error?: Error,
+): void {
   if (!shouldLog(level)) return;
 
   const entry: LogEntry = {
@@ -156,7 +173,11 @@ export const logger = {
     log('warn', message, context);
   },
 
-  error(message: string, error?: Error, context?: Record<string, unknown>): void {
+  error(
+    message: string,
+    error?: Error,
+    context?: Record<string, unknown>,
+  ): void {
     log('error', message, context, error);
   },
 
@@ -187,7 +208,9 @@ export const logger = {
 /**
  * Create a child logger with default context
  */
-export function createChildLogger(defaultContext: Record<string, unknown>): ChildLogger {
+export function createChildLogger(
+  defaultContext: Record<string, unknown>,
+): ChildLogger {
   return {
     debug(message: string, context?: Record<string, unknown>): void {
       logger.debug(message, { ...defaultContext, ...context });
@@ -201,7 +224,11 @@ export function createChildLogger(defaultContext: Record<string, unknown>): Chil
       logger.warn(message, { ...defaultContext, ...context });
     },
 
-    error(message: string, error?: Error, context?: Record<string, unknown>): void {
+    error(
+      message: string,
+      error?: Error,
+      context?: Record<string, unknown>,
+    ): void {
       logger.error(message, error, { ...defaultContext, ...context });
     },
 
@@ -221,6 +248,9 @@ export function createWorkspaceLogger(workspaceId: string): ChildLogger {
 /**
  * Create a workflow-scoped logger
  */
-export function createWorkflowLogger(workspaceId: string, workflowId: string): ChildLogger {
+export function createWorkflowLogger(
+  workspaceId: string,
+  workflowId: string,
+): ChildLogger {
   return createChildLogger({ workspaceId, workflowId });
 }

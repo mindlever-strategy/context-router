@@ -32,7 +32,7 @@ export class ContextRouterAgentWrapper {
    */
   async processMessage(
     context: AgentContext,
-    message: string
+    message: string,
   ): Promise<{ response: string; updatedContext: AgentContext }> {
     return {
       response: `[Context Router wrapped agent ${this.agentId}]: ${message}`,

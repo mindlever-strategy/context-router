@@ -3,7 +3,11 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { diffState, diffStateSummary, type StateDiffResponse } from './state-diff.js';
+import {
+  diffState,
+  diffStateSummary,
+  type StateDiffResponse,
+} from './state-diff.js';
 
 describe('diffState', () => {
   it('detects added keys', () => {
@@ -100,8 +104,12 @@ describe('diffState', () => {
     const result = diffState(source, target, { deepDiff: true });
 
     // With deep diff, nested changes are reported
-    expect(result.changes.some(c => c.key === 'nested.b')).toBe(true);
-    expect(result.changes.some(c => c.key === 'nested.c' && c.changeType === 'added')).toBe(true);
+    expect(result.changes.some((c) => c.key === 'nested.b')).toBe(true);
+    expect(
+      result.changes.some(
+        (c) => c.key === 'nested.c' && c.changeType === 'added',
+      ),
+    ).toBe(true);
   });
 
   it('reports unchanged keys when includeUnchanged is true', () => {
@@ -172,7 +180,7 @@ describe('deep diff nested objects', () => {
         key: 'user.email',
         changeType: 'added',
         newValue: 'john@example.com',
-      })
+      }),
     );
   });
 
@@ -187,7 +195,7 @@ describe('deep diff nested objects', () => {
         key: 'user.age',
         changeType: 'removed',
         oldValue: 30,
-      })
+      }),
     );
   });
 
@@ -203,7 +211,7 @@ describe('deep diff nested objects', () => {
         changeType: 'modified',
         oldValue: 'localhost',
         newValue: 'production.db.com',
-      })
+      }),
     );
   });
 
@@ -214,7 +222,7 @@ describe('deep diff nested objects', () => {
     const result = diffState(source, target, { deepDiff: true });
 
     // Array change is reported at the key level
-    const arrayChange = result.changes.find(c => c.key === 'data.items');
+    const arrayChange = result.changes.find((c) => c.key === 'data.items');
     expect(arrayChange).toBeDefined();
     expect(arrayChange?.changeType).toBe('modified');
   });

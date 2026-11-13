@@ -68,7 +68,10 @@ export class HandoffCacheService {
    * Set a handoff in the cache
    */
   async set(key: string, result: CachedHandoff): Promise<void> {
-    const ttlSeconds = parseInt(process.env.HANDOFF_CACHE_TTL_SECONDS ?? String(this.defaultTtlSeconds), 10);
+    const ttlSeconds = parseInt(
+      process.env.HANDOFF_CACHE_TTL_SECONDS ?? String(this.defaultTtlSeconds),
+      10,
+    );
 
     // Evict oldest entries if cache is full
     if (this.cache.size >= this.maxEntries) {
@@ -77,7 +80,7 @@ export class HandoffCacheService {
 
     this.cache.set(key, {
       data: result,
-      expiresAt: Date.now() + (ttlSeconds * 1000),
+      expiresAt: Date.now() + ttlSeconds * 1000,
     });
   }
 
@@ -98,7 +101,7 @@ export class HandoffCacheService {
    */
   computeKey(
     state: Record<string, unknown>,
-    options: Record<string, unknown>
+    options: Record<string, unknown>,
   ): string {
     const stateHash = this.hashState(state);
     const optionsHash = this.hashMetadata(options);
@@ -164,7 +167,7 @@ export class HandoffCacheService {
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
       const char = str.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
+      hash = (hash << 5) - hash + char;
       hash = hash & hash;
     }
     return Math.abs(hash).toString(36);

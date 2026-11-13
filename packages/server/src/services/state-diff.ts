@@ -4,8 +4,8 @@
  */
 
 export interface StateDiffOptions {
-  deepDiff?: boolean;           // Compare nested object fields
-  includeUnchanged?: boolean;   // Include keys with same value
+  deepDiff?: boolean; // Compare nested object fields
+  includeUnchanged?: boolean; // Include keys with same value
 }
 
 export interface StateDiffChange {
@@ -13,7 +13,7 @@ export interface StateDiffChange {
   changeType: 'added' | 'removed' | 'modified' | 'unchanged';
   oldValue?: unknown;
   newValue?: unknown;
-  path?: string[];              // For nested fields
+  path?: string[]; // For nested fields
 }
 
 export interface StateDiffResponse {
@@ -250,7 +250,9 @@ export function diffStateSummary(
   modified: number;
   unchanged: number;
 } {
-  const result = diffState(sourceSnapshot, targetSnapshot, { includeUnchanged: true });
+  const result = diffState(sourceSnapshot, targetSnapshot, {
+    includeUnchanged: true,
+  });
   return {
     added: result.stats.keysAdded,
     removed: result.stats.keysRemoved,

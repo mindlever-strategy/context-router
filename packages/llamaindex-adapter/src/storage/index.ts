@@ -76,7 +76,7 @@ export interface ContextRouterQueryEngineConfig {
 export interface SyncTriggers {
   onStateChange?: boolean;
   onCheckpoint?: boolean;
-  onInterval?: number;  // milliseconds
+  onInterval?: number; // milliseconds
 }
 
 export interface SyncOptions {
@@ -158,10 +158,11 @@ export class ContextRouterDocumentStore {
 
   async addDocuments(
     documents: Array<{ text: string; metadata?: Record<string, unknown> }>,
-    options?: { chunkSize?: number; chunkOverlap?: number }
+    options?: { chunkSize?: number; chunkOverlap?: number },
   ): Promise<{ ids: string[] }> {
     const chunkSize = options?.chunkSize ?? this.config.defaultChunkSize ?? 512;
-    const chunkOverlap = options?.chunkOverlap ?? this.config.defaultChunkOverlap ?? 50;
+    const chunkOverlap =
+      options?.chunkOverlap ?? this.config.defaultChunkOverlap ?? 50;
 
     const ids: string[] = [];
     for (const doc of documents) {
@@ -174,7 +175,10 @@ export class ContextRouterDocumentStore {
     return { ids };
   }
 
-  async search(query: string, _options?: { topK?: number }): Promise<DocumentSearchResult[]> {
+  async search(
+    query: string,
+    _options?: { topK?: number },
+  ): Promise<DocumentSearchResult[]> {
     // Stub: implement with llamaindex vector store
     console.log('[ContextRouterDocumentStore] Search:', query);
     return [];
@@ -184,7 +188,11 @@ export class ContextRouterDocumentStore {
     console.log('[ContextRouterDocumentStore] Delete:', id);
   }
 
-  private chunkText(text: string, chunkSize: number, chunkOverlap: number): string[] {
+  private chunkText(
+    text: string,
+    chunkSize: number,
+    chunkOverlap: number,
+  ): string[] {
     const chunks: string[] = [];
     const words = text.split(/\s+/).filter(Boolean);
     if (words.length === 0) {

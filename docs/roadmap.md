@@ -26,18 +26,35 @@
 - Router status plus `doctor` and `status` CLI commands
 - One runnable simple-pipeline quickstart
 
-## Candidate v0.4 work
+## v0.4
 
-- [x] Functional Python SDK in monorepo (`packages/sdk-python`, v0.4.0)
-- [ ] Python SDK published to PyPI
-- [x] Additional first-class workflow examples and `docs/workflows/` guides
-- [x] LangGraph adapter (`packages/langgraph-adapter`)
-- [x] Improved error messages with actionable suggestions
-- [x] Flexible state storage (arrays, nested objects)
-- Visual workflow debugger evaluation
-- CrewAI adapter evaluation
-- Event journal and checkpoint compaction
-- AI-assisted handoff summaries (optional)
+- Python SDK in the monorepo (`packages/sdk-python`), published to PyPI as
+  `ctxrouter`
+- Additional first-class workflow examples and `docs/workflows/` guides
+- LangGraph and CrewAI adapters
+- Improved error messages with actionable suggestions
+- Flexible state storage (arrays, nested objects)
+- Workflow debugger (`debugger_inspect`)
+
+## v0.5
+
+- AutoGen adapter
+- Coordinated 0.5.0 npm publish across the server, SDK, and adapters
+
+## v0.6
+
+The Python SDK is published at 0.6.0. The npm 0.6.0 release is pending.
+
+- Event journal with entries, replay, stats, and export views
+- AI-assisted handoff summaries (`handoff_generate_ai`)
+- LlamaIndex adapter
+- Batch state reads and writes, state TTL, schema migration, and state diff
+- State-integrity fixes: owner isolation, atomic batches, atomic compare-and-set
+- MCP tool surface consolidated from 49 to 37 tools
+
+## Candidates not yet started
+
+- Checkpoint compaction
 
 ## Later evaluation
 
