@@ -56,10 +56,15 @@ export function buildCheckpointSnapshot(
   };
 }
 
-function isCurrentFormat(
-  snapshot: unknown,
-): snapshot is { __format: typeof CHECKPOINT_FORMAT; entries: Record<string, unknown> } {
-  if (snapshot === null || typeof snapshot !== 'object' || Array.isArray(snapshot)) {
+function isCurrentFormat(snapshot: unknown): snapshot is {
+  __format: typeof CHECKPOINT_FORMAT;
+  entries: Record<string, unknown>;
+} {
+  if (
+    snapshot === null ||
+    typeof snapshot !== 'object' ||
+    Array.isArray(snapshot)
+  ) {
     return false;
   }
   const candidate = snapshot as { __format?: unknown; entries?: unknown };

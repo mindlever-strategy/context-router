@@ -5,7 +5,11 @@
 
 import type { Server as McpServer } from '@modelcontextprotocol/sdk/server/index.js';
 import { z } from 'zod';
-import { migrateSchema, getSchemaDiff, previewSchemaMigration } from '../services/schema-migration.js';
+import {
+  migrateSchema,
+  getSchemaDiff,
+  previewSchemaMigration,
+} from '../services/schema-migration.js';
 import { recordSchemaMigration } from '../telemetry/metrics.js';
 import {
   defineTool,
@@ -16,7 +20,13 @@ import {
 } from './tool-kit.js';
 
 const transformSchema = z.object({
-  type: z.enum(['add_field', 'remove_field', 'rename_field', 'transform_field', 'change_type']),
+  type: z.enum([
+    'add_field',
+    'remove_field',
+    'rename_field',
+    'transform_field',
+    'change_type',
+  ]),
   field: z.string(),
   to: z.string().optional(),
   value: z.unknown().optional(),
@@ -58,7 +68,13 @@ export function registerSchemaMigrationTools(
                 properties: {
                   type: {
                     type: 'string',
-                    enum: ['add_field', 'remove_field', 'rename_field', 'transform_field', 'change_type'],
+                    enum: [
+                      'add_field',
+                      'remove_field',
+                      'rename_field',
+                      'transform_field',
+                      'change_type',
+                    ],
                   },
                   field: string,
                   to: string,
@@ -71,14 +87,21 @@ export function registerSchemaMigrationTools(
             },
             dryRun: {
               type: 'boolean',
-              description: 'Report what the migration would change without applying it',
+              description:
+                'Report what the migration would change without applying it',
             },
             batchSize: {
               type: 'number',
               description: 'Records to process per batch',
             },
           },
-          required: ['workspaceId', 'schemaName', 'fromVersion', 'toVersion', 'transforms'],
+          required: [
+            'workspaceId',
+            'schemaName',
+            'fromVersion',
+            'toVersion',
+            'transforms',
+          ],
         },
       },
       z.object({
@@ -90,7 +113,15 @@ export function registerSchemaMigrationTools(
         dryRun: z.boolean().default(false),
         batchSize: z.number().int().min(1).max(1000).default(100),
       }),
-      async ({ workspaceId, schemaName, fromVersion, toVersion, transforms, dryRun, batchSize }) => {
+      async ({
+        workspaceId,
+        schemaName,
+        fromVersion,
+        toVersion,
+        transforms,
+        dryRun,
+        batchSize,
+      }) => {
         // Validate version range before Zod validation
         if (fromVersion >= toVersion) {
           throw new ToolOperationError(
@@ -176,7 +207,12 @@ export function registerSchemaMigrationTools(
         versionB: z.number().int().min(1),
       }),
       async ({ workspaceId, schemaName, versionA, versionB }) => {
-        const result = await getSchemaDiff(workspaceId, schemaName, versionA, versionB);
+        const result = await getSchemaDiff(
+          workspaceId,
+          schemaName,
+          versionA,
+          versionB,
+        );
         return {
           ...result,
           schemaName,

@@ -22,6 +22,7 @@ npm install @context-router/llamaindex-adapter
 ```
 
 **Peer Dependencies:**
+
 - `@context-router/sdk` ^0.5.0
 - `llamaindex` ^0.5.0
 
@@ -32,7 +33,7 @@ import {
   ContextRouterDocumentStore,
   ContextRouterChatMemory,
   ContextRouterQueryEngine,
-  StateSyncService
+  StateSyncService,
 } from '@context-router/llamaindex-adapter';
 
 // Initialize Context Router
@@ -49,7 +50,7 @@ await docStore.indexWorkflow(workflowId);
 
 // Query with natural language
 const results = await docStore.query(
-  'Find similar lead qualification workflows that resulted in confirmed status'
+  'Find similar lead qualification workflows that resulted in confirmed status',
 );
 
 // Create query engine for comprehensive queries
@@ -69,7 +70,7 @@ const queryEngine = new ContextRouterQueryEngine({
 // Query across all sources
 const response = await queryEngine.query(
   'What approaches worked for enterprise deals?',
-  { workflowId }
+  { workflowId },
 );
 ```
 
@@ -95,15 +96,15 @@ const results = await docStore.query('similar leads', { topK: 5 });
 
 ### API
 
-| Method | Description |
-|--------|-------------|
-| `indexWorkflow(workflowId)` | Index a workflow's current state |
-| `indexStateKey(workflowId, key)` | Index a single state key |
-| `indexCheckpoint(checkpointId)` | Index a checkpoint snapshot |
-| `query(query, options?)` | Semantic search with natural language |
-| `similaritySearch(embedding, k)` | Search by embedding vector |
-| `deleteWorkflow(workflowId)` | Remove workflow from index |
-| `getIndexStats()` | Get index statistics |
+| Method                           | Description                           |
+| -------------------------------- | ------------------------------------- |
+| `indexWorkflow(workflowId)`      | Index a workflow's current state      |
+| `indexStateKey(workflowId, key)` | Index a single state key              |
+| `indexCheckpoint(checkpointId)`  | Index a checkpoint snapshot           |
+| `query(query, options?)`         | Semantic search with natural language |
+| `similaritySearch(embedding, k)` | Search by embedding vector            |
+| `deleteWorkflow(workflowId)`     | Remove workflow from index            |
+| `getIndexStats()`                | Get index statistics                  |
 
 ## Chat Memory
 
@@ -134,19 +135,19 @@ const messages = await memory.formatMessages('You are a helpful assistant');
 
 ### API
 
-| Method | Description |
-|--------|-------------|
-| `put(message)` | Add a message (returns with ID) |
-| `get(id)` | Get message by ID |
-| `update(id, updates)` | Update a message |
-| `delete(id)` | Delete a message |
-| `getHistory(limit?)` | Get message history |
-| `getByRole(role)` | Get messages by role |
-| `getContext(query?)` | Get context with recall strategy |
-| `formatMessages(prompt?)` | Format for LLM consumption |
-| `search(query)` | Search messages by content |
-| `prune(max?)` | Remove old messages |
-| `clear()` | Clear all messages |
+| Method                    | Description                      |
+| ------------------------- | -------------------------------- |
+| `put(message)`            | Add a message (returns with ID)  |
+| `get(id)`                 | Get message by ID                |
+| `update(id, updates)`     | Update a message                 |
+| `delete(id)`              | Delete a message                 |
+| `getHistory(limit?)`      | Get message history              |
+| `getByRole(role)`         | Get messages by role             |
+| `getContext(query?)`      | Get context with recall strategy |
+| `formatMessages(prompt?)` | Format for LLM consumption       |
+| `search(query)`           | Search messages by content       |
+| `prune(max?)`             | Remove old messages              |
+| `clear()`                 | Clear all messages               |
 
 ## Retrieval Pipeline
 
@@ -215,7 +216,7 @@ const response = await engine.query('What worked for similar leads?', {
 // LLM-powered synthesis
 const llmResponse = await engine.queryWithLLM(
   'Summarize the key decisions in this workflow',
-  { workflowId }
+  { workflowId },
 );
 ```
 
@@ -259,17 +260,17 @@ await sync.stop();
 
 ### API
 
-| Method | Description |
-|--------|-------------|
-| `start()` | Start the sync service |
-| `stop()` | Stop the sync service |
-| `syncWorkflow(workflowId)` | Sync entire workflow state |
-| `syncStateKey(workflowId, key)` | Sync specific state key |
-| `syncFromCheckpoint(workflowId, checkpointId)` | Sync from checkpoint |
-| `onWorkflowComplete(workflowId)` | Handle workflow completion |
-| `flush()` | Flush pending syncs |
-| `onSync(handler)` | Register event handler |
-| `getStats()` | Get sync statistics |
+| Method                                         | Description                |
+| ---------------------------------------------- | -------------------------- |
+| `start()`                                      | Start the sync service     |
+| `stop()`                                       | Stop the sync service      |
+| `syncWorkflow(workflowId)`                     | Sync entire workflow state |
+| `syncStateKey(workflowId, key)`                | Sync specific state key    |
+| `syncFromCheckpoint(workflowId, checkpointId)` | Sync from checkpoint       |
+| `onWorkflowComplete(workflowId)`               | Handle workflow completion |
+| `flush()`                                      | Flush pending syncs        |
+| `onSync(handler)`                              | Register event handler     |
+| `getStats()`                                   | Get sync statistics        |
 
 ## MCP Tools
 
@@ -291,19 +292,19 @@ for (const tool of mcpTools) {
 // Handle tool calls
 const result = await handleIndexWorkflow(
   { workspaceId: 'ws-123', workflowId: 'wf-456' },
-  { router, workspaceId: 'ws-123' }
+  { router, workspaceId: 'ws-123' },
 );
 ```
 
 ### Available Tools
 
-| Tool | Description |
-|------|-------------|
-| `index_workflow` | Index a workflow's state for semantic search |
-| `search_workflow` | Semantic search over workflow data |
-| `query_memory` | Query chat memory with natural language |
-| `extract_knowledge` | Extract entities and relationships |
-| `sync_state` | Synchronize workflow state to vector index |
+| Tool                | Description                                  |
+| ------------------- | -------------------------------------------- |
+| `index_workflow`    | Index a workflow's state for semantic search |
+| `search_workflow`   | Semantic search over workflow data           |
+| `query_memory`      | Query chat memory with natural language      |
+| `extract_knowledge` | Extract entities and relationships           |
+| `sync_state`        | Synchronize workflow state to vector index   |
 
 ## TypeScript
 
@@ -343,16 +344,16 @@ QDRANT_API_KEY=...
 
 ## Comparison with Other Adapters
 
-| Feature | LangGraph | CREWAI | LlamaIndex |
-|---------|-----------|--------|------------|
-| State sync | Yes | Yes | Yes |
-| Checkpoint restore | Yes | Yes | Yes |
-| Handoff summaries | Yes | Yes | Yes |
-| Vector search | No | No | **Yes** |
-| Semantic retrieval | No | No | **Yes** |
-| Knowledge graphs | No | No | **Yes** |
-| Chat memory | No | Yes | Yes |
-| Tool integration | Yes | Yes | Yes |
+| Feature            | LangGraph | CREWAI | LlamaIndex |
+| ------------------ | --------- | ------ | ---------- |
+| State sync         | Yes       | Yes    | Yes        |
+| Checkpoint restore | Yes       | Yes    | Yes        |
+| Handoff summaries  | Yes       | Yes    | Yes        |
+| Vector search      | No        | No     | **Yes**    |
+| Semantic retrieval | No        | No     | **Yes**    |
+| Knowledge graphs   | No        | No     | **Yes**    |
+| Chat memory        | No        | Yes    | Yes        |
+| Tool integration   | Yes       | Yes    | Yes        |
 
 ## License
 

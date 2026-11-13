@@ -7,7 +7,10 @@
 import { runTokenReductionBenchmark } from './token-reduction.js';
 import { runLatencyBenchmarks } from './latency.js';
 import { runMemoryBenchmarks } from './memory-usage.js';
-import { runCostSavingsBenchmarks, printCostSavingsTable } from './cost-savings.js';
+import {
+  runCostSavingsBenchmarks,
+  printCostSavingsTable,
+} from './cost-savings.js';
 import { benchmarkFailureRecovery } from './failure-recovery.js';
 
 interface BenchmarkSummary {
@@ -26,7 +29,13 @@ interface BenchmarkSummary {
 function printBanner(text: string, width: number = 80): void {
   const padding = Math.max(0, Math.floor((width - text.length - 4) / 2));
   console.log('\n' + '═'.repeat(width));
-  console.log('═'.repeat(padding) + '  ' + text + '  ' + '═'.repeat(padding + (width % 2)));
+  console.log(
+    '═'.repeat(padding) +
+      '  ' +
+      text +
+      '  ' +
+      '═'.repeat(padding + (width % 2)),
+  );
   console.log('═'.repeat(width) + '\n');
 }
 
@@ -66,7 +75,9 @@ async function main(): Promise<void> {
 
   // 1. Token Reduction Benchmark
   printBanner('Benchmark 1: Token Reduction');
-  console.log('Comparing context size between chat history and Context Router state...\n');
+  console.log(
+    'Comparing context size between chat history and Context Router state...\n',
+  );
   summary.results.tokenReduction = await runTokenReductionBenchmark();
 
   // 2. Latency Benchmark
@@ -132,28 +143,40 @@ Total benchmark time: ${(totalTime / 1000).toFixed(1)}s
   console.log(`Results saved to: ${resultsPath}\n`);
 
   // Exit
-  await (await import('../packages/sdk-typescript/dist/index.js')).ContextRouter.local().then(r => r.close()).catch(() => {});
+  await (
+    await import('../packages/sdk-typescript/dist/index.js')
+  ).ContextRouter.local()
+    .then((r) => r.close())
+    .catch(() => {});
 }
 
 // Helper functions
-function getAverageTokenReduction(results: { reductionPercent: number }[]): number {
+function getAverageTokenReduction(
+  results: { reductionPercent: number }[],
+): number {
   if (results.length === 0) return 0;
-  return results.reduce((sum, r) => sum + r.reductionPercent, 0) / results.length;
+  return (
+    results.reduce((sum, r) => sum + r.reductionPercent, 0) / results.length
+  );
 }
 
 function getMaxTokenReduction(results: { reductionPercent: number }[]): number {
-  return Math.max(...results.map(r => r.reductionPercent), 0);
+  return Math.max(...results.map((r) => r.reductionPercent), 0);
 }
 
-function getAvgLatency(results: { operation: string; avgMs: number }[], op: string): number {
-  const filtered = results.filter(r => r.operation.includes(op));
+function getAvgLatency(
+  results: { operation: string; avgMs: number }[],
+  op: string,
+): number {
+  const filtered = results.filter((r) => r.operation.includes(op));
   if (filtered.length === 0) return 0;
   return filtered.reduce((sum, r) => sum + r.avgMs, 0) / filtered.length;
 }
 
 function getAverageMemoryReduction(results: { ratio: number }[]): number {
   if (results.length === 0) return 0;
-  const avgRatio = results.reduce((sum, r) => sum + r.ratio, 0) / results.length;
+  const avgRatio =
+    results.reduce((sum, r) => sum + r.ratio, 0) / results.length;
   return (1 - avgRatio) * 100;
 }
 
@@ -172,7 +195,9 @@ function getAvgSpeedup(results: { speedupFactor: number }[]): number {
 
 function getAvgWorkSaved(results: { workSavedPercent: number }[]): number {
   if (results.length === 0) return 0;
-  return results.reduce((sum, r) => sum + r.workSavedPercent, 0) / results.length;
+  return (
+    results.reduce((sum, r) => sum + r.workSavedPercent, 0) / results.length
+  );
 }
 
 main().catch(console.error);

@@ -165,7 +165,8 @@ export function registerStateTools(
           message: 'Provide either expiresIn or expiresAt, not both',
         })
         .refine(
-          (input) => !(input.entries && (input.provenance || input.provenanceMode)),
+          (input) =>
+            !(input.entries && (input.provenance || input.provenanceMode)),
           {
             message:
               'provenance and provenanceMode are not supported with batch entries. Use single key/value writes instead.',
@@ -226,9 +227,7 @@ export function registerStateTools(
             provenance: input.provenance,
             provenanceMode: input.provenanceMode,
             expiresIn: input.expiresIn,
-            expiresAt: input.expiresAt
-              ? new Date(input.expiresAt)
-              : undefined,
+            expiresAt: input.expiresAt ? new Date(input.expiresAt) : undefined,
           },
         );
         return {

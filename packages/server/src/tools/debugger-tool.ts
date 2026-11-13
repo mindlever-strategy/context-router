@@ -57,28 +57,40 @@ export function registerDebuggerTools(
           required: ['action'],
         },
       },
-      z.object({
-        action: z.enum(['list', 'inspect', 'diff', 'tail']),
-        workflowId: z.string().uuid().optional(),
-        checkpointId1: z.string().uuid().optional(),
-        checkpointId2: z.string().uuid().optional(),
-        pollInterval: z
-          .number()
-          .min(MIN_POLL_INTERVAL_MS)
-          .max(MAX_POLL_INTERVAL_MS)
-          .optional(),
-      }).refine(
-        (data) => {
-          if (data.action === 'inspect' && !data.workflowId) return false;
-          if (data.action === 'diff' && (!data.workflowId || !data.checkpointId1 || !data.checkpointId2)) return false;
-          if (data.action === 'tail' && !data.workflowId) return false;
-          return true;
-        },
-        {
-          message: 'Missing required parameters for this action',
-        },
-      ),
-      async ({ action, workflowId, checkpointId1, checkpointId2, pollInterval }) => {
+      z
+        .object({
+          action: z.enum(['list', 'inspect', 'diff', 'tail']),
+          workflowId: z.string().uuid().optional(),
+          checkpointId1: z.string().uuid().optional(),
+          checkpointId2: z.string().uuid().optional(),
+          pollInterval: z
+            .number()
+            .min(MIN_POLL_INTERVAL_MS)
+            .max(MAX_POLL_INTERVAL_MS)
+            .optional(),
+        })
+        .refine(
+          (data) => {
+            if (data.action === 'inspect' && !data.workflowId) return false;
+            if (
+              data.action === 'diff' &&
+              (!data.workflowId || !data.checkpointId1 || !data.checkpointId2)
+            )
+              return false;
+            if (data.action === 'tail' && !data.workflowId) return false;
+            return true;
+          },
+          {
+            message: 'Missing required parameters for this action',
+          },
+        ),
+      async ({
+        action,
+        workflowId,
+        checkpointId1,
+        checkpointId2,
+        pollInterval,
+      }) => {
         const ownerId = getCurrentUserId();
         const workflowDebugger = new WorkflowDebugger(ownerId);
 
@@ -88,12 +100,18 @@ export function registerDebuggerTools(
         const originalError = console.error;
 
         console.log = (...args: unknown[]) => {
-          output += args.map((a) => (typeof a === 'string' ? a : JSON.stringify(a))).join(' ') + '\n';
+          output +=
+            args
+              .map((a) => (typeof a === 'string' ? a : JSON.stringify(a)))
+              .join(' ') + '\n';
           originalLog.apply(console, args);
         };
 
         console.error = (...args: unknown[]) => {
-          output += args.map((a) => (typeof a === 'string' ? a : JSON.stringify(a))).join(' ') + '\n';
+          output +=
+            args
+              .map((a) => (typeof a === 'string' ? a : JSON.stringify(a)))
+              .join(' ') + '\n';
           originalError.apply(console, args);
         };
 
@@ -112,9 +130,15 @@ export function registerDebuggerTools(
 
             case 'diff':
               if (!workflowId || !checkpointId1 || !checkpointId2) {
-                throw new Error('workflowId, checkpointId1, and checkpointId2 are required for diff action');
+                throw new Error(
+                  'workflowId, checkpointId1, and checkpointId2 are required for diff action',
+                );
               }
-              await workflowDebugger.diffCheckpoints(workflowId, checkpointId1, checkpointId2);
+              await workflowDebugger.diffCheckpoints(
+                workflowId,
+                checkpointId1,
+                checkpointId2,
+              );
               break;
 
             case 'tail':

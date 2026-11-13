@@ -7,7 +7,9 @@ import { Attributes } from '@opentelemetry/api';
 
 export function initMetrics(): void {
   if (process.env.METRICS_ENABLED === 'true') {
-    console.error('[Metrics] Metrics enabled (stub - extend for full implementation)');
+    console.error(
+      '[Metrics] Metrics enabled (stub - extend for full implementation)',
+    );
   }
 }
 
@@ -23,14 +25,36 @@ export function recordStateWrite(attributes?: Attributes): void {}
 export function recordHandoffGenerated(attributes?: Attributes): void {}
 export function recordCheckpointCreated(attributes?: Attributes): void {}
 export function recordJournalEntry(attributes?: Attributes): void {}
-export function recordSchemaMigration(sourceVersion: number, targetVersion: number, fieldsTransformed: number, attributes?: Attributes): void {}
-export function recordStateDiff(fieldsCompared: number, fieldsChanged: number, attributes?: Attributes): void {}
-export function recordTTLCleanup(expiredCount: number, durationMs: number, attributes?: Attributes): void {}
+export function recordSchemaMigration(
+  sourceVersion: number,
+  targetVersion: number,
+  fieldsTransformed: number,
+  attributes?: Attributes,
+): void {}
+export function recordStateDiff(
+  fieldsCompared: number,
+  fieldsChanged: number,
+  attributes?: Attributes,
+): void {}
+export function recordTTLCleanup(
+  expiredCount: number,
+  durationMs: number,
+  attributes?: Attributes,
+): void {}
 
 // Histogram functions
-export function recordStateWriteDuration(durationMs: number, attributes?: Attributes): void {}
-export function recordDbQueryDuration(durationMs: number, attributes?: Attributes): void {}
-export function recordHandoffTokens(tokens: number, attributes?: Attributes): void {}
+export function recordStateWriteDuration(
+  durationMs: number,
+  attributes?: Attributes,
+): void {}
+export function recordDbQueryDuration(
+  durationMs: number,
+  attributes?: Attributes,
+): void {}
+export function recordHandoffTokens(
+  tokens: number,
+  attributes?: Attributes,
+): void {}
 
 // Gauge helpers
 let activeWorkflowsCount = 0;

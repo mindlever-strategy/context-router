@@ -12,7 +12,10 @@ describe('structured logger (MCP stdio safety)', () => {
     const debugSpy = vi.spyOn(console, 'debug').mockImplementation(() => {});
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-    logger.info('[TTL] Cleanup service started', { intervalMs: 60000, batchSize: 100 });
+    logger.info('[TTL] Cleanup service started', {
+      intervalMs: 60000,
+      batchSize: 100,
+    });
 
     expect(infoSpy).not.toHaveBeenCalled();
     expect(logSpy).not.toHaveBeenCalled();

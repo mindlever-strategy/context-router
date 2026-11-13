@@ -62,16 +62,16 @@ No agent execution. No orchestration magic. Just a **reliable state exchange** t
 
 ### 37 Tools at Your Service
 
-| Area | Tools |
-|------|-------|
-| Workspace | `workspace_create`, `workspace_list`, `workspace_delete` |
-| Schema | `schema_create`, `schema_validate`, `schema_migrate` |
-| Workflow | `workflow_create`, `workflow_complete`, `workflow_fail` |
-| State | `state_write`, `state_read`, `state_snapshot` |
-| Checkpoint | `checkpoint_create`, `checkpoint_restore` |
-| Handoff | `handoff_generate`, `handoff_generate_ai` |
-| Journal | `journal_query`, `journal_append` |
-| Debugger | `debugger_inspect` |
+| Area       | Tools                                                    |
+| ---------- | -------------------------------------------------------- |
+| Workspace  | `workspace_create`, `workspace_list`, `workspace_delete` |
+| Schema     | `schema_create`, `schema_validate`, `schema_migrate`     |
+| Workflow   | `workflow_create`, `workflow_complete`, `workflow_fail`  |
+| State      | `state_write`, `state_read`, `state_snapshot`            |
+| Checkpoint | `checkpoint_create`, `checkpoint_restore`                |
+| Handoff    | `handoff_generate`, `handoff_generate_ai`                |
+| Journal    | `journal_query`, `journal_append`                        |
+| Debugger   | `debugger_inspect`                                       |
 
 ---
 
@@ -81,19 +81,19 @@ Running benchmarks shows the impact clearly:
 
 ### Token Reduction (72% average)
 
-| Scenario | Traditional | Context Router | Reduction |
-|----------|-------------|---------------|-----------|
-| Simple (3 rounds) | 1,630 | 471 | **71.1%** |
-| Medium (5 rounds) | 2,689 | 753 | **72.0%** |
-| Complex (10 rounds) | 5,334 | 1,458 | **72.7%** |
+| Scenario            | Traditional | Context Router | Reduction |
+| ------------------- | ----------- | -------------- | --------- |
+| Simple (3 rounds)   | 1,630       | 471            | **71.1%** |
+| Medium (5 rounds)   | 2,689       | 753            | **72.0%** |
+| Complex (10 rounds) | 5,334       | 1,458          | **72.7%** |
 
 ### Memory Savings (20-50x smaller)
 
-| Size | Chat History | Context Router | Savings |
-|------|-------------|----------------|---------|
-| Small | 0.01 MB | 0.00 MB | 11x |
-| Medium | 0.05 MB | 0.00 MB | **24x** |
-| Large | 0.20 MB | 0.00 MB | **51x** |
+| Size   | Chat History | Context Router | Savings |
+| ------ | ------------ | -------------- | ------- |
+| Small  | 0.01 MB      | 0.00 MB        | 11x     |
+| Medium | 0.05 MB      | 0.00 MB        | **24x** |
+| Large  | 0.20 MB      | 0.00 MB        | **51x** |
 
 ### Cost Impact
 
@@ -211,6 +211,6 @@ Context Router gives your agents clean, validated, selective context — and kee
 
 ---
 
-*What multi-agent problem are you trying to solve? Drop it in the comments.*
+_What multi-agent problem are you trying to solve? Drop it in the comments._
 
 #MultiAgent #MCP #AI #LLM #OpenSource #TypeScript #Python #AIEngineering

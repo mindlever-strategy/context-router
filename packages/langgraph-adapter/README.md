@@ -9,6 +9,7 @@ npm install @context-router/langgraph-adapter
 ```
 
 **Requirements:**
+
 - Node.js >= 20
 - `@context-router/sdk` (installed as a dependency)
 - `@langchain/langgraph` (optional peer — install separately when wiring a graph)
@@ -31,7 +32,7 @@ const graph = new StateGraph({ channels: MANDATORY_CHANNELS })
 // Run with persistence across sessions
 const result = await graph.invoke(
   { messages: [] },
-  { configurable: { thread_id: 'user-123-session-1' } }
+  { configurable: { thread_id: 'user-123-session-1' } },
 );
 ```
 
@@ -39,14 +40,14 @@ const result = await graph.invoke(
 
 ### Built-in LangGraph Checkpointers
 
-| Feature | Memory | Postgres | SQLite | Context Router |
-|---------|--------|----------|--------|----------------|
-| **Persistence** | Session only | Permanent | File-based | Permanent |
-| **Multi-tenancy** | No | Yes | No | Yes (workspaces) |
-| **Selective reads** | No | Manual SQL | Manual SQL | Built-in (handoffs) |
-| **Serverless ready** | No | External DB | File issues | SQLite auto-created |
-| **State schema** | Any | Any | Any | Typed + validated |
-| **Version history** | No | Basic | No | Full checkpoints |
+| Feature              | Memory       | Postgres    | SQLite      | Context Router      |
+| -------------------- | ------------ | ----------- | ----------- | ------------------- |
+| **Persistence**      | Session only | Permanent   | File-based  | Permanent           |
+| **Multi-tenancy**    | No           | Yes         | No          | Yes (workspaces)    |
+| **Selective reads**  | No           | Manual SQL  | Manual SQL  | Built-in (handoffs) |
+| **Serverless ready** | No           | External DB | File issues | SQLite auto-created |
+| **State schema**     | Any          | Any         | Any         | Typed + validated   |
+| **Version history**  | No           | Basic       | No          | Full checkpoints    |
 
 Context Router combines workspace isolation, typed state, selective context (handoffs), and automatic checkpointing in one package.
 
@@ -69,6 +70,7 @@ const checker = createContextRouterChecker({
 The main checkpointer class with these methods:
 
 #### `get(config)`
+
 Retrieve saved state for a thread. Returns `null` if no checkpoint exists.
 
 ```typescript
@@ -77,6 +79,7 @@ const checkpoint = await checker.get({ thread_id: 'session-1' });
 ```
 
 #### `put(config, data)`
+
 Save state to Context Router with automatic checkpointing.
 
 ```typescript
@@ -84,6 +87,7 @@ await checker.put({ thread_id: 'session-1' }, { count: 42, items: [...] });
 ```
 
 #### `list(config)`
+
 List all checkpoints for a thread.
 
 ```typescript
@@ -92,16 +96,18 @@ const checkpoints = await checker.list({ thread_id: 'session-1' });
 ```
 
 #### `restore(config)`
+
 Restore workflow state from a specific checkpoint.
 
 ```typescript
 await checker.restore({
   thread_id: 'session-1',
-  checkpoint_id: 'cp-1'
+  checkpoint_id: 'cp-1',
 });
 ```
 
 #### `close()`
+
 Clean up all sessions and connections. Call when done.
 
 ```typescript
@@ -117,8 +123,8 @@ LangGraph node helper that reads selected keys from Context Router.
 ```typescript
 const researchNode = async (state, config) => {
   const ctxState = await contextRouterNode(state, config, {
-    keys: ['search_query', 'filters'],  // Selective context
-    nodeName: 'research'
+    keys: ['search_query', 'filters'], // Selective context
+    nodeName: 'research',
   });
 
   const results = await search(ctxState.search_query);
@@ -151,7 +157,7 @@ const supervisorNode = async (state, config) => {
   const handoff = await generateHandoff(state, config, {
     keys: ['analysis', 'findings', 'next_steps'],
     maxTokens: 500,
-    nextGoals: ['Review findings', 'Draft recommendations']
+    nextGoals: ['Review findings', 'Draft recommendations'],
   });
 
   return { ...state, handoff_summary: handoff.summary };
@@ -159,6 +165,7 @@ const supervisorNode = async (state, config) => {
 ```
 
 **Returns:**
+
 - `summary`: AI-generated context summary
 - `keysIncluded`: Which keys were included
 - `packet`: Optional structured payload
@@ -174,7 +181,7 @@ const graph = new StateGraph({
   channels: {
     ...MANDATORY_CHANNELS,
     context_router: contextRouterChannel('thread_id_123'),
-  }
+  },
 });
 ```
 
@@ -188,7 +195,7 @@ Use workspace isolation for multi-tenant deployments:
 
 ```typescript
 const checker = createContextRouterChecker({
-  workspaceName: req.tenantId,  // Each tenant gets isolated storage
+  workspaceName: req.tenantId, // Each tenant gets isolated storage
 });
 ```
 

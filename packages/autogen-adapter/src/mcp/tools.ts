@@ -135,7 +135,8 @@ export const autogenTools: Tool[] = [
       properties: {
         agentConfig: {
           type: 'object',
-          description: 'Agent configuration including agentId, roleDescription, and systemPromptPrefix',
+          description:
+            'Agent configuration including agentId, roleDescription, and systemPromptPrefix',
           properties: {
             agentId: { type: 'string' },
             roleDescription: { type: 'string' },

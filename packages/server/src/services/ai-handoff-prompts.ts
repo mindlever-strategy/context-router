@@ -43,7 +43,7 @@ export interface BuildHandoffPromptOptions {
  */
 export function buildHandoffPrompt(
   state: Record<string, unknown>,
-  options: BuildHandoffPromptOptions
+  options: BuildHandoffPromptOptions,
 ): string {
   const stateJson = JSON.stringify(state, null, 2);
 
@@ -84,20 +84,28 @@ Based on the state data above, create a handoff summary that helps the next agen
   }
 
   prompt += `
-${options.includeOpenQuestions ? `
+${
+  options.includeOpenQuestions
+    ? `
 ## Open Questions to Surface
 Based on the state, identify:
 1. Unresolved decisions
 2. Missing information
 3. Pending approvals or confirmations
 4. Risks or concerns to monitor
-` : ''}${options.includeReasoning ? `
+`
+    : ''
+}${
+    options.includeReasoning
+      ? `
 ## Reasoning to Explain
 For any significant decisions in the state:
 1. What led to this decision
 2. What alternatives were considered
 3. What assumptions were made
-` : ''}
+`
+      : ''
+  }
 ### Format
 
 Provide your response in this structure:
@@ -119,7 +127,7 @@ ${options.includeReasoning ? `**Decisions:**\n- [Decision with why]\n` : ''}${op
  */
 export function buildMinimalHandoffPrompt(
   state: Record<string, unknown>,
-  maxTokens: number = 200
+  maxTokens: number = 200,
 ): string {
   const stateJson = JSON.stringify(state, null, 2);
 

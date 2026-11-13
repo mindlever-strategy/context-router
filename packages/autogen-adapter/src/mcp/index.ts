@@ -36,7 +36,10 @@ import type { AutoGenContextManager } from '../context-manager.js';
 export class MCPAutoGenServer {
   private server: Server;
 
-  constructor(config: AutoGenAdapterConfig, contextManager?: AutoGenContextManager) {
+  constructor(
+    config: AutoGenAdapterConfig,
+    contextManager?: AutoGenContextManager,
+  ) {
     this.server = new Server(
       {
         name: 'context-router-autogen',
@@ -46,7 +49,7 @@ export class MCPAutoGenServer {
         capabilities: {
           tools: {},
         },
-      }
+      },
     );
 
     const handlers = createHandlers(config, contextManager);

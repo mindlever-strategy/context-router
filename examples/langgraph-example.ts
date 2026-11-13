@@ -66,7 +66,9 @@ async function draftNode(state: GraphState): Promise<Partial<GraphState>> {
     throw new Error('Outline must be completed first');
   }
 
-  const draft = state.outline.map((s) => `## ${s}\n\nContent for ${s}...`).join('\n\n');
+  const draft = state.outline
+    .map((s) => `## ${s}\n\nContent for ${s}...`)
+    .join('\n\n');
 
   return { draft };
 }
@@ -123,7 +125,10 @@ async function main() {
       keys: ['research'],
       maxTokens: 200,
     });
-    console.log('[Handoff] To outline node:', handoff.summary.substring(0, 80) + '...\n');
+    console.log(
+      '[Handoff] To outline node:',
+      handoff.summary.substring(0, 80) + '...\n',
+    );
 
     // Node 2: Outline
     const outlineResult = await outlineNode(state);
@@ -138,7 +143,10 @@ async function main() {
       keys: ['outline'],
       maxTokens: 200,
     });
-    console.log('[Handoff] To draft node:', handoff2.summary.substring(0, 80) + '...\n');
+    console.log(
+      '[Handoff] To draft node:',
+      handoff2.summary.substring(0, 80) + '...\n',
+    );
 
     // Node 3: Draft
     const draftResult = await draftNode(state);
@@ -153,7 +161,10 @@ async function main() {
       keys: ['draft'],
       maxTokens: 200,
     });
-    console.log('[Handoff] To review node:', handoff3.summary.substring(0, 80) + '...\n');
+    console.log(
+      '[Handoff] To review node:',
+      handoff3.summary.substring(0, 80) + '...\n',
+    );
 
     // Node 4: Review
     const reviewResult = await reviewNode(state);
@@ -164,10 +175,15 @@ async function main() {
     console.log('Review checkpoint saved\n');
 
     // List all checkpoints
-    const checkpoints = await router.checkpoint.list(flow.workspace.id, flow.workflow.id);
+    const checkpoints = await router.checkpoint.list(
+      flow.workspace.id,
+      flow.workflow.id,
+    );
     console.log('📋 Checkpoints created:', checkpoints.length);
     checkpoints.forEach((cp: any, i: number) => {
-      console.log(`  ${i + 1}. ${cp.label} (${new Date(cp.createdAt).toLocaleTimeString()})`);
+      console.log(
+        `  ${i + 1}. ${cp.label} (${new Date(cp.createdAt).toLocaleTimeString()})`,
+      );
     });
 
     await flow.complete();

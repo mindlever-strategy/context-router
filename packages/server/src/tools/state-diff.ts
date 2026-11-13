@@ -8,12 +8,7 @@ import { z } from 'zod';
 import { listCheckpoints, snapshotState } from '../db/queries.js';
 import { diffState, type StateDiffOptions } from '../services/state-diff.js';
 import { snapshotValues } from '../services/checkpoint-format.js';
-import {
-  defineTool,
-  string,
-  uuid,
-  type ToolRegistry,
-} from './tool-kit.js';
+import { defineTool, string, uuid, type ToolRegistry } from './tool-kit.js';
 import { recordStateDiff } from '../telemetry/metrics.js';
 
 export function registerStateDiffTools(
@@ -41,7 +36,8 @@ export function registerStateDiffTools(
             },
             workflowId: {
               type: 'string',
-              description: 'Required for current-vs-checkpoint and recent modes',
+              description:
+                'Required for current-vs-checkpoint and recent modes',
             },
             sourceCheckpointId: {
               type: 'string',
@@ -99,7 +95,16 @@ export function registerStateDiffTools(
           })
           .optional(),
       }),
-      async ({ workspaceId, mode, workflowId, sourceCheckpointId, targetCheckpointId, checkpointId, checkpointsBack, options }) => {
+      async ({
+        workspaceId,
+        mode,
+        workflowId,
+        sourceCheckpointId,
+        targetCheckpointId,
+        checkpointId,
+        checkpointsBack,
+        options,
+      }) => {
         // Validate: when no checkpoint IDs are provided, mode is required
         if (!mode && !sourceCheckpointId && !targetCheckpointId) {
           throw new Error(
@@ -119,7 +124,9 @@ export function registerStateDiffTools(
         // Mode: checkpoints (compare two checkpoints)
         if (resolvedMode === 'checkpoints') {
           if (!sourceCheckpointId || !targetCheckpointId) {
-            throw new Error('VALIDATION_ERROR: sourceCheckpointId and targetCheckpointId are required for checkpoints mode');
+            throw new Error(
+              'VALIDATION_ERROR: sourceCheckpointId and targetCheckpointId are required for checkpoints mode',
+            );
           }
 
           const [sourceCp, targetCp] = await Promise.all([
@@ -138,7 +145,10 @@ export function registerStateDiffTools(
           const targetSnapshot = snapshotValues(targetCp.snapshot);
           const result = diffState(sourceSnapshot, targetSnapshot, diffOptions);
 
-          const fieldsChanged = result.summary.addedKeys.length + result.summary.removedKeys.length + result.summary.modifiedKeys.length;
+          const fieldsChanged =
+            result.summary.addedKeys.length +
+            result.summary.removedKeys.length +
+            result.summary.modifiedKeys.length;
           recordStateDiff(fieldsChanged, result.summary.modifiedKeys.length);
 
           if (options?.format === 'summary') {
@@ -159,7 +169,9 @@ export function registerStateDiffTools(
         // Mode: current-vs-checkpoint
         if (resolvedMode === 'current-vs-checkpoint') {
           if (!workflowId || !checkpointId) {
-            throw new Error('VALIDATION_ERROR: workflowId and checkpointId are required for current-vs-checkpoint mode');
+            throw new Error(
+              'VALIDATION_ERROR: workflowId and checkpointId are required for current-vs-checkpoint mode',
+            );
           }
 
           const [checkpoint, currentState] = await Promise.all([
@@ -177,7 +189,10 @@ export function registerStateDiffTools(
             diffOptions,
           );
 
-          const fieldsChanged = result.summary.addedKeys.length + result.summary.removedKeys.length + result.summary.modifiedKeys.length;
+          const fieldsChanged =
+            result.summary.addedKeys.length +
+            result.summary.removedKeys.length +
+            result.summary.modifiedKeys.length;
           recordStateDiff(fieldsChanged, result.summary.modifiedKeys.length);
 
           return result;
@@ -185,7 +200,9 @@ export function registerStateDiffTools(
 
         // Mode: recent
         if (!workflowId) {
-          throw new Error('VALIDATION_ERROR: workflowId is required for recent mode');
+          throw new Error(
+            'VALIDATION_ERROR: workflowId is required for recent mode',
+          );
         }
 
         const checkpoints = await prisma.checkpoint.findMany({
@@ -195,7 +212,9 @@ export function registerStateDiffTools(
         });
 
         if (checkpoints.length < checkpointsBack) {
-          throw new Error(`Not enough checkpoints. Found ${checkpoints.length}, need ${checkpointsBack}`);
+          throw new Error(
+            `Not enough checkpoints. Found ${checkpoints.length}, need ${checkpointsBack}`,
+          );
         }
 
         const sourceCheckpoint = checkpoints[checkpointsBack - 1];
@@ -211,7 +230,10 @@ export function registerStateDiffTools(
           diffOptions,
         );
 
-        const fieldsChanged = result.summary.addedKeys.length + result.summary.removedKeys.length + result.summary.modifiedKeys.length;
+        const fieldsChanged =
+          result.summary.addedKeys.length +
+          result.summary.removedKeys.length +
+          result.summary.modifiedKeys.length;
         recordStateDiff(fieldsChanged, result.summary.modifiedKeys.length);
 
         return {

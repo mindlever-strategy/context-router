@@ -110,10 +110,8 @@ describe('state_write batch entries value schema', () => {
     const entriesSchema = stateWrite!.definition.inputSchema.properties
       .entries as Record<string, unknown>;
     const entryItemSchema = entriesSchema.items as Record<string, unknown>;
-    const valueSchema = entryItemSchema.properties?.value as Record<
-      string,
-      unknown
-    > | undefined;
+    const valueSchema = entryItemSchema.properties?.value as
+      Record<string, unknown> | undefined;
 
     // Must not be the restrictive { type: 'object' } that rejects arrays/scalars
     expect(valueSchema).toBeDefined();

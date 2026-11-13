@@ -50,16 +50,17 @@ purpose-built state layer.
 
 Run benchmarks to see the impact: `npm run bench:all`
 
-| Metric | Traditional | Context Router | Improvement |
-|--------|-------------|----------------|-------------|
-| **Token Usage** | 100% | 15-30% | **70-85% reduction** |
-| **Memory** | 100% | 2-5% | **20-50x smaller** |
-| **API Costs** | $5.25/workflow | $2.34/workflow | **55% savings** |
-| **Failure Recovery** | Full restart | Instant restore | **10x faster** |
+| Metric               | Traditional    | Context Router  | Improvement          |
+| -------------------- | -------------- | --------------- | -------------------- |
+| **Token Usage**      | 100%           | 15-30%          | **70-85% reduction** |
+| **Memory**           | 100%           | 2-5%            | **20-50x smaller**   |
+| **API Costs**        | $5.25/workflow | $2.34/workflow  | **55% savings**      |
+| **Failure Recovery** | Full restart   | Instant restore | **10x faster**       |
 
 ### Benchmark Results
 
 **Token Reduction** (72% average):
+
 ```
 | Scenario          | Traditional | Context Router | Reduction |
 |-------------------|-------------|----------------|-----------|
@@ -69,6 +70,7 @@ Run benchmarks to see the impact: `npm run bench:all`
 ```
 
 **Memory Savings** (20-50x smaller):
+
 ```
 | Scenario                  | Chat History | Context Router | Savings |
 |---------------------------|--------------|----------------|---------|
@@ -78,6 +80,7 @@ Run benchmarks to see the impact: `npm run bench:all`
 ```
 
 **Cost Savings** ($34K/year for large teams):
+
 ```
 | Team Size | Monthly Savings | Yearly Savings | ROI |
 |-----------|----------------|---------------|-----|
@@ -125,12 +128,12 @@ MCP-compatible agent system a reliable place to exchange workflow state.
 
 ## How to use this project
 
-| Path | Doc |
-| ---- | --- |
-| **Full guide (Cursor + Python cookbook)** | **[USING.md](USING.md)** |
-| TypeScript quickstart | below |
-| Cursor MCP only | [docs/cursor-setup.md](docs/cursor-setup.md) |
-| MCP tool reference | [docs/api.md](docs/api.md) |
+| Path                                      | Doc                                          |
+| ----------------------------------------- | -------------------------------------------- |
+| **Full guide (Cursor + Python cookbook)** | **[USING.md](USING.md)**                     |
+| TypeScript quickstart                     | below                                        |
+| Cursor MCP only                           | [docs/cursor-setup.md](docs/cursor-setup.md) |
+| MCP tool reference                        | [docs/api.md](docs/api.md)                   |
 
 ## Quickstart
 
@@ -208,17 +211,17 @@ Context Router stores and transfers workflow state. It does not execute agents.
 
 Pick the workflow pattern that matches your use case:
 
-| Pattern                     | Guide                                                                  | Example                                        |
-| --------------------------- | ---------------------------------------------------------------------- | ---------------------------------------------- |
-| Linear agent chain          | [docs/workflows/simple-pipeline.md](docs/workflows/simple-pipeline.md) | `node scripts/run-example.mjs simple-pipeline` · [examples/simple-pipeline.py](examples/simple-pipeline.py) |
-| Parallel fan-out + merge    | [docs/workflows/parallel-merge.md](docs/workflows/parallel-merge.md)   | `node scripts/run-example.mjs parallel-merge`  |
-| Checkpoint retry / recovery | [docs/workflows/retry-recovery.md](docs/workflows/retry-recovery.md)   | `node scripts/run-example.mjs retry-recovery`  |
-| Multi-agent orchestrator    | [examples/multi-agent-orchestrator.ts](examples/multi-agent-orchestrator.ts) | `node scripts/run-example.mjs multi-agent-orchestrator` |
-| Human-in-the-loop review    | [examples/human-in-the-loop.ts](examples/human-in-the-loop.ts)         | `node scripts/run-example.mjs human-in-the-loop` |
-| Content generation pipeline | [examples/content-pipeline.ts](examples/content-pipeline.ts)         | `node scripts/run-example.mjs content-pipeline` |
-| LangGraph integration       | [examples/langgraph-example.ts](examples/langgraph-example.ts)       | `node scripts/run-example.mjs langgraph` |
-| LlamaIndex semantic search  | [packages/llamaindex-adapter/README.md](packages/llamaindex-adapter/README.md) | Vector search over workflow state |
-| Cursor + Python cookbook    | [USING.md](USING.md)                                                   | recipes for MCP + `context_router`             |
+| Pattern                     | Guide                                                                          | Example                                                                                                     |
+| --------------------------- | ------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------- |
+| Linear agent chain          | [docs/workflows/simple-pipeline.md](docs/workflows/simple-pipeline.md)         | `node scripts/run-example.mjs simple-pipeline` · [examples/simple-pipeline.py](examples/simple-pipeline.py) |
+| Parallel fan-out + merge    | [docs/workflows/parallel-merge.md](docs/workflows/parallel-merge.md)           | `node scripts/run-example.mjs parallel-merge`                                                               |
+| Checkpoint retry / recovery | [docs/workflows/retry-recovery.md](docs/workflows/retry-recovery.md)           | `node scripts/run-example.mjs retry-recovery`                                                               |
+| Multi-agent orchestrator    | [examples/multi-agent-orchestrator.ts](examples/multi-agent-orchestrator.ts)   | `node scripts/run-example.mjs multi-agent-orchestrator`                                                     |
+| Human-in-the-loop review    | [examples/human-in-the-loop.ts](examples/human-in-the-loop.ts)                 | `node scripts/run-example.mjs human-in-the-loop`                                                            |
+| Content generation pipeline | [examples/content-pipeline.ts](examples/content-pipeline.ts)                   | `node scripts/run-example.mjs content-pipeline`                                                             |
+| LangGraph integration       | [examples/langgraph-example.ts](examples/langgraph-example.ts)                 | `node scripts/run-example.mjs langgraph`                                                                    |
+| LlamaIndex semantic search  | [packages/llamaindex-adapter/README.md](packages/llamaindex-adapter/README.md) | Vector search over workflow state                                                                           |
+| Cursor + Python cookbook    | [USING.md](USING.md)                                                           | recipes for MCP + `context_router`                                                                          |
 
 The recommended SDK entry point is `ContextRouter.local()` and `router.start()` — you do not need to learn all 37 MCP tools to get started.
 

@@ -47,6 +47,7 @@ Nothing more.
 **A Real Example:**
 
 Your content team wants:
+
 1. Research agent → finds market data
 2. Writer agent → creates outline
 3. Editor agent → reviews and polishes

@@ -31,7 +31,10 @@ function estimateTokens(text: string): number {
 }
 
 function estimateTokensFromMessages(messages: ChatMessage[]): number {
-  return messages.reduce((sum, msg) => sum + estimateTokens(msg.content) + 10, 0);
+  return messages.reduce(
+    (sum, msg) => sum + estimateTokens(msg.content) + 10,
+    0,
+  );
 }
 
 /**
@@ -99,13 +102,13 @@ RECOMMENDATION: Proceed with phased rollout focusing on mid-market segment first
  */
 function simulateTraditionalWorkflow(
   topic: string,
-  numRounds: number
+  numRounds: number,
 ): { messages: ChatMessage[]; totalTokens: number } {
   const messages: ChatMessage[] = [
     {
       role: 'system',
-      content: `You are a team of AI agents analyzing: ${topic}. Each agent specializes in different aspects: Research, Analysis, Review, and Synthesis.`
-    }
+      content: `You are a team of AI agents analyzing: ${topic}. Each agent specializes in different aspects: Research, Analysis, Review, and Synthesis.`,
+    },
   ];
 
   const researchFindings: string[] = [];
@@ -115,7 +118,7 @@ function simulateTraditionalWorkflow(
     // Researcher agent task
     messages.push({
       role: 'user',
-      content: `[Research Agent - Round ${round}] Analyze ${topic} and provide findings. Context from previous rounds: ${researchFindings.length > 0 ? `Previous findings: ${researchFindings.length} items analyzed.` : 'No previous context.'}`
+      content: `[Research Agent - Round ${round}] Analyze ${topic} and provide findings. Context from previous rounds: ${researchFindings.length > 0 ? `Previous findings: ${researchFindings.length} items analyzed.` : 'No previous context.'}`,
     });
 
     const research = generateResearchFindings(topic);
@@ -125,7 +128,7 @@ function simulateTraditionalWorkflow(
     // Analyst agent task
     messages.push({
       role: 'user',
-      content: `[Analysis Agent - Round ${round}] Analyze the research findings. Previous analysis: ${analysisResults.length > 0 ? `${analysisResults.length} analyses completed.` : 'None yet.'}`
+      content: `[Analysis Agent - Round ${round}] Analyze the research findings. Previous analysis: ${analysisResults.length > 0 ? `${analysisResults.length} analyses completed.` : 'None yet.'}`,
     });
 
     const analysis = generateAnalysis(topic);
@@ -135,12 +138,12 @@ function simulateTraditionalWorkflow(
     // Synthesizer adds previous context
     messages.push({
       role: 'user',
-      content: `[Synthesizer - Round ${round}] Create a synthesis. Full history: ${messages.length} messages so far.`
+      content: `[Synthesizer - Round ${round}] Create a synthesis. Full history: ${messages.length} messages so far.`,
     });
 
     messages.push({
       role: 'assistant',
-      content: `Synthesis ${round}: Combined ${researchFindings.length} research items and ${analysisResults.length} analyses. Key themes: Market opportunity, competitive landscape, implementation strategy.`
+      content: `Synthesis ${round}: Combined ${researchFindings.length} research items and ${analysisResults.length} analyses. Key themes: Market opportunity, competitive landscape, implementation strategy.`,
     });
   }
 
@@ -155,7 +158,7 @@ function simulateTraditionalWorkflow(
  */
 function simulateContextRouterWorkflow(
   topic: string,
-  numRounds: number
+  numRounds: number,
 ): { totalTokens: number; stateKeys: number } {
   let stateTokens = 0;
   let handoffTokens = 0;
@@ -191,7 +194,11 @@ function simulateContextRouterWorkflow(
   // Final synthesis
   const synthesisState = {
     summary: `Completed ${numRounds} rounds. Key insights: Strong market opportunity, phased approach recommended.`,
-    recommendations: ['Focus on mid-market', 'Build partnerships', 'Address technical debt'],
+    recommendations: [
+      'Focus on mid-market',
+      'Build partnerships',
+      'Address technical debt',
+    ],
   };
   stateTokens += estimateTokens(JSON.stringify(synthesisState));
 
@@ -221,14 +228,27 @@ async function runTokenReductionBenchmark(): Promise<BenchmarkResult[]> {
     console.log(`\n🔄 Scenario: ${name}`);
 
     // Traditional approach
-    const traditional = simulateTraditionalWorkflow('AI-powered productivity tools', rounds);
-    console.log(`   Traditional: ${traditional.totalTokens.toLocaleString()} tokens`);
+    const traditional = simulateTraditionalWorkflow(
+      'AI-powered productivity tools',
+      rounds,
+    );
+    console.log(
+      `   Traditional: ${traditional.totalTokens.toLocaleString()} tokens`,
+    );
 
     // Context Router approach
-    const contextRouter = simulateContextRouterWorkflow('AI-powered productivity tools', rounds);
-    console.log(`   Context Router: ${contextRouter.totalTokens.toLocaleString()} tokens`);
+    const contextRouter = simulateContextRouterWorkflow(
+      'AI-powered productivity tools',
+      rounds,
+    );
+    console.log(
+      `   Context Router: ${contextRouter.totalTokens.toLocaleString()} tokens`,
+    );
 
-    const reduction = ((traditional.totalTokens - contextRouter.totalTokens) / traditional.totalTokens) * 100;
+    const reduction =
+      ((traditional.totalTokens - contextRouter.totalTokens) /
+        traditional.totalTokens) *
+      100;
     console.log(`   Reduction: ${reduction.toFixed(1)}%`);
 
     results.push({
@@ -243,17 +263,25 @@ async function runTokenReductionBenchmark(): Promise<BenchmarkResult[]> {
   // Print summary table
   console.log('\n\n📈 Summary: Token Reduction by Scenario');
   console.log('─'.repeat(70));
-  console.log('| Scenario          | Traditional | Context Router | Reduction |');
-  console.log('|-------------------|-------------|----------------|-----------|');
+  console.log(
+    '| Scenario          | Traditional | Context Router | Reduction |',
+  );
+  console.log(
+    '|-------------------|-------------|----------------|-----------|',
+  );
 
   for (const r of results) {
     console.log(
-      `| ${r.scenario.padEnd(17)} | ${r.chatHistoryTokens.toLocaleString().padStart(11)} | ${r.contextRouterTokens.toLocaleString().padStart(14)} | ${r.reductionPercent.toFixed(1).padStart(9)}% |`
+      `| ${r.scenario.padEnd(17)} | ${r.chatHistoryTokens.toLocaleString().padStart(11)} | ${r.contextRouterTokens.toLocaleString().padStart(14)} | ${r.reductionPercent.toFixed(1).padStart(9)}% |`,
     );
   }
 
-  console.log('\n✅ Average reduction: ' +
-    (results.reduce((a, b) => a + b.reductionPercent, 0) / results.length).toFixed(1) + '%'
+  console.log(
+    '\n✅ Average reduction: ' +
+      (
+        results.reduce((a, b) => a + b.reductionPercent, 0) / results.length
+      ).toFixed(1) +
+      '%',
   );
 
   return results;

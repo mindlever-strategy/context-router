@@ -12,12 +12,12 @@ import { spawnSync } from 'node:child_process';
 import { resolve } from 'node:path';
 
 const benchmarks = {
-  'token': 'benchmarks/token-reduction.ts',
-  'cost': 'benchmarks/cost-savings.ts',
-  'memory': 'benchmarks/memory-usage.ts',
-  'latency': 'benchmarks/latency.ts',
-  'recovery': 'benchmarks/failure-recovery.ts',
-  'all': null, // Special case
+  token: 'benchmarks/token-reduction.ts',
+  cost: 'benchmarks/cost-savings.ts',
+  memory: 'benchmarks/memory-usage.ts',
+  latency: 'benchmarks/latency.ts',
+  recovery: 'benchmarks/failure-recovery.ts',
+  all: null, // Special case
 };
 
 const name = process.argv[2] || 'all';
@@ -55,7 +55,9 @@ if (name === 'all') {
     );
 
     if (result.status !== 0) {
-      console.error(`Benchmark "${key}" failed with exit code ${result.status}`);
+      console.error(
+        `Benchmark "${key}" failed with exit code ${result.status}`,
+      );
     }
   }
 

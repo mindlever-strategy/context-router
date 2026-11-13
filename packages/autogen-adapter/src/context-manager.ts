@@ -4,10 +4,7 @@
  * Manages conversation context, session state, and selective context injection.
  */
 
-import {
-  ContextRouter,
-  type WorkflowSession,
-} from '@context-router/sdk';
+import { ContextRouter, type WorkflowSession } from '@context-router/sdk';
 import type {
   AutoGenAdapterConfig,
   ConversationMessage,
@@ -110,7 +107,10 @@ export class AutoGenContextManager {
   /**
    * Add a message to the session
    */
-  async addMessage(sessionId: string, message: ConversationMessage): Promise<void> {
+  async addMessage(
+    sessionId: string,
+    message: ConversationMessage,
+  ): Promise<void> {
     const session = this.requireSession(sessionId);
     session.messages.push(message);
     await this.persistMessages(session);
@@ -121,7 +121,7 @@ export class AutoGenContextManager {
    */
   async replaceMessages(
     sessionId: string,
-    messages: ConversationMessage[]
+    messages: ConversationMessage[],
   ): Promise<void> {
     const session = this.requireSession(sessionId);
     session.messages = [...messages];

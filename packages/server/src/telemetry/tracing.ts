@@ -5,7 +5,9 @@
 
 export function initTracing(): void {
   if (process.env.OTEL_ENABLED === 'true') {
-    console.error('[Tracing] OpenTelemetry tracing enabled (stub - extend for full implementation)');
+    console.error(
+      '[Tracing] OpenTelemetry tracing enabled (stub - extend for full implementation)',
+    );
   }
 }
 
@@ -29,7 +31,7 @@ export const tracer = {
   startSpan: () => noopSpan,
   startActiveSpan: async <T>(
     _name: string,
-    fn: (span: typeof noopSpan) => Promise<T>
+    fn: (span: typeof noopSpan) => Promise<T>,
   ): Promise<T> => {
     return fn(noopSpan);
   },
@@ -37,14 +39,14 @@ export const tracer = {
 
 export async function traceAsync<T>(
   _name: string,
-  fn: (span: typeof noopSpan) => Promise<T>
+  fn: (span: typeof noopSpan) => Promise<T>,
 ): Promise<T> {
   return fn(noopSpan);
 }
 
 export function traceSync<T>(
   _name: string,
-  fn: (span: typeof noopSpan) => T
+  fn: (span: typeof noopSpan) => T,
 ): T {
   return fn(noopSpan);
 }

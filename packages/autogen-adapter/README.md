@@ -13,6 +13,7 @@ npm install @context-router/autogen-adapter
 ```
 
 **Peer Dependencies:**
+
 - `@context-router/sdk` ^0.5.0
 
 ## Quick Start
@@ -38,7 +39,9 @@ const { sessionId } = await adapter.createSession({
 });
 
 // Send messages
-const result = await adapter.getContextManager().getContext(sessionId, 'assistant-1');
+const result = await adapter
+  .getContextManager()
+  .getContext(sessionId, 'assistant-1');
 ```
 
 ## Features
@@ -61,20 +64,20 @@ Factory function that creates an AutoGen adapter instance.
 import { createAutoGenAdapter } from '@context-router/autogen-adapter';
 
 const adapter = createAutoGenAdapter({
-  serverUrl: 'http://localhost:3000',  // Required
-  apiKey: 'optional-api-key',          // Optional
-  sessionTtl: 3600,                    // Optional, default session TTL in seconds
+  serverUrl: 'http://localhost:3000', // Required
+  apiKey: 'optional-api-key', // Optional
+  sessionTtl: 3600, // Optional, default session TTL in seconds
 });
 ```
 
 Returns an adapter with the following methods:
 
-| Method | Description |
-|--------|-------------|
-| `createSession(options)` | Create a new conversation session |
-| `wrapAgent(agent, options)` | Wrap an AutoGen agent with Context Router |
-| `createGroupChatCoordinator(config)` | Create a group chat coordinator |
-| `getContextManager()` | Get the context manager instance |
+| Method                               | Description                               |
+| ------------------------------------ | ----------------------------------------- |
+| `createSession(options)`             | Create a new conversation session         |
+| `wrapAgent(agent, options)`          | Wrap an AutoGen agent with Context Router |
+| `createGroupChatCoordinator(config)` | Create a group chat coordinator           |
+| `getContextManager()`                | Get the context manager instance          |
 
 ### AutoGenContextManager
 
@@ -109,12 +112,12 @@ await contextManager.clearSession(sessionId);
 
 #### Methods
 
-| Method | Description |
-|--------|-------------|
-| `createSession(workflowName)` | Create a new session, returns `{ sessionId }` |
-| `addMessage(sessionId, message)` | Add a message to the session |
-| `getContext(sessionId, agentId)` | Get relevant context for an agent turn |
-| `clearSession(sessionId)` | Delete a session and its data |
+| Method                           | Description                                   |
+| -------------------------------- | --------------------------------------------- |
+| `createSession(workflowName)`    | Create a new session, returns `{ sessionId }` |
+| `addMessage(sessionId, message)` | Add a message to the session                  |
+| `getContext(sessionId, agentId)` | Get relevant context for an agent turn        |
+| `clearSession(sessionId)`        | Delete a session and its data                 |
 
 ### ContextRouterAgentWrapper
 
@@ -142,11 +145,11 @@ const agent = wrapper.getWrappedAgent();
 
 #### Methods
 
-| Method | Description |
-|--------|-------------|
-| `getAgentId()` | Get the wrapped agent's ID |
+| Method                             | Description                              |
+| ---------------------------------- | ---------------------------------------- |
+| `getAgentId()`                     | Get the wrapped agent's ID               |
 | `processMessage(context, message)` | Process a message with context injection |
-| `getWrappedAgent()` | Get the underlying AutoGen agent |
+| `getWrappedAgent()`                | Get the underlying AutoGen agent         |
 
 ### GroupChatCoordinator
 
@@ -179,11 +182,11 @@ coordinator.addMessage({
 
 #### Methods
 
-| Method | Description |
-|--------|-------------|
-| `run()` | Execute the group chat, returns all messages |
-| `getMessages()` | Get all messages in the conversation |
-| `addMessage(message)` | Add a message to the conversation |
+| Method                | Description                                  |
+| --------------------- | -------------------------------------------- |
+| `run()`               | Execute the group chat, returns all messages |
+| `getMessages()`       | Get all messages in the conversation         |
+| `addMessage(message)` | Add a message to the conversation            |
 
 ### Types
 
@@ -266,15 +269,15 @@ Configure Claude Desktop to use the server:
 
 ### Available MCP Tools
 
-| Tool | Description |
-|------|-------------|
+| Tool                     | Description                               |
+| ------------------------ | ----------------------------------------- |
 | `autogen_create_session` | Create a new AutoGen conversation session |
-| `autogen_send_message` | Send a message to an AutoGen agent |
-| `autogen_get_history` | Get conversation history for a session |
-| `autogen_handoff` | Transfer context between agents |
-| `autogen_checkpoint` | Save a checkpoint for the session |
-| `autogen_restore` | Restore from a checkpoint |
-| `autogen_wrap_agent` | Wrap an AutoGen agent with Context Router |
+| `autogen_send_message`   | Send a message to an AutoGen agent        |
+| `autogen_get_history`    | Get conversation history for a session    |
+| `autogen_handoff`        | Transfer context between agents           |
+| `autogen_checkpoint`     | Save a checkpoint for the session         |
+| `autogen_restore`        | Restore from a checkpoint                 |
+| `autogen_wrap_agent`     | Wrap an AutoGen agent with Context Router |
 
 ### MCP Tool Examples
 
@@ -368,7 +371,9 @@ await adapter.getContextManager().addMessage(sessionId, {
 });
 
 // Get context and process
-const context = await adapter.getContextManager().getContext(sessionId, 'assistant');
+const context = await adapter
+  .getContextManager()
+  .getContext(sessionId, 'assistant');
 const result = await agent.processMessage(context, 'Hello!');
 ```
 
@@ -419,7 +424,10 @@ const context = await contextManager.getContext(sessionId, 'sales-agent');
 
 ```typescript
 import { createAutoGenAdapter } from '@context-router/autogen-adapter';
-import { MCPAutoGenServer, createHandlers } from '@context-router/autogen-adapter/mcp';
+import {
+  MCPAutoGenServer,
+  createHandlers,
+} from '@context-router/autogen-adapter/mcp';
 
 const adapter = createAutoGenAdapter({ serverUrl: 'http://localhost:3000' });
 const { sessionId } = await adapter.createSession({ workflowName: 'demo' });

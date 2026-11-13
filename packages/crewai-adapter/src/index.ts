@@ -168,13 +168,13 @@ export class ContextRouterMemory {
    * prefix filtering instead (trailing `*` means "starts with").
    */
   private async getMatchingState(
-    pattern: string
+    pattern: string,
   ): Promise<Record<string, unknown>> {
     const session = await this.getSession();
     const router = await this.getRouter();
     const snapshot = await router.state.snapshot(
       session.workspace.id,
-      session.workflow.id
+      session.workflow.id,
     );
     return filterKeysByPattern(snapshot, pattern);
   }
@@ -198,7 +198,7 @@ export class ContextRouterMemory {
   async storeAgentOutput(
     agentRole: string,
     output: unknown,
-    taskId?: string
+    taskId?: string,
   ): Promise<void> {
     const session = await this.getSession();
     const key = `${this.keyPrefix}:agent:${agentRole}:output`;
@@ -230,7 +230,7 @@ export class ContextRouterMemory {
     taskId: string,
     description: string,
     output: unknown,
-    agentRole: string
+    agentRole: string,
   ): Promise<void> {
     const session = await this.getSession();
     const key = `${this.keyPrefix}:task:${taskId}`;
@@ -279,7 +279,10 @@ export class ContextRouterMemory {
    * @param fromAgent - Source agent role
    * @param toAgent - Target agent role
    */
-  async getHandoffContext(fromAgent: string, toAgent: string): Promise<Record<string, unknown>> {
+  async getHandoffContext(
+    fromAgent: string,
+    toAgent: string,
+  ): Promise<Record<string, unknown>> {
     const session = await this.getSession();
     const fromKey = `${this.keyPrefix}:agent:${fromAgent}:output`;
 
@@ -301,7 +304,7 @@ export class ContextRouterMemory {
   async generateHandoff(
     fromAgent: string,
     toAgent: string,
-    nextGoals?: string[]
+    nextGoals?: string[],
   ): Promise<HandoffResult> {
     const session = await this.getSession();
 
@@ -419,7 +422,7 @@ export class ContextRouterMemory {
       if (key.startsWith(agentKeyPrefix) && key.endsWith(agentKeySuffix)) {
         const role = key.slice(
           agentKeyPrefix.length,
-          key.length - agentKeySuffix.length
+          key.length - agentKeySuffix.length,
         );
         if (role.length > 0 && !role.includes(':')) {
           agents.add(role);
@@ -583,7 +586,7 @@ export class CrewAIAdapter {
   async storeAgentOutput(
     agentRole: string,
     output: unknown,
-    taskId?: string
+    taskId?: string,
   ): Promise<void> {
     return this.memory.storeAgentOutput(agentRole, output, taskId);
   }
@@ -595,7 +598,7 @@ export class CrewAIAdapter {
     taskId: string,
     description: string,
     output: unknown,
-    agentRole: string
+    agentRole: string,
   ): Promise<void> {
     return this.memory.storeTaskResult(taskId, description, output, agentRole);
   }
@@ -606,7 +609,7 @@ export class CrewAIAdapter {
   async generateHandoff(
     fromAgent: string,
     toAgent: string,
-    nextGoals?: string[]
+    nextGoals?: string[],
   ): Promise<HandoffResult> {
     return this.memory.generateHandoff(fromAgent, toAgent, nextGoals);
   }
@@ -676,7 +679,7 @@ export class CrewAIAdapter {
 export function withMemoryTracking(
   task: { id: string; description: string },
   adapter: CrewAIAdapter,
-  options: { agentRole: string }
+  options: { agentRole: string },
 ): typeof task & { _memoryTracked: true } {
   // Return task with tracking metadata
   return {
@@ -700,7 +703,7 @@ export function withMemoryTracking(
 export function withAgentMemory<T extends object>(
   agent: T,
   adapter: CrewAIAdapter,
-  options: { role: string }
+  options: { role: string },
 ): T {
   // Attach memory helpers to agent
   return {
@@ -720,7 +723,7 @@ export function withAgentMemory<T extends object>(
  */
 function filterKeysByPattern(
   snapshot: Record<string, unknown>,
-  pattern: string
+  pattern: string,
 ): Record<string, unknown> {
   const result: Record<string, unknown> = {};
   const isPrefix = pattern.endsWith('*');

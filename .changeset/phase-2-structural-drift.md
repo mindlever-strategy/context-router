@@ -22,7 +22,7 @@ paths agree on that.
 with `createMany`, resetting every `version` to 1 and discarding `expiresAt` —
 silently rewriting the version history that compare-and-set depends on.
 
-*Wire format change:* `checkpoint_create`, `checkpoint_list` and
+_Wire format change:_ `checkpoint_create`, `checkpoint_list` and
 `step_run_start` return a `Checkpoint` whose `snapshot` is now
 `{ __format: 2, entries: { key: { value, version, expiresAt } } }` rather than a
 bare `key -> value` map. Snapshots written by earlier versions are still

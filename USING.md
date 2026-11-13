@@ -44,11 +44,11 @@ It **does**:
 
 ## Choose your path
 
-| You want… | Use |
-|-----------|-----|
-| Multi-step Agent work inside Cursor without pasting chat history | **Cursor MCP** (`@context-router`) |
-| Scripts, apps, or services that manage workflow state in code | **Python SDK** and/or **TypeScript SDK** |
-| Both (Cursor for interactive work, Python for automation) | Same SQLite store can be shared if you point both at the same data dir / owner |
+| You want…                                                        | Use                                                                            |
+| ---------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| Multi-step Agent work inside Cursor without pasting chat history | **Cursor MCP** (`@context-router`)                                             |
+| Scripts, apps, or services that manage workflow state in code    | **Python SDK** and/or **TypeScript SDK**                                       |
+| Both (Cursor for interactive work, Python for automation)        | Same SQLite store can be shared if you point both at the same data dir / owner |
 
 **Rule of thumb:** prefer the SDK session API in code; prefer MCP tools in Cursor Agent. You do not need all 37 tools to get value — start with workspace → workflow → state → handoff → complete.
 
@@ -56,11 +56,11 @@ It **does**:
 
 ## Prerequisites
 
-| Requirement | Notes |
-|-------------|--------|
-| **Node.js 20+** | Required to run `@context-router/mcp-server` (Cursor and Python both launch it) |
-| **Python 3.10+** | Only for the Python SDK |
-| **npm** | Used by `npx` / package install |
+| Requirement      | Notes                                                                           |
+| ---------------- | ------------------------------------------------------------------------------- |
+| **Node.js 20+**  | Required to run `@context-router/mcp-server` (Cursor and Python both launch it) |
+| **Python 3.10+** | Only for the Python SDK                                                         |
+| **npm**          | Used by `npx` / package install                                                 |
 
 Default storage is **SQLite** in your OS application-data directory. No `DATABASE_URL`, Docker, or migrations for the happy path.
 
@@ -244,28 +244,28 @@ async with await ContextRouter.local(data_dir="/tmp/my-router-data") as router:
 
 ### Session API (`WorkflowSession`)
 
-| Method | Purpose |
-|--------|---------|
-| `flow.set(key, value, …)` | Write state (optional schema / agent role / CAS version) |
-| `flow.get(key)` / `flow.get_many(keys)` | Read state |
-| `flow.handoff(keys=…, max_tokens=…)` | Bounded handoff summary for the next agent |
-| `flow.checkpoint(label)` | Snapshot before risky work |
-| `flow.complete()` / `flow.fail(reason)` | Finish the workflow |
+| Method                                  | Purpose                                                  |
+| --------------------------------------- | -------------------------------------------------------- |
+| `flow.set(key, value, …)`               | Write state (optional schema / agent role / CAS version) |
+| `flow.get(key)` / `flow.get_many(keys)` | Read state                                               |
+| `flow.handoff(keys=…, max_tokens=…)`    | Bounded handoff summary for the next agent               |
+| `flow.checkpoint(label)`                | Snapshot before risky work                               |
+| `flow.complete()` / `flow.fail(reason)` | Finish the workflow                                      |
 
 ### Explicit namespaces
 
 When you need the full MCP surface from Python:
 
-| Namespace | Examples |
-|-----------|----------|
-| `router.workspace` | `create`, `ensure`, `list`, `get`, `delete` |
-| `router.schema` | `create`, `get`, `list`, `validate` |
-| `router.workflow` | `create`, `status`, `complete`, `fail` |
-| `router.state` | `write`, `read`, `read_many`, `delete`, `snapshot` |
-| `router.checkpoint` | `create`, `list`, `restore`, `delete` |
-| `router.handoff` | `generate`, `apply` |
-| `router.step` | `start`, `complete`, `fail` |
-| `router.agent_role` | `create`, `list` |
+| Namespace           | Examples                                           |
+| ------------------- | -------------------------------------------------- |
+| `router.workspace`  | `create`, `ensure`, `list`, `get`, `delete`        |
+| `router.schema`     | `create`, `get`, `list`, `validate`                |
+| `router.workflow`   | `create`, `status`, `complete`, `fail`             |
+| `router.state`      | `write`, `read`, `read_many`, `delete`, `snapshot` |
+| `router.checkpoint` | `create`, `list`, `restore`, `delete`              |
+| `router.handoff`    | `generate`, `apply`                                |
+| `router.step`       | `start`, `complete`, `fail`                        |
+| `router.agent_role` | `create`, `list`                                   |
 
 Also: `router.status()`, `router.discover_tools()`.
 
@@ -286,15 +286,15 @@ workspace_ensure / workspace_create
   → workflow_complete
 ```
 
-| Concept | Meaning |
-|---------|---------|
-| **Workspace** | Named isolation scope for a project or feature |
-| **Workflow** | One run inside a workspace |
-| **State key** | Named JSON object agents read/write |
-| **Schema** | Optional contract for a key’s shape |
-| **Agent role** | Allowed read/write key patterns |
-| **Checkpoint** | Restorable snapshot of workflow state |
-| **Handoff** | Bounded summary (and optional structured packet) for the next agent |
+| Concept        | Meaning                                                             |
+| -------------- | ------------------------------------------------------------------- |
+| **Workspace**  | Named isolation scope for a project or feature                      |
+| **Workflow**   | One run inside a workspace                                          |
+| **State key**  | Named JSON object agents read/write                                 |
+| **Schema**     | Optional contract for a key’s shape                                 |
+| **Agent role** | Allowed read/write key patterns                                     |
+| **Checkpoint** | Restorable snapshot of workflow state                               |
+| **Handoff**    | Bounded summary (and optional structured packet) for the next agent |
 
 Context Router stores and transfers workflow state. It does not invoke agents.
 
@@ -532,32 +532,32 @@ TypeScript twin: [examples/lead-qualification.ts](examples/lead-qualification.ts
 
 ## Troubleshooting
 
-| Symptom | Likely cause | Fix |
-|---------|--------------|-----|
-| Cursor shows no `context-router` tools | MCP config missing / not refreshed | Add `npx -y @context-router/mcp-server`, restart or refresh MCP |
+| Symptom                                                      | Likely cause                                                                                       | Fix                                                                                                                                                        |
+| ------------------------------------------------------------ | -------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Cursor shows no `context-router` tools                       | MCP config missing / not refreshed                                                                 | Add `npx -y @context-router/mcp-server`, restart or refresh MCP                                                                                            |
 | `NODE_MODULE_VERSION` / `better-sqlite3` mismatch on Windows | Cursor starts MCP with bundled Node 22 while native modules were built under system Node (e.g. 25) | Pin MCP `command` to the absolute path from `where node` (same binary used for `npm install`); run `npm rebuild better-sqlite3` after a Node major upgrade |
-| `NODE_NOT_FOUND` from Python | Node.js not on `PATH` | Install Node 20+ and reopen the terminal |
-| `SERVER_NOT_FOUND` from Python | MCP server not installed / not built | `npm i @context-router/mcp-server` or `npm run build` in monorepo; or set `CONTEXT_ROUTER_MCP_ENTRY` |
-| Tools fail with DB errors after switching engines | Mixed SQLite / Postgres env | Unset the unused of `DATABASE_URL` / `CONTEXT_ROUTER_DATA_DIR` |
-| `UNVALIDATED_STATE` warning | No `schemaName` on write | Expected for schema-free mode; add `schema_create` + `schemaName` when ready |
-| Handoff too large / noisy | Too many keys / no `maxTokens` | Pass `keys=[…]` and `max_tokens` / `maxTokens` |
-| Contributor MCP points at stale build | Dist not rebuilt | `npm run build --workspace=@context-router/mcp-server` |
-| Want separate Cursor vs Python data | Shared default app-data dir | Pass `data_dir=` in Python and/or set `CONTEXT_ROUTER_DATA_DIR` / `CONTEXT_ROUTER_OWNER_ID` in MCP `env` |
+| `NODE_NOT_FOUND` from Python                                 | Node.js not on `PATH`                                                                              | Install Node 20+ and reopen the terminal                                                                                                                   |
+| `SERVER_NOT_FOUND` from Python                               | MCP server not installed / not built                                                               | `npm i @context-router/mcp-server` or `npm run build` in monorepo; or set `CONTEXT_ROUTER_MCP_ENTRY`                                                       |
+| Tools fail with DB errors after switching engines            | Mixed SQLite / Postgres env                                                                        | Unset the unused of `DATABASE_URL` / `CONTEXT_ROUTER_DATA_DIR`                                                                                             |
+| `UNVALIDATED_STATE` warning                                  | No `schemaName` on write                                                                           | Expected for schema-free mode; add `schema_create` + `schemaName` when ready                                                                               |
+| Handoff too large / noisy                                    | Too many keys / no `maxTokens`                                                                     | Pass `keys=[…]` and `max_tokens` / `maxTokens`                                                                                                             |
+| Contributor MCP points at stale build                        | Dist not rebuilt                                                                                   | `npm run build --workspace=@context-router/mcp-server`                                                                                                     |
+| Want separate Cursor vs Python data                          | Shared default app-data dir                                                                        | Pass `data_dir=` in Python and/or set `CONTEXT_ROUTER_DATA_DIR` / `CONTEXT_ROUTER_OWNER_ID` in MCP `env`                                                   |
 
 ---
 
 ## Further reading
 
-| Doc | When |
-|-----|------|
-| [README.md](README.md) | Project overview and TypeScript quickstart |
-| [docs/cursor-setup.md](docs/cursor-setup.md) | Short Cursor MCP setup |
-| [docs/api.md](docs/api.md) | Full MCP tool reference |
-| [docs/architecture.md](docs/architecture.md) | How storage and tools fit together |
-| [docs/workflows/](docs/workflows/) | Pattern guides (pipeline, parallel, retry) |
-| [packages/sdk-python/README.md](packages/sdk-python/README.md) | Python package notes |
-| [packages/sdk-typescript/README.md](packages/sdk-typescript/README.md) | TypeScript SDK notes |
-| [CHANGELOG.md](CHANGELOG.md) | What changed per release |
+| Doc                                                                    | When                                       |
+| ---------------------------------------------------------------------- | ------------------------------------------ |
+| [README.md](README.md)                                                 | Project overview and TypeScript quickstart |
+| [docs/cursor-setup.md](docs/cursor-setup.md)                           | Short Cursor MCP setup                     |
+| [docs/api.md](docs/api.md)                                             | Full MCP tool reference                    |
+| [docs/architecture.md](docs/architecture.md)                           | How storage and tools fit together         |
+| [docs/workflows/](docs/workflows/)                                     | Pattern guides (pipeline, parallel, retry) |
+| [packages/sdk-python/README.md](packages/sdk-python/README.md)         | Python package notes                       |
+| [packages/sdk-typescript/README.md](packages/sdk-typescript/README.md) | TypeScript SDK notes                       |
+| [CHANGELOG.md](CHANGELOG.md)                                           | What changed per release                   |
 
 ---
 

@@ -40,8 +40,8 @@ export type WriteStateOptions = {
   agentRole?: string;
   provenance?: ProvenanceMeta;
   provenanceMode?: 'per-field' | 'whole-object';
-  expiresIn?: number;          // TTL: seconds from now
-  expiresAt?: Date;            // TTL: absolute expiration time
+  expiresIn?: number; // TTL: seconds from now
+  expiresAt?: Date; // TTL: absolute expiration time
 };
 
 export type StateWriteEntry = {
@@ -51,7 +51,7 @@ export type StateWriteEntry = {
 };
 
 export type WriteStateBatchOptions = {
-  atomic?: boolean;             // All or nothing
+  atomic?: boolean; // All or nothing
   onConflict?: 'upsert' | 'skip' | 'fail';
 };
 
@@ -269,7 +269,9 @@ export async function createWorkflow(workspaceId: string, ownerId: string) {
   const workflow = await prisma.workflow.create({ data: { workspaceId } });
 
   // Journal the workflow creation (fire and forget)
-  journaledWorkflowCreated(workspaceId, workflow.id, { source: 'createWorkflow' }).catch((error) => {
+  journaledWorkflowCreated(workspaceId, workflow.id, {
+    source: 'createWorkflow',
+  }).catch((error) => {
     recordJournalDrop('workflow.created', error);
   });
 
@@ -311,11 +313,19 @@ export async function transitionWorkflow(
 
   // Journal the workflow transition (fire and forget)
   if (status === 'COMPLETED') {
-    journaledWorkflowComplete(workspaceId, workflowId, previousStatus, { source: 'transitionWorkflow' }).catch((error) => {
+    journaledWorkflowComplete(workspaceId, workflowId, previousStatus, {
+      source: 'transitionWorkflow',
+    }).catch((error) => {
       recordJournalDrop('workflow.completed', error);
     });
   } else if (status === 'FAILED') {
-    journaledWorkflowFail(workspaceId, workflowId, previousStatus, failureReason ?? 'Unknown', { source: 'transitionWorkflow' }).catch((error) => {
+    journaledWorkflowFail(
+      workspaceId,
+      workflowId,
+      previousStatus,
+      failureReason ?? 'Unknown',
+      { source: 'transitionWorkflow' },
+    ).catch((error) => {
       recordJournalDrop('workflow.failed', error);
     });
   }
@@ -379,13 +389,18 @@ export async function writeState(
         );
 
   // Journal the state write (fire and forget, don't block the operation)
-  journaledStateWrite(workspaceId, workflowId, {
-    key,
-    previousValue: existing?.value ?? null,
-    newValue: finalValue,
-    version: state.version,
-    schemaValidated: Boolean(options.provenance),
-  }, { source: 'writeState' }).catch((error) => {
+  journaledStateWrite(
+    workspaceId,
+    workflowId,
+    {
+      key,
+      previousValue: existing?.value ?? null,
+      newValue: finalValue,
+      version: state.version,
+      schemaValidated: Boolean(options.provenance),
+    },
+    { source: 'writeState' },
+  ).catch((error) => {
     recordJournalDrop('state.written', error);
   });
 
@@ -552,10 +567,15 @@ export async function deleteState(
   if (result.count === 0) throw new Error('STATE_NOT_FOUND');
 
   // Journal the state deletion (fire and forget)
-  journaledStateDelete(workspaceId, workflowId, {
-    key,
-    previousValue: existing.value as Prisma.InputJsonValue,
-  }, { source: 'deleteState' }).catch((error) => {
+  journaledStateDelete(
+    workspaceId,
+    workflowId,
+    {
+      key,
+      previousValue: existing.value as Prisma.InputJsonValue,
+    },
+    { source: 'deleteState' },
+  ).catch((error) => {
     recordJournalDrop('state.deleted', error);
   });
 
@@ -595,12 +615,17 @@ export async function createCheckpoint(
   });
 
   // Journal the checkpoint creation (fire and forget)
-  journaledCheckpointCreate(workspaceId, workflowId, {
-    checkpointId: checkpoint.id,
-    label: checkpoint.label ?? undefined,
-    stateKeys: Object.keys(snapshot.entries),
-    snapshotSize: JSON.stringify(snapshot).length,
-  }, { source: 'createCheckpoint' }).catch((error) => {
+  journaledCheckpointCreate(
+    workspaceId,
+    workflowId,
+    {
+      checkpointId: checkpoint.id,
+      label: checkpoint.label ?? undefined,
+      stateKeys: Object.keys(snapshot.entries),
+      snapshotSize: JSON.stringify(snapshot).length,
+    },
+    { source: 'createCheckpoint' },
+  ).catch((error) => {
     recordJournalDrop('checkpoint.created', error);
   });
 
@@ -668,10 +693,15 @@ export async function restoreCheckpoint(
   });
 
   // Journal the checkpoint restore (fire and forget)
-  journaledCheckpointRestore(workspaceId, checkpoint.workflowId, {
-    checkpointId,
-    stateKeysRestored,
-  }, { source: 'restoreCheckpoint' }).catch((error) => {
+  journaledCheckpointRestore(
+    workspaceId,
+    checkpoint.workflowId,
+    {
+      checkpointId,
+      stateKeysRestored,
+    },
+    { source: 'restoreCheckpoint' },
+  ).catch((error) => {
     recordJournalDrop('checkpoint.restored', error);
   });
 
@@ -691,10 +721,15 @@ export async function deleteCheckpoint(
   await prisma.checkpoint.delete({ where: { id: checkpoint.id } });
 
   // Journal the checkpoint deletion (fire and forget)
-  journaledCheckpointDelete(workspaceId, checkpoint.workflowId, {
-    checkpointId,
-    label: checkpoint.label ?? undefined,
-  }, { source: 'deleteCheckpoint' }).catch((error) => {
+  journaledCheckpointDelete(
+    workspaceId,
+    checkpoint.workflowId,
+    {
+      checkpointId,
+      label: checkpoint.label ?? undefined,
+    },
+    { source: 'deleteCheckpoint' },
+  ).catch((error) => {
     recordJournalDrop('checkpoint.deleted', error);
   });
 
@@ -754,13 +789,18 @@ export async function startStepRun(
       });
 
   // Journal the step start (fire and forget)
-  journaledStepStart(workspaceId, workflowId, {
-    stepId,
-    executionId,
-    agentId: agentId ?? existing?.agentId ?? undefined,
-    checkpointId: checkpoint.id,
-    attempt: isRetry ? (existing?.attempt ?? 0) + 1 : 1,
-  }, { source: 'startStepRun', agentId }).catch((error) => {
+  journaledStepStart(
+    workspaceId,
+    workflowId,
+    {
+      stepId,
+      executionId,
+      agentId: agentId ?? existing?.agentId ?? undefined,
+      checkpointId: checkpoint.id,
+      attempt: isRetry ? (existing?.attempt ?? 0) + 1 : 1,
+    },
+    { source: 'startStepRun', agentId },
+  ).catch((error) => {
     recordJournalDrop('step.started', error);
   });
 
@@ -789,9 +829,10 @@ export async function completeStepRun(
     : 0;
 
   // Extract result keys if result is an object
-  const resultKeys = result && typeof result === 'object' && !Array.isArray(result)
-    ? Object.keys(result as Record<string, unknown>)
-    : [];
+  const resultKeys =
+    result && typeof result === 'object' && !Array.isArray(result)
+      ? Object.keys(result as Record<string, unknown>)
+      : [];
 
   const updated = await prisma.stepExecution.update({
     where: { id: execution.id },
@@ -802,12 +843,17 @@ export async function completeStepRun(
   });
 
   // Journal the step completion (fire and forget)
-  journaledStepComplete(workspaceId, workflowId, {
-    stepId,
-    executionId,
-    durationMs,
-    resultKeys,
-  }, { source: 'completeStepRun', agentId: execution.agentId ?? undefined }).catch((error) => {
+  journaledStepComplete(
+    workspaceId,
+    workflowId,
+    {
+      stepId,
+      executionId,
+      durationMs,
+      resultKeys,
+    },
+    { source: 'completeStepRun', agentId: execution.agentId ?? undefined },
+  ).catch((error) => {
     recordJournalDrop('step.completed', error);
   });
 
@@ -839,12 +885,17 @@ export async function failStepRun(
   });
 
   // Journal the step failure (fire and forget)
-  journaledStepFail(workspaceId, workflowId, {
-    stepId,
-    executionId,
-    reason,
-    attempt: execution.attempt,
-  }, { source: 'failStepRun', agentId: execution.agentId ?? undefined }).catch((error) => {
+  journaledStepFail(
+    workspaceId,
+    workflowId,
+    {
+      stepId,
+      executionId,
+      reason,
+      attempt: execution.attempt,
+    },
+    { source: 'failStepRun', agentId: execution.agentId ?? undefined },
+  ).catch((error) => {
     recordJournalDrop('step.failed', error);
   });
 
@@ -1104,10 +1155,7 @@ async function validateBatchSchemas(
   entries: StateWriteEntry[],
 ): Promise<Map<string, string>> {
   const failures = new Map<string, string>();
-  const schemaCache = new Map<
-    string,
-    Record<string, FieldDefinition> | null
-  >();
+  const schemaCache = new Map<string, Record<string, FieldDefinition> | null>();
 
   for (const entry of entries) {
     if (!entry.schemaName) continue;
@@ -1116,9 +1164,7 @@ async function validateBatchSchemas(
       const schema = await getSchema(workspaceId, ownerId, entry.schemaName);
       schemaCache.set(
         entry.schemaName,
-        schema
-          ? (schema.fields as Record<string, FieldDefinition>)
-          : null,
+        schema ? (schema.fields as Record<string, FieldDefinition>) : null,
       );
     }
 
@@ -1163,18 +1209,29 @@ export async function readStateBatch(
   const stateMap = new Map(states.map((s) => [s.key, s]));
 
   return {
-    results: keys.map((key): { key: string; found: boolean; value?: Prisma.JsonValue; version?: number } => {
-      const state = stateMap.get(key);
-      if (!state) {
-        return { key, found: false };
-      }
-      return {
+    results: keys.map(
+      (
         key,
-        found: true,
-        value: (options.unwrap ? unwrapState({ [key]: state.value })[key] : state.value) as Prisma.JsonValue,
-        version: state.version,
-      };
-    }),
+      ): {
+        key: string;
+        found: boolean;
+        value?: Prisma.JsonValue;
+        version?: number;
+      } => {
+        const state = stateMap.get(key);
+        if (!state) {
+          return { key, found: false };
+        }
+        return {
+          key,
+          found: true,
+          value: (options.unwrap
+            ? unwrapState({ [key]: state.value })[key]
+            : state.value) as Prisma.JsonValue,
+          version: state.version,
+        };
+      },
+    ),
   };
 }
 
@@ -1206,7 +1263,9 @@ async function writeStateEntry(
 // background sweep that deletes rows past their expiresAt.
 // ============================================================================
 
-export async function cleanupExpiredStates(batchSize: number = 100): Promise<number> {
+export async function cleanupExpiredStates(
+  batchSize: number = 100,
+): Promise<number> {
   // First get IDs of expired states
   const expiredStates = await prisma.state.findMany({
     where: {
@@ -1223,7 +1282,7 @@ export async function cleanupExpiredStates(batchSize: number = 100): Promise<num
   // Delete by IDs
   const result = await prisma.state.deleteMany({
     where: {
-      id: { in: expiredStates.map(s => s.id) },
+      id: { in: expiredStates.map((s) => s.id) },
     },
   });
 

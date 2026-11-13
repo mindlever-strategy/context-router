@@ -22,7 +22,11 @@ import { registerDebuggerTools } from './tools/debugger-tool.js';
 import { registerJournalTools } from './tools/journal.js';
 import { registerStateDiffTools } from './tools/state-diff.js';
 import { registerSchemaMigrationTools } from './tools/schema-migration.js';
-import { initTracing, initMetrics, shutdownTracing } from './telemetry/index.js';
+import {
+  initTracing,
+  initMetrics,
+  shutdownTracing,
+} from './telemetry/index.js';
 import { startTTLCleanup, stopTTLCleanup } from './services/state-ttl.js';
 import { failure, type Tool } from './tools/tool-kit.js';
 import { SERVER_VERSION } from './version.js';
@@ -84,7 +88,10 @@ journalTools.forEach((tool, name) => allTools.set(name, tool));
 const stateDiffTools = registerStateDiffTools(server, getCurrentUserId);
 stateDiffTools.forEach((tool, name) => allTools.set(name, tool));
 
-const schemaMigrationTools = registerSchemaMigrationTools(server, getCurrentUserId);
+const schemaMigrationTools = registerSchemaMigrationTools(
+  server,
+  getCurrentUserId,
+);
 schemaMigrationTools.forEach((tool, name) => allTools.set(name, tool));
 
 // Tool listing handler - returns all available tools
@@ -145,14 +152,19 @@ async function main(): Promise<void> {
 async function shutdown(): Promise<void> {
   console.error('Shutting down Context Router MCP Server...');
   stopTTLCleanup();
-  const { shutdownTracing: shutdownOtel } = await import('./telemetry/index.js');
+  const { shutdownTracing: shutdownOtel } =
+    await import('./telemetry/index.js');
   await shutdownOtel();
   process.exit(0);
 }
 
 // Handle shutdown signals
-process.on('SIGINT', () => { shutdown(); });
-process.on('SIGTERM', () => { shutdown(); });
+process.on('SIGINT', () => {
+  shutdown();
+});
+process.on('SIGTERM', () => {
+  shutdown();
+});
 
 main().catch((error) => {
   console.error('Failed to start MCP server:', error);

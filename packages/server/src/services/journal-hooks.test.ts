@@ -42,13 +42,10 @@ describe('journaledJournalExport error handling', () => {
   it('logs error when journal append fails', async () => {
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-    await journaledJournalExport(
-      'workspace-id',
-      'workflow-id',
-      10,
-      'json',
-      { since: '2024-01-01', until: '2024-01-02' },
-    );
+    await journaledJournalExport('workspace-id', 'workflow-id', 10, 'json', {
+      since: '2024-01-01',
+      until: '2024-01-02',
+    });
 
     // Verify that errors are logged (not silently ignored)
     expect(consoleSpy).toHaveBeenCalledWith(

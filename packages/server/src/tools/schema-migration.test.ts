@@ -2,7 +2,8 @@ import { describe, expect, it, vi } from 'vitest';
 
 describe('schema_migrate validation', () => {
   it('catches fromVersion === toVersion before Zod validation', async () => {
-    const { registerSchemaMigrationTools } = await import('./schema-migration.js');
+    const { registerSchemaMigrationTools } =
+      await import('./schema-migration.js');
     const tools = registerSchemaMigrationTools({} as never, () => 'user');
     const migrate = tools.get('schema_migrate')!;
 
@@ -15,11 +16,14 @@ describe('schema_migrate validation', () => {
     });
 
     expect(result.isError).toBe(true);
-    expect(JSON.parse(result.content[0].text).error.code).toBe('INVALID_VERSION_RANGE');
+    expect(JSON.parse(result.content[0].text).error.code).toBe(
+      'INVALID_VERSION_RANGE',
+    );
   });
 
   it('catches fromVersion > toVersion with INVALID_VERSION_RANGE', async () => {
-    const { registerSchemaMigrationTools } = await import('./schema-migration.js');
+    const { registerSchemaMigrationTools } =
+      await import('./schema-migration.js');
     const tools = registerSchemaMigrationTools({} as never, () => 'user');
     const migrate = tools.get('schema_migrate')!;
 
@@ -32,13 +36,19 @@ describe('schema_migrate validation', () => {
     });
 
     expect(result.isError).toBe(true);
-    expect(JSON.parse(result.content[0].text).error.code).toBe('INVALID_VERSION_RANGE');
+    expect(JSON.parse(result.content[0].text).error.code).toBe(
+      'INVALID_VERSION_RANGE',
+    );
   });
 
   it('returns INVALID_VERSION_RANGE when fromVersion equals toVersion', async () => {
-    const { registerSchemaMigrationTools } = await import('./schema-migration.js');
+    const { registerSchemaMigrationTools } =
+      await import('./schema-migration.js');
 
-    const tools = registerSchemaMigrationTools({} as never, () => 'test-user-id');
+    const tools = registerSchemaMigrationTools(
+      {} as never,
+      () => 'test-user-id',
+    );
     const migrate = tools.get('schema_migrate');
     if (!migrate) throw new Error('schema_migrate was not registered');
 
@@ -55,13 +65,19 @@ describe('schema_migrate validation', () => {
     expect(result.isError).toBe(true);
     const response = JSON.parse(result.content[0].text);
     expect(response.error.code).toBe('INVALID_VERSION_RANGE');
-    expect(response.error.message).toContain('toVersion must be greater than fromVersion');
+    expect(response.error.message).toContain(
+      'toVersion must be greater than fromVersion',
+    );
   });
 
   it('does not return INVALID_VERSION_RANGE when fromVersion differs from toVersion', async () => {
-    const { registerSchemaMigrationTools } = await import('./schema-migration.js');
+    const { registerSchemaMigrationTools } =
+      await import('./schema-migration.js');
 
-    const tools = registerSchemaMigrationTools({} as never, () => 'test-user-id');
+    const tools = registerSchemaMigrationTools(
+      {} as never,
+      () => 'test-user-id',
+    );
     const migrate = tools.get('schema_migrate');
     if (!migrate) throw new Error('schema_migrate was not registered');
 
@@ -79,7 +95,9 @@ describe('schema_migrate validation', () => {
     if (result.isError) {
       const response = JSON.parse(result.content[0].text);
       expect(response.error.code).not.toBe('INVALID_VERSION_RANGE');
-      expect(response.error.message).not.toContain('toVersion must be greater than fromVersion');
+      expect(response.error.message).not.toContain(
+        'toVersion must be greater than fromVersion',
+      );
     }
   });
 });

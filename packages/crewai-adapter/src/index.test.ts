@@ -1,8 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  ContextRouter,
-  type ToolTransport,
-} from '@context-router/sdk';
+import { ContextRouter, type ToolTransport } from '@context-router/sdk';
 import { ContextRouterMemory } from './index.js';
 
 function envelope(data: unknown) {
@@ -139,20 +136,19 @@ describe('ContextRouterMemory list/get-all APIs', () => {
     await memory.getAllSharedMemories();
 
     const listCalls = transport.calls.filter(
-      (call) =>
-        call.name === 'state_read' || call.name === 'state_snapshot'
+      (call) => call.name === 'state_read' || call.name === 'state_snapshot',
     );
 
     expect(listCalls.every((call) => call.name === 'state_snapshot')).toBe(
-      true
+      true,
     );
     expect(
       transport.calls.some(
         (call) =>
           call.name === 'state_read' &&
           Array.isArray(call.arguments.keys) &&
-          (call.arguments.keys as string[]).some((key) => key.includes('*'))
-      )
+          (call.arguments.keys as string[]).some((key) => key.includes('*')),
+      ),
     ).toBe(false);
   });
 
@@ -184,7 +180,12 @@ describe('ContextRouterMemory list/get-all APIs', () => {
     const transport = new FakeTransport();
     const memory = createMemory(transport);
 
-    await memory.storeTaskResult('t1', 'Research topic', { ok: true }, 'researcher');
+    await memory.storeTaskResult(
+      't1',
+      'Research topic',
+      { ok: true },
+      'researcher',
+    );
     await memory.storeAgentOutput('researcher', { findings: 'alpha' });
 
     const tasks = await memory.listTasks();
@@ -220,16 +221,18 @@ describe('ContextRouterMemory list/get-all APIs', () => {
     await memory.storeAgentOutput('researcher', { findings: 'alpha' });
     const context = await memory.getAgentContext('researcher');
 
-    expect(context.previousOutputs['crewai:agent:researcher:output']).toBeDefined();
+    expect(
+      context.previousOutputs['crewai:agent:researcher:output'],
+    ).toBeDefined();
     expect(
       transport.calls.some(
         (call) =>
           call.name === 'state_read' &&
           Array.isArray(call.arguments.keys) &&
           (call.arguments.keys as string[]).includes(
-            'crewai:agent:researcher:output'
-          )
-      )
+            'crewai:agent:researcher:output',
+          ),
+      ),
     ).toBe(true);
 
     const shared = await memory.getSharedMemory('note');

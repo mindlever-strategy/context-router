@@ -7,12 +7,17 @@ import { prisma } from '../db/client.js';
 import type { Prisma } from '../generated/postgresql/client.js';
 
 export interface SchemaTransform {
-  type: 'add_field' | 'remove_field' | 'rename_field' | 'transform_field' | 'change_type';
+  type:
+    | 'add_field'
+    | 'remove_field'
+    | 'rename_field'
+    | 'transform_field'
+    | 'change_type';
   field: string;
-  to?: string;              // For rename
-  value?: unknown;          // For add_field
-  fn?: string;             // For transform_field (stored procedure name)
-  toType?: string;          // For change_type
+  to?: string; // For rename
+  value?: unknown; // For add_field
+  fn?: string; // For transform_field (stored procedure name)
+  toType?: string; // For change_type
 }
 
 export interface SchemaMigrationRequest {
@@ -48,10 +53,7 @@ export interface SchemaDiffResult {
 /**
  * Apply a single transform to a value
  */
-function applyTransform(
-  value: unknown,
-  transform: SchemaTransform,
-): unknown {
+function applyTransform(value: unknown, transform: SchemaTransform): unknown {
   if (typeof value !== 'object' || value === null) {
     return value;
   }
@@ -164,7 +166,10 @@ export async function migrateSchema(
 
       // Apply each transform in order
       for (const transform of transforms) {
-        newValue = applyTransform(newValue, transform) as Record<string, unknown>;
+        newValue = applyTransform(newValue, transform) as Record<
+          string,
+          unknown
+        >;
       }
 
       if (!dryRun) {
@@ -234,7 +239,11 @@ export async function getSchemaDiff(
   const addedFields = [...keysB].filter((k) => !keysA.has(k));
   const removedFields = [...keysA].filter((k) => !keysB.has(k));
   const changedFields = [...keysA]
-    .filter((k) => keysB.has(k) && JSON.stringify(fieldsA[k]) !== JSON.stringify(fieldsB[k]))
+    .filter(
+      (k) =>
+        keysB.has(k) &&
+        JSON.stringify(fieldsA[k]) !== JSON.stringify(fieldsB[k]),
+    )
     .map((field) => ({
       field,
       from: fieldsA[field],

@@ -12,7 +12,7 @@ caller could read another owner's state by supplying its workspace and workflow
 ids. Single-key reads were never affected.
 
 **Atomic batches now roll back.** `state_write_batch` with `atomic: true`
-committed partial results, because the error handler ran *inside* the
+committed partial results, because the error handler ran _inside_ the
 transaction callback and so never let the transaction reject.
 
 **`onConflict` is honoured.** The option was accepted and documented but never

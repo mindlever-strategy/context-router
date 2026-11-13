@@ -41,7 +41,7 @@ function getMemoryUsage(): MemorySnapshot {
  */
 function generateChatHistory(
   numAgents: number,
-  messagesPerAgent: number
+  messagesPerAgent: number,
 ): string {
   const conversations: string[] = [`[System] Initialize ${numAgents} agents`];
 
@@ -50,23 +50,23 @@ function generateChatHistory(
       // User message (task description, questions, clarifications)
       conversations.push(
         `[Agent ${agent}] Task ${msg}: Analyzing data... Status: in-progress. ` +
-        `Processing ${Math.floor(Math.random() * 1000)} records. ` +
-        `Finding patterns in the dataset. ` +
-        `Reviewing previous results: ${agent > 1 ? `Based on Agent ${agent - 1}'s output...` : 'Initial analysis...'}` +
-        ` Current hypothesis: ${generateHypothesis()}. ` +
-        `Confidence level: ${Math.random() * 100 | 0}%. ` +
-        `Next steps: ${generateNextSteps()}.`
+          `Processing ${Math.floor(Math.random() * 1000)} records. ` +
+          `Finding patterns in the dataset. ` +
+          `Reviewing previous results: ${agent > 1 ? `Based on Agent ${agent - 1}'s output...` : 'Initial analysis...'}` +
+          ` Current hypothesis: ${generateHypothesis()}. ` +
+          `Confidence level: ${(Math.random() * 100) | 0}%. ` +
+          `Next steps: ${generateNextSteps()}.`,
       );
 
       // Assistant response (reasoning, analysis, conclusions)
       conversations.push(
         `[Analysis ${agent}-${msg}] Detailed response with extensive reasoning... ` +
-        `I examined the data and found ${Math.floor(Math.random() * 50)} relevant items. ` +
-        `Key observations: ${generateObservations(5)}. ` +
-        `Recommendations: ${generateRecommendations(3)}. ` +
-        `Potential risks: ${generateRisks(2)}. ` +
-        `Supporting evidence: ${generateEvidence(4)}. ` +
-        `Alternative interpretations considered: ${generateAlternatives(2)}.`
+          `I examined the data and found ${Math.floor(Math.random() * 50)} relevant items. ` +
+          `Key observations: ${generateObservations(5)}. ` +
+          `Recommendations: ${generateRecommendations(3)}. ` +
+          `Potential risks: ${generateRisks(2)}. ` +
+          `Supporting evidence: ${generateEvidence(4)}. ` +
+          `Alternative interpretations considered: ${generateAlternatives(2)}.`,
       );
     }
   }
@@ -79,7 +79,7 @@ function generateChatHistory(
  */
 function generateStructuredContext(
   numAgents: number,
-  messagesPerAgent: number
+  messagesPerAgent: number,
 ): Record<string, unknown> {
   const agents: Record<string, unknown>[] = [];
 
@@ -217,7 +217,7 @@ async function runMemoryBenchmark(): Promise<MemoryResult[]> {
 
 async function benchmarkMemory(
   numAgents: number,
-  messagesPerAgent: number
+  messagesPerAgent: number,
 ): Promise<Omit<MemoryResult, 'scenario'>> {
   // Force GC if available
   if (global.gc) global.gc();
@@ -230,8 +230,14 @@ async function benchmarkMemory(
   const chatHistoryMB = chatHistoryBytes / 1024 / 1024;
 
   // Generate structured context
-  const structuredContext = generateStructuredContext(numAgents, messagesPerAgent);
-  const contextBytes = Buffer.byteLength(JSON.stringify(structuredContext), 'utf8');
+  const structuredContext = generateStructuredContext(
+    numAgents,
+    messagesPerAgent,
+  );
+  const contextBytes = Buffer.byteLength(
+    JSON.stringify(structuredContext),
+    'utf8',
+  );
   const contextRouterMB = contextBytes / 1024 / 1024;
 
   const final = getMemoryUsage();
@@ -253,22 +259,26 @@ function printMemoryResults(results: MemoryResult[]): void {
   console.log('\n' + '='.repeat(80));
   console.log('MEMORY USAGE BENCHMARK RESULTS');
   console.log('='.repeat(80));
-  console.log('\nScenario                    | Chat History | Context Router | Savings Ratio');
+  console.log(
+    '\nScenario                    | Chat History | Context Router | Savings Ratio',
+  );
   console.log('-'.repeat(80));
 
   for (const r of results) {
     console.log(
-      `${r.scenario.padEnd(26)} | ${r.chatHistoryMB.toFixed(2).padStart(11)} MB | ${r.contextRouterMB.toFixed(2).padStart(14)} MB | ${r.ratio.toFixed(1)}x smaller`
+      `${r.scenario.padEnd(26)} | ${r.chatHistoryMB.toFixed(2).padStart(11)} MB | ${r.contextRouterMB.toFixed(2).padStart(14)} MB | ${r.ratio.toFixed(1)}x smaller`,
     );
   }
 
   console.log('\n' + '-'.repeat(80));
-  console.log('Key Insight: Context Router stores only essential structured data,');
-  console.log('eliminating redundant reasoning, duplicates, and formatting overhead.');
+  console.log(
+    'Key Insight: Context Router stores only essential structured data,',
+  );
+  console.log(
+    'eliminating redundant reasoning, duplicates, and formatting overhead.',
+  );
   console.log('='.repeat(80) + '\n');
 }
 
 // Run if executed directly
-runMemoryBenchmark()
-  .then(printMemoryResults)
-  .catch(console.error);
+runMemoryBenchmark().then(printMemoryResults).catch(console.error);

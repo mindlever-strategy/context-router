@@ -15,6 +15,7 @@ Then AI Agent C writes the final output.
 **The problem?** Each agent passes its ENTIRE conversation history to the next one.
 
 Agent B gets:
+
 - Agent A's thinking
 - Agent A's failed attempts
 - Agent A's "wait, let me try another approach"

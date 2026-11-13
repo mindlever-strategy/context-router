@@ -18,7 +18,10 @@ interface HumanDecision {
 }
 
 // Simulated human review function (in production, this would be an API call)
-async function requestHumanReview(state: any, prompt: string): Promise<HumanDecision> {
+async function requestHumanReview(
+  state: any,
+  prompt: string,
+): Promise<HumanDecision> {
   console.log(`\n[Human Review] Requesting approval for: ${prompt}`);
   console.log('[Human Review] Current state:', JSON.stringify(state, null, 2));
 
@@ -72,7 +75,10 @@ async function main() {
     const allReviews: any[] = [];
 
     for (let attempt = 1; attempt <= 3; attempt++) {
-      const decision = await requestHumanReview(draftValue, `Review attempt ${attempt}`);
+      const decision = await requestHumanReview(
+        draftValue,
+        `Review attempt ${attempt}`,
+      );
       await flow.set(`review${attempt}`, decision);
       allReviews.push(decision);
 
@@ -100,9 +106,13 @@ async function main() {
 
     console.log('\n📋 Audit Trail:');
     allReviews.forEach((r, i) => {
-      console.log(`  Review ${i + 1}: ${r.approved ? '✅' : '❌'} - ${r.feedback}`);
+      console.log(
+        `  Review ${i + 1}: ${r.approved ? '✅' : '❌'} - ${r.feedback}`,
+      );
     });
-    console.log(`\n${finalApproved ? '✅' : '❌'} Final: Content ${finalApproved ? 'approved' : 'needs more work'}`);
+    console.log(
+      `\n${finalApproved ? '✅' : '❌'} Final: Content ${finalApproved ? 'approved' : 'needs more work'}`,
+    );
   } finally {
     await router.close();
   }

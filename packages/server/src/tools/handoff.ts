@@ -8,7 +8,10 @@ import {
   type HandoffStyle,
 } from '../services/handoff-generator.js';
 import { AIHandoffService } from '../services/ai-handoff-service.js';
-import { journaledHandoffGenerate, recordJournalDrop } from '../services/journal-hooks.js';
+import {
+  journaledHandoffGenerate,
+  recordJournalDrop,
+} from '../services/journal-hooks.js';
 import { defineTool, string, uuid, type ToolRegistry } from './tool-kit.js';
 
 const generator = new HandoffGenerator();
@@ -103,12 +106,17 @@ export function registerHandoffTools(
         const structured = await buildHandoff(input);
 
         // Journal the handoff generation (fire and forget)
-        journaledHandoffGenerate(input.workspaceId, input.workflowId, {
-          summaryLength: structured.summary.length,
-          keysIncluded: structured.keysIncluded,
-          tokensEstimate: structured.tokensEstimate,
-          format: input.format,
-        }, { source: 'handoff_generate' }).catch((error) => {
+        journaledHandoffGenerate(
+          input.workspaceId,
+          input.workflowId,
+          {
+            summaryLength: structured.summary.length,
+            keysIncluded: structured.keysIncluded,
+            tokensEstimate: structured.tokensEstimate,
+            format: input.format,
+          },
+          { source: 'handoff_generate' },
+        ).catch((error) => {
           recordJournalDrop('handoff.generated', error);
         });
 
@@ -154,7 +162,8 @@ export function registerHandoffTools(
     defineTool(
       {
         name: 'handoff_generate_ai',
-        description: 'Generate an AI-powered handoff summary with semantic understanding, reasoning, and open questions',
+        description:
+          'Generate an AI-powered handoff summary with semantic understanding, reasoning, and open questions',
         inputSchema: {
           type: 'object',
           properties: {
@@ -162,11 +171,20 @@ export function registerHandoffTools(
             workflowId: uuid,
             keys: { type: 'array', items: string },
             priorityKeys: { type: 'array', items: string },
-            style: { type: 'string', enum: ['concise', 'detailed', 'technical'], default: 'concise' },
+            style: {
+              type: 'string',
+              enum: ['concise', 'detailed', 'technical'],
+              default: 'concise',
+            },
             model: string,
             includeReasoning: { type: 'boolean', default: true },
             includeOpenQuestions: { type: 'boolean', default: true },
-            maxTokens: { type: 'integer', minimum: 50, maximum: 1000, default: 200 },
+            maxTokens: {
+              type: 'integer',
+              minimum: 50,
+              maximum: 1000,
+              default: 200,
+            },
             context: string,
           },
           required: ['workspaceId', 'workflowId'],
@@ -210,17 +228,22 @@ export function registerHandoffTools(
         });
 
         // Journal the handoff generation (fire and forget)
-        journaledHandoffGenerate(input.workspaceId, input.workflowId, {
-          summaryLength: result.summary.length,
-          keysIncluded: Object.keys(state),
-          tokensEstimate: result.metadata.tokensUsed,
-          format: 'ai',
-          aiMetadata: {
-            model: result.metadata.model,
-            durationMs: result.metadata.durationMs,
-            fromCache: result.metadata.fromCache,
+        journaledHandoffGenerate(
+          input.workspaceId,
+          input.workflowId,
+          {
+            summaryLength: result.summary.length,
+            keysIncluded: Object.keys(state),
+            tokensEstimate: result.metadata.tokensUsed,
+            format: 'ai',
+            aiMetadata: {
+              model: result.metadata.model,
+              durationMs: result.metadata.durationMs,
+              fromCache: result.metadata.fromCache,
+            },
           },
-        }, { source: 'handoff_generate_ai' }).catch((error) => {
+          { source: 'handoff_generate_ai' },
+        ).catch((error) => {
           recordJournalDrop('handoff.generated', error);
         });
 

@@ -119,12 +119,26 @@ describe('state layer integrity', () => {
       );
 
       const outcomes = await Promise.allSettled([
-        queries.writeState(workspace.id, alice, workflow.id, 'counter', {
-          n: 1,
-        }, { expectedVersion: initial.version }),
-        queries.writeState(workspace.id, alice, workflow.id, 'counter', {
-          n: 2,
-        }, { expectedVersion: initial.version }),
+        queries.writeState(
+          workspace.id,
+          alice,
+          workflow.id,
+          'counter',
+          {
+            n: 1,
+          },
+          { expectedVersion: initial.version },
+        ),
+        queries.writeState(
+          workspace.id,
+          alice,
+          workflow.id,
+          'counter',
+          {
+            n: 2,
+          },
+          { expectedVersion: initial.version },
+        ),
       ]);
 
       const fulfilled = outcomes.filter((o) => o.status === 'fulfilled');

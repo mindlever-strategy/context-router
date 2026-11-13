@@ -62,13 +62,17 @@ export interface ProviderConfig {
  */
 export function createProvider(
   type: ProviderType,
-  config?: ProviderConfig
+  config?: ProviderConfig,
 ): HandoffLLMProvider {
   switch (type) {
     case 'anthropic':
-      return new (require('./providers/anthropic-provider.js').AnthropicProvider)(config);
+      return new (require('./providers/anthropic-provider.js').AnthropicProvider)(
+        config,
+      );
     case 'openai':
-      return new (require('./providers/openai-provider.js').OpenAIProvider)(config);
+      return new (require('./providers/openai-provider.js').OpenAIProvider)(
+        config,
+      );
     case 'bedrock':
       // Bedrock provider can be added later
       throw new Error('Bedrock provider not yet implemented');
@@ -83,7 +87,9 @@ export function createProvider(
 export function detectProvider(): ProviderType {
   if (process.env.ANTHROPIC_API_KEY) return 'anthropic';
   if (process.env.OPENAI_API_KEY) return 'openai';
-  throw new Error('No LLM provider configured. Set ANTHROPIC_API_KEY or OPENAI_API_KEY');
+  throw new Error(
+    'No LLM provider configured. Set ANTHROPIC_API_KEY or OPENAI_API_KEY',
+  );
 }
 
 /**

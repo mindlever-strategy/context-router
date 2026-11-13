@@ -5,8 +5,16 @@
  * Falls back to rule-based generation when AI is unavailable.
  */
 
-import type { HandoffLLMProvider, LLMResponse, ProviderType } from './llm-provider.js';
-import { createProvider, detectProvider, isAIHandoffEnabled } from './llm-provider.js';
+import type {
+  HandoffLLMProvider,
+  LLMResponse,
+  ProviderType,
+} from './llm-provider.js';
+import {
+  createProvider,
+  detectProvider,
+  isAIHandoffEnabled,
+} from './llm-provider.js';
 import { AnthropicProvider } from './providers/anthropic-provider.js';
 import { OpenAIProvider } from './providers/openai-provider.js';
 import {
@@ -90,7 +98,7 @@ export class AIHandoffService {
 
   private createProvider(
     type?: ProviderType,
-    apiKey?: string
+    apiKey?: string,
   ): HandoffLLMProvider {
     const providerType = type ?? this.defaultProvider;
 
@@ -109,7 +117,7 @@ export class AIHandoffService {
    */
   async generate(
     state: Record<string, unknown>,
-    options: AIHandoffOptions = {}
+    options: AIHandoffOptions = {},
   ): Promise<AIHandoffResult> {
     const enabled = options.enabled ?? isAIHandoffEnabled();
 
@@ -155,7 +163,10 @@ export class AIHandoffService {
 
       return result;
     } catch (error) {
-      console.error('AI handoff generation failed, falling back to rule-based:', error);
+      console.error(
+        'AI handoff generation failed, falling back to rule-based:',
+        error,
+      );
       return await this.generateRuleBased(state, options, startTime);
     }
   }
@@ -166,11 +177,13 @@ export class AIHandoffService {
   private async generateRuleBased(
     state: Record<string, unknown>,
     options: AIHandoffOptions,
-    startTime?: number
+    startTime?: number,
   ): Promise<AIHandoffResult> {
     const structured = await this.fallbackGenerator.generateStructured(state, {
       maxTokens: options.maxTokens ?? 200,
-      priorityKeys: options.context ? this.extractPriorityKeys(options.context) : undefined,
+      priorityKeys: options.context
+        ? this.extractPriorityKeys(options.context)
+        : undefined,
     });
 
     return {
@@ -213,9 +226,12 @@ export class AIHandoffService {
       includeOpenQuestions?: boolean;
       workflowDescription?: string;
       agentRole?: string;
-    }
+    },
   ): Promise<LLMResponse> {
-    const systemPrompt = SYSTEM_PROMPT.replace('{maxTokens}', String(options.maxTokens));
+    const systemPrompt = SYSTEM_PROMPT.replace(
+      '{maxTokens}',
+      String(options.maxTokens),
+    );
     const userPrompt = buildHandoffPrompt(state, {
       style: options.style,
       includeOpenQuestions: options.includeOpenQuestions ?? true,
@@ -243,7 +259,7 @@ export class AIHandoffService {
     response: LLMResponse,
     state: Record<string, unknown>,
     model: string,
-    startTime: number
+    startTime: number,
   ): AIHandoffResult {
     const packet = this.parseStructuredPacket(response.content, state);
 
@@ -252,7 +268,9 @@ export class AIHandoffService {
       packet,
       metadata: {
         model: response.model ?? model,
-        tokensUsed: (response.tokensUsed?.input ?? 0) + (response.tokensUsed?.output ?? 0),
+        tokensUsed:
+          (response.tokensUsed?.input ?? 0) +
+          (response.tokensUsed?.output ?? 0),
         durationMs: Date.now() - startTime,
         fromCache: false,
       },
@@ -263,7 +281,9 @@ export class AIHandoffService {
    * Extract the summary section from LLM response
    */
   private extractSummary(content: string): string {
-    const match = content.match(/\*\*Summary:\*\*\s*\n?([\s\S]*?)(?=\*\*Key Facts:|$)/i);
+    const match = content.match(
+      /\*\*Summary:\*\*\s*\n?([\s\S]*?)(?=\*\*Key Facts:|$)/i,
+    );
     if (match) {
       return match[1].trim();
     }
@@ -275,7 +295,7 @@ export class AIHandoffService {
    */
   private parseStructuredPacket(
     content: string,
-    state: Record<string, unknown>
+    state: Record<string, unknown>,
   ): HandoffPacket {
     const facts: Record<string, unknown> = { ...state };
     const decisions: string[] = [];
@@ -283,7 +303,9 @@ export class AIHandoffService {
     const nextGoals: string[] = [];
 
     // Parse Key Facts
-    const factsMatch = content.match(/\*\*Key Facts:\*\*\s*\n([\s\S]*?)(?=\*\*|$)/i);
+    const factsMatch = content.match(
+      /\*\*Key Facts:\*\*\s*\n([\s\S]*?)(?=\*\*|$)/i,
+    );
     if (factsMatch) {
       const factsText = factsMatch[1];
       const factMatches = factsText.matchAll(/^- (.+)/gm);
@@ -293,7 +315,9 @@ export class AIHandoffService {
     }
 
     // Parse Open Questions
-    const questionsMatch = content.match(/\*\*Open Questions:\*\*\s*\n([\s\S]*?)(?=\*\*|$)/i);
+    const questionsMatch = content.match(
+      /\*\*Open Questions:\*\*\s*\n([\s\S]*?)(?=\*\*|$)/i,
+    );
     if (questionsMatch && !questionsMatch[1].includes('None identified')) {
       const questionsText = questionsMatch[1];
       const questionMatches = questionsText.matchAll(/^- (.+)/gm);
@@ -303,7 +327,9 @@ export class AIHandoffService {
     }
 
     // Parse Next Steps
-    const nextStepsMatch = content.match(/\*\*Next Steps:\*\*\s*\n([\s\S]*?)$/i);
+    const nextStepsMatch = content.match(
+      /\*\*Next Steps:\*\*\s*\n([\s\S]*?)$/i,
+    );
     if (nextStepsMatch) {
       const stepsText = nextStepsMatch[1];
       const stepMatches = stepsText.matchAll(/^- (.+)/gm);

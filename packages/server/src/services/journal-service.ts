@@ -426,7 +426,8 @@ export class JournalService {
 
     return {
       data,
-      contentType: format === 'jsonl' ? 'application/jsonl' : 'application/json',
+      contentType:
+        format === 'jsonl' ? 'application/jsonl' : 'application/json',
       size: data.length,
     };
   }

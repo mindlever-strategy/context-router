@@ -4,12 +4,12 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Expected version in pyproject.toml (optional sanity check)"
+        description: 'Expected version in pyproject.toml (optional sanity check)'
         required: false
         type: string
   push:
     tags:
-      - "python-v*"
+      - 'python-v*'
 
 permissions:
   contents: read
@@ -29,7 +29,7 @@ jobs:
 
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: '3.12'
 
       - name: Install Node dependencies and build MCP server
         run: |

@@ -31,12 +31,36 @@ interface WorkflowMetrics {
 
 // LLM Pricing Models (as of 2024)
 const PRICING: Record<string, PricingModel> = {
-  'gpt-4o': { inputCostPer1MTokens: 5.00, outputCostPer1MTokens: 15.00, currency: 'USD' },
-  'gpt-4o-mini': { inputCostPer1MTokens: 0.15, outputCostPer1MTokens: 0.60, currency: 'USD' },
-  'claude-sonnet': { inputCostPer1MTokens: 3.00, outputCostPer1MTokens: 15.00, currency: 'USD' },
-  'claude-haiku': { inputCostPer1MTokens: 0.25, outputCostPer1MTokens: 1.25, currency: 'USD' },
-  'gemini-1.5-pro': { inputCostPer1MTokens: 1.25, outputCostPer1MTokens: 5.00, currency: 'USD' },
-  'gemini-1.5-flash': { inputCostPer1MTokens: 0.075, outputCostPer1MTokens: 0.30, currency: 'USD' },
+  'gpt-4o': {
+    inputCostPer1MTokens: 5.0,
+    outputCostPer1MTokens: 15.0,
+    currency: 'USD',
+  },
+  'gpt-4o-mini': {
+    inputCostPer1MTokens: 0.15,
+    outputCostPer1MTokens: 0.6,
+    currency: 'USD',
+  },
+  'claude-sonnet': {
+    inputCostPer1MTokens: 3.0,
+    outputCostPer1MTokens: 15.0,
+    currency: 'USD',
+  },
+  'claude-haiku': {
+    inputCostPer1MTokens: 0.25,
+    outputCostPer1MTokens: 1.25,
+    currency: 'USD',
+  },
+  'gemini-1.5-pro': {
+    inputCostPer1MTokens: 1.25,
+    outputCostPer1MTokens: 5.0,
+    currency: 'USD',
+  },
+  'gemini-1.5-flash': {
+    inputCostPer1MTokens: 0.075,
+    outputCostPer1MTokens: 0.3,
+    currency: 'USD',
+  },
 };
 
 /**
@@ -45,7 +69,7 @@ const PRICING: Record<string, PricingModel> = {
 function calculateCost(
   inputTokens: number,
   outputTokens: number,
-  pricing: PricingModel
+  pricing: PricingModel,
 ): number {
   const inputCost = (inputTokens / 1_000_000) * pricing.inputCostPer1MTokens;
   const outputCost = (outputTokens / 1_000_000) * pricing.outputCostPer1MTokens;
@@ -59,8 +83,8 @@ function calculateSavings(
   scenario: string,
   metrics: WorkflowMetrics,
   model: keyof typeof PRICING = 'claude-sonnet',
-  contextReduction: number = 0.70,
-  contextRouterOverhead: number = 0.05
+  contextReduction: number = 0.7,
+  contextRouterOverhead: number = 0.05,
 ): CostSavingsResult {
   const pricing = PRICING[model];
   const outputTokensPerCall = 500; // Average output per API call
@@ -73,13 +97,19 @@ function calculateSavings(
 
   // Context Router approach: reduced context + handoffs
   const reducedInputTokens = metrics.avgContextTokens * (1 - contextReduction);
-  const handoffOverhead = metrics.avgHandoffTokens * metrics.avgAgentsPerWorkflow * 0.1;
+  const handoffOverhead =
+    metrics.avgHandoffTokens * metrics.avgAgentsPerWorkflow * 0.1;
   const contextRouterCostPerWorkflow =
     metrics.avgAgentsPerWorkflow *
     metrics.apiCallsPerAgent *
-    calculateCost(reducedInputTokens + handoffOverhead, outputTokensPerCall, pricing);
+    calculateCost(
+      reducedInputTokens + handoffOverhead,
+      outputTokensPerCall,
+      pricing,
+    );
 
-  const perWorkflowSavings = traditionalCostPerWorkflow - contextRouterCostPerWorkflow;
+  const perWorkflowSavings =
+    traditionalCostPerWorkflow - contextRouterCostPerWorkflow;
   const monthlySavings = perWorkflowSavings * metrics.workflowsPerMonth;
   const yearlySavings = monthlySavings * 12;
 
@@ -126,8 +156,14 @@ function printCostComparison(result: CostSavingsResult): void {
  * Generate summary report
  */
 function generateSummaryReport(results: CostSavingsResult[]): string {
-  const totalMonthlySavings = results.reduce((sum, r) => sum + r.monthlySavings, 0);
-  const totalYearlySavings = results.reduce((sum, r) => sum + r.yearlySavings, 0);
+  const totalMonthlySavings = results.reduce(
+    (sum, r) => sum + r.monthlySavings,
+    0,
+  );
+  const totalYearlySavings = results.reduce(
+    (sum, r) => sum + r.yearlySavings,
+    0,
+  );
   const avgRoi = results.reduce((sum, r) => sum + r.roi, 0) / results.length;
 
   return `
@@ -165,7 +201,7 @@ async function runCostSavingsBenchmarks(): Promise<CostSavingsResult[]> {
       avgAgentsPerWorkflow: 3,
       apiCallsPerAgent: 5,
     },
-    'claude-sonnet'
+    'claude-sonnet',
   );
 
   // Scenario 2: Medium Team
@@ -178,7 +214,7 @@ async function runCostSavingsBenchmarks(): Promise<CostSavingsResult[]> {
       avgAgentsPerWorkflow: 5,
       apiCallsPerAgent: 8,
     },
-    'claude-sonnet'
+    'claude-sonnet',
   );
 
   // Scenario 3: Large Team
@@ -191,7 +227,7 @@ async function runCostSavingsBenchmarks(): Promise<CostSavingsResult[]> {
       avgAgentsPerWorkflow: 10,
       apiCallsPerAgent: 10,
     },
-    'claude-sonnet'
+    'claude-sonnet',
   );
 
   const results = [smallTeam, mediumTeam, largeTeam];

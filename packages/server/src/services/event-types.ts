@@ -8,34 +8,24 @@
 
 // Workflow lifecycle events
 export type WorkflowLifecycleEvent =
-  | 'workflow_created'
-  | 'workflow_completed'
-  | 'workflow_failed';
+  'workflow_created' | 'workflow_completed' | 'workflow_failed';
 
 // State mutation events
-export type StateMutationEvent =
-  | 'state_written'
-  | 'state_deleted';
+export type StateMutationEvent = 'state_written' | 'state_deleted';
 
 // Checkpoint events
 export type CheckpointEvent =
-  | 'checkpoint_created'
-  | 'checkpoint_restored'
-  | 'checkpoint_deleted';
+  'checkpoint_created' | 'checkpoint_restored' | 'checkpoint_deleted';
 
 // Step execution events
 export type StepExecutionEvent =
-  | 'step_started'
-  | 'step_completed'
-  | 'step_failed';
+  'step_started' | 'step_completed' | 'step_failed';
 
 // Handoff events
 export type HandoffEvent = 'handoff_generated';
 
 // Schema events
-export type SchemaEvent =
-  | 'schema_created'
-  | 'schema_validated';
+export type SchemaEvent = 'schema_created' | 'schema_validated';
 
 // Journal events
 export type JournalEvent = 'journal_exported';
@@ -80,13 +70,23 @@ export function isValidEventType(value: string): value is EventType {
  * Get the category of an event type
  */
 export function getEventCategory(eventType: EventType): string {
-  if (['workflow_created', 'workflow_completed', 'workflow_failed'].includes(eventType)) {
+  if (
+    ['workflow_created', 'workflow_completed', 'workflow_failed'].includes(
+      eventType,
+    )
+  ) {
     return 'workflow';
   }
   if (['state_written', 'state_deleted'].includes(eventType)) {
     return 'state';
   }
-  if (['checkpoint_created', 'checkpoint_restored', 'checkpoint_deleted'].includes(eventType)) {
+  if (
+    [
+      'checkpoint_created',
+      'checkpoint_restored',
+      'checkpoint_deleted',
+    ].includes(eventType)
+  ) {
     return 'checkpoint';
   }
   if (['step_started', 'step_completed', 'step_failed'].includes(eventType)) {

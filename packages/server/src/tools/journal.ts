@@ -8,11 +8,19 @@
 import type { Server as McpServer } from '@modelcontextprotocol/sdk/server/index.js';
 import { z } from 'zod';
 import { journalService } from '../services/journal-service.js';
-import { journaledJournalExport, recordJournalDrop } from '../services/journal-hooks.js';
+import {
+  journaledJournalExport,
+  recordJournalDrop,
+} from '../services/journal-hooks.js';
 import type { EventType } from '../services/event-types.js';
 import { EVENT_TYPE_VALUES } from '../services/event-types.js';
 import { snapshotValues } from '../services/checkpoint-format.js';
-import { defineTool, ToolOperationError, uuid, type ToolRegistry } from './tool-kit.js';
+import {
+  defineTool,
+  ToolOperationError,
+  uuid,
+  type ToolRegistry,
+} from './tool-kit.js';
 import type { Prisma } from '../generated/postgresql/client.js';
 
 /**
@@ -74,12 +82,14 @@ export function registerJournalTools(
               type: 'string',
               enum: ['asc', 'desc'],
               default: 'desc',
-              description: 'Sort order (asc = oldest first, desc = newest first)',
+              description:
+                'Sort order (asc = oldest first, desc = newest first)',
             },
             view: {
               type: 'string',
               enum: ['entries', 'replay', 'stats', 'export', 'sequence'],
-              description: 'entries: raw journal rows (default). replay: state rebuilt from events. stats: counts by event type. export: serialized entries. sequence: current sequence number.',
+              description:
+                'entries: raw journal rows (default). replay: state rebuilt from events. stats: counts by event type. export: serialized entries. sequence: current sequence number.',
             },
             untilSequence: {
               type: 'number',
@@ -97,7 +107,9 @@ export function registerJournalTools(
       z.object({
         workspaceId: z.string().uuid(),
         workflowId: z.string().uuid().optional(),
-        eventTypes: z.array(z.enum(EVENT_TYPE_VALUES as [string, ...string[]])).optional(),
+        eventTypes: z
+          .array(z.enum(EVENT_TYPE_VALUES as [string, ...string[]]))
+          .optional(),
         since: z.string().datetime().optional(),
         until: z.string().datetime().optional(),
         agentId: z.string().optional(),
@@ -131,7 +143,11 @@ export function registerJournalTools(
             const decoded = JSON.parse(
               Buffer.from(cursor, 'base64').toString(),
             );
-            if (typeof decoded !== 'object' || decoded === null || typeof decoded.sequence !== 'number') {
+            if (
+              typeof decoded !== 'object' ||
+              decoded === null ||
+              typeof decoded.sequence !== 'number'
+            ) {
               throw new Error('Invalid cursor format');
             }
             parsedCursor = decoded as { sequence: number };
@@ -160,7 +176,9 @@ export function registerJournalTools(
           return {
             entries: result.entries,
             nextCursor: result.nextCursor
-              ? Buffer.from(JSON.stringify(result.nextCursor)).toString('base64')
+              ? Buffer.from(JSON.stringify(result.nextCursor)).toString(
+                  'base64',
+                )
               : undefined,
             hasMore: result.hasMore,
             total: result.entries.length,
@@ -170,7 +188,9 @@ export function registerJournalTools(
         // View: replay (reconstruct state)
         if (view === 'replay') {
           if (!workflowId) {
-            throw new Error('VALIDATION_ERROR: workflowId is required for replay view');
+            throw new Error(
+              'VALIDATION_ERROR: workflowId is required for replay view',
+            );
           }
           const { prisma } = await import('../db/client.js');
 
@@ -196,7 +216,9 @@ export function registerJournalTools(
             });
 
             if (entryAtSequence) {
-              const payload = entryAtSequence.payload as { checkpointId?: string };
+              const payload = entryAtSequence.payload as {
+                checkpointId?: string;
+              };
               if (payload.checkpointId) {
                 const checkpoint = await prisma.checkpoint.findFirst({
                   where: { id: payload.checkpointId, workspaceId },
@@ -219,10 +241,12 @@ export function registerJournalTools(
           return {
             state: { ...initialState, ...state },
             replayedSequence: untilSequence,
-            currentSequence: untilSequence ?? (await journalService.getCurrentSequence(
-              workspaceId,
-              workflowId,
-            )),
+            currentSequence:
+              untilSequence ??
+              (await journalService.getCurrentSequence(
+                workspaceId,
+                workflowId,
+              )),
           };
         }
 
@@ -298,7 +322,9 @@ export function registerJournalTools(
 
         // View: sequence
         if (!workflowId) {
-          throw new Error('VALIDATION_ERROR: workflowId is required for sequence view');
+          throw new Error(
+            'VALIDATION_ERROR: workflowId is required for sequence view',
+          );
         }
         // Warn about unsupported filters - sequence view doesn't support these
         if (eventTypes || agentId || since || until) {

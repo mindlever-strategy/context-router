@@ -70,10 +70,13 @@ async function generateSocialVariants(content: any, platforms: string[]) {
     const truncated = content.body.substring(0, 200) + '...';
     return {
       platform,
-      text: platform === 'Twitter'
-        ? `${content.title.substring(0, 200)} ${truncated}`
-        : `${content.title}\n\n${truncated}`,
-      hashtags: content.suggestedTags.map((t: string) => `#${t.replace(/\s+/g, '')}`),
+      text:
+        platform === 'Twitter'
+          ? `${content.title.substring(0, 200)} ${truncated}`
+          : `${content.title}\n\n${truncated}`,
+      hashtags: content.suggestedTags.map(
+        (t: string) => `#${t.replace(/\s+/g, '')}`,
+      ),
       characterCount: platform === 'Twitter' ? 280 : 2000,
     };
   });
@@ -119,7 +122,11 @@ async function main() {
 
     // Stage 4: Generate Social Variants
     console.log('[Stage 4] Creating social variants...');
-    const socialVariants = await generateSocialVariants(content, ['Twitter', 'LinkedIn', 'Instagram']);
+    const socialVariants = await generateSocialVariants(content, [
+      'Twitter',
+      'LinkedIn',
+      'Instagram',
+    ]);
     // Wrap array in object since state values must be objects
     await flow.set('socialVariants', { items: socialVariants });
     console.log(`  Created ${socialVariants.length} variants`);

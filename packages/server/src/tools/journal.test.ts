@@ -64,11 +64,15 @@ describe('journal_query tool', () => {
 
     // Import the mocked modules to get references
     const journalServiceModule = await import('../services/journal-service.js');
-    mockJournalService = journalServiceModule.journalService as typeof mockJournalService;
+    mockJournalService =
+      journalServiceModule.journalService as typeof mockJournalService;
 
     const hooksModule = await import('../services/journal-hooks.js');
-    mockJournaledJournalExport = hooksModule.journaledJournalExport as ReturnType<typeof vi.fn>;
-    mockRecordJournalDrop = hooksModule.recordJournalDrop as ReturnType<typeof vi.fn>;
+    mockJournaledJournalExport =
+      hooksModule.journaledJournalExport as ReturnType<typeof vi.fn>;
+    mockRecordJournalDrop = hooksModule.recordJournalDrop as ReturnType<
+      typeof vi.fn
+    >;
 
     // Set up default mock behaviors
     mockJournaledJournalExport.mockResolvedValue(undefined);
@@ -114,7 +118,9 @@ describe('journal_query tool', () => {
       const queryTool = tools.get('journal_query');
       expect(queryTool).toBeDefined();
 
-      const invalidCursor = Buffer.from(JSON.stringify({ foo: 'bar' })).toString('base64');
+      const invalidCursor = Buffer.from(
+        JSON.stringify({ foo: 'bar' }),
+      ).toString('base64');
 
       const result = await queryTool!.handler({
         workspaceId: WORKSPACE_ID,
@@ -131,7 +137,9 @@ describe('journal_query tool', () => {
       const queryTool = tools.get('journal_query');
       expect(queryTool).toBeDefined();
 
-      const invalidCursor = Buffer.from(JSON.stringify({ sequence: 'not-a-number' })).toString('base64');
+      const invalidCursor = Buffer.from(
+        JSON.stringify({ sequence: 'not-a-number' }),
+      ).toString('base64');
 
       const result = await queryTool!.handler({
         workspaceId: WORKSPACE_ID,
@@ -153,7 +161,9 @@ describe('journal_query tool', () => {
       const queryTool = tools.get('journal_query');
       expect(queryTool).toBeDefined();
 
-      const validCursor = Buffer.from(JSON.stringify({ sequence: 42 })).toString('base64');
+      const validCursor = Buffer.from(
+        JSON.stringify({ sequence: 42 }),
+      ).toString('base64');
 
       const result = await queryTool!.handler({
         workspaceId: WORKSPACE_ID,
@@ -208,7 +218,9 @@ describe('journal_query tool', () => {
       mockJournalService.replay.mockResolvedValue({});
       mockJournalService.getCurrentSequence.mockResolvedValue(10);
       const { prisma } = await import('../db/client.js');
-      (prisma.eventJournalEntry.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+      (
+        prisma.eventJournalEntry.findFirst as ReturnType<typeof vi.fn>
+      ).mockResolvedValue(null);
 
       const tools = registerJournalTools({} as never, () => 'test-user');
       const queryTool = tools.get('journal_query');
@@ -239,7 +251,9 @@ describe('journal_query tool', () => {
         snapshot: JSON.stringify({ key: 'initial' }),
       };
       const { prisma } = await import('../db/client.js');
-      (prisma.checkpoint.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(mockCheckpoint);
+      (
+        prisma.checkpoint.findFirst as ReturnType<typeof vi.fn>
+      ).mockResolvedValue(mockCheckpoint);
       mockJournalService.replay.mockResolvedValue({ key: 'from-replay' });
       mockJournalService.getCurrentSequence.mockResolvedValue(10);
 
@@ -247,7 +261,9 @@ describe('journal_query tool', () => {
       const mockEntry = {
         payload: { checkpointId: 'checkpoint-123' },
       };
-      (prisma.eventJournalEntry.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(mockEntry);
+      (
+        prisma.eventJournalEntry.findFirst as ReturnType<typeof vi.fn>
+      ).mockResolvedValue(mockEntry);
 
       const tools = registerJournalTools({} as never, () => 'test-user');
       const queryTool = tools.get('journal_query');
@@ -268,7 +284,9 @@ describe('journal_query tool', () => {
 
     it('should not query checkpoint if no checkpoint entry found', async () => {
       const { prisma } = await import('../db/client.js');
-      (prisma.eventJournalEntry.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+      (
+        prisma.eventJournalEntry.findFirst as ReturnType<typeof vi.fn>
+      ).mockResolvedValue(null);
       mockJournalService.replay.mockResolvedValue({});
       mockJournalService.getCurrentSequence.mockResolvedValue(10);
 
@@ -552,10 +570,14 @@ describe('journal_query tool', () => {
   describe('Bug 10: eventTypes filter on checkpoint lookup', () => {
     it('applies eventTypes filter to checkpoint lookup for initialState', async () => {
       const { prisma } = await import('../db/client.js');
-      (prisma.eventJournalEntry.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({
+      (
+        prisma.eventJournalEntry.findFirst as ReturnType<typeof vi.fn>
+      ).mockResolvedValue({
         payload: { checkpointId: 'checkpoint-1' },
       });
-      (prisma.checkpoint.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({
+      (
+        prisma.checkpoint.findFirst as ReturnType<typeof vi.fn>
+      ).mockResolvedValue({
         snapshot: JSON.stringify({ key: 'from-checkpoint' }),
       });
       mockJournalService.replay.mockResolvedValue({});
@@ -585,10 +607,14 @@ describe('journal_query tool', () => {
 
     it('uses default checkpoint_created when no eventTypes provided', async () => {
       const { prisma } = await import('../db/client.js');
-      (prisma.eventJournalEntry.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({
+      (
+        prisma.eventJournalEntry.findFirst as ReturnType<typeof vi.fn>
+      ).mockResolvedValue({
         payload: { checkpointId: 'checkpoint-1' },
       });
-      (prisma.checkpoint.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({
+      (
+        prisma.checkpoint.findFirst as ReturnType<typeof vi.fn>
+      ).mockResolvedValue({
         snapshot: JSON.stringify({ key: 'from-checkpoint' }),
       });
       mockJournalService.replay.mockResolvedValue({});
@@ -687,7 +713,9 @@ describe('journal_query tool', () => {
       // until should be null, not a current timestamp
       expect(callArgs[4].until).toBeNull();
       // Verify it's not a recent date (would fail if it was new Date().toISOString())
-      expect(new Date(callArgs[4].until).getTime()).not.toBeGreaterThan(Date.now());
+      expect(new Date(callArgs[4].until).getTime()).not.toBeGreaterThan(
+        Date.now(),
+      );
     });
   });
 
@@ -695,111 +723,110 @@ describe('journal_query tool', () => {
   // Bug 9: currentSequence should use untilSequence atomically, not query separately
   // =========================================================================
   describe('Bug 9: atomic currentSequence from replay', () => {
+    // =========================================================================
+    // Bug 10: sequence view should reject incompatible filters
+    // =========================================================================
+    describe('Bug 10: sequence view filter validation', () => {
+      it('rejects eventTypes filter with VALIDATION_ERROR', async () => {
+        mockJournalService.getCurrentSequence.mockResolvedValue(5);
 
-  // =========================================================================
-  // Bug 10: sequence view should reject incompatible filters
-  // =========================================================================
-  describe('Bug 10: sequence view filter validation', () => {
-    it('rejects eventTypes filter with VALIDATION_ERROR', async () => {
-      mockJournalService.getCurrentSequence.mockResolvedValue(5);
+        const tools = registerJournalTools({} as never, () => 'test-user');
+        const queryTool = tools.get('journal_query');
+        expect(queryTool).toBeDefined();
 
-      const tools = registerJournalTools({} as never, () => 'test-user');
-      const queryTool = tools.get('journal_query');
-      expect(queryTool).toBeDefined();
+        const result = await queryTool!.handler({
+          workspaceId: WORKSPACE_ID,
+          workflowId: WORKFLOW_ID,
+          view: 'sequence',
+          eventTypes: ['checkpoint_created'],
+        });
 
-      const result = await queryTool!.handler({
-        workspaceId: WORKSPACE_ID,
-        workflowId: WORKFLOW_ID,
-        view: 'sequence',
-        eventTypes: ['checkpoint_created'],
+        expect(result.isError).toBe(true);
+        const errorText = JSON.parse(result.content[0].text);
+        expect(errorText.error.code).toBe('VALIDATION_ERROR');
+        expect(errorText.error.message).toContain('eventTypes');
       });
 
-      expect(result.isError).toBe(true);
-      const errorText = JSON.parse(result.content[0].text);
-      expect(errorText.error.code).toBe('VALIDATION_ERROR');
-      expect(errorText.error.message).toContain('eventTypes');
-    });
+      it('rejects agentId filter with VALIDATION_ERROR', async () => {
+        mockJournalService.getCurrentSequence.mockResolvedValue(5);
 
-    it('rejects agentId filter with VALIDATION_ERROR', async () => {
-      mockJournalService.getCurrentSequence.mockResolvedValue(5);
+        const tools = registerJournalTools({} as never, () => 'test-user');
+        const queryTool = tools.get('journal_query');
+        expect(queryTool).toBeDefined();
 
-      const tools = registerJournalTools({} as never, () => 'test-user');
-      const queryTool = tools.get('journal_query');
-      expect(queryTool).toBeDefined();
+        const result = await queryTool!.handler({
+          workspaceId: WORKSPACE_ID,
+          workflowId: WORKFLOW_ID,
+          view: 'sequence',
+          agentId: 'agent-123',
+        });
 
-      const result = await queryTool!.handler({
-        workspaceId: WORKSPACE_ID,
-        workflowId: WORKFLOW_ID,
-        view: 'sequence',
-        agentId: 'agent-123',
+        expect(result.isError).toBe(true);
+        const errorText = JSON.parse(result.content[0].text);
+        expect(errorText.error.code).toBe('VALIDATION_ERROR');
+        expect(errorText.error.message).toContain('agentId');
       });
 
-      expect(result.isError).toBe(true);
-      const errorText = JSON.parse(result.content[0].text);
-      expect(errorText.error.code).toBe('VALIDATION_ERROR');
-      expect(errorText.error.message).toContain('agentId');
-    });
+      it('rejects since filter with VALIDATION_ERROR', async () => {
+        mockJournalService.getCurrentSequence.mockResolvedValue(5);
 
-    it('rejects since filter with VALIDATION_ERROR', async () => {
-      mockJournalService.getCurrentSequence.mockResolvedValue(5);
+        const tools = registerJournalTools({} as never, () => 'test-user');
+        const queryTool = tools.get('journal_query');
+        expect(queryTool).toBeDefined();
 
-      const tools = registerJournalTools({} as never, () => 'test-user');
-      const queryTool = tools.get('journal_query');
-      expect(queryTool).toBeDefined();
+        const result = await queryTool!.handler({
+          workspaceId: WORKSPACE_ID,
+          workflowId: WORKFLOW_ID,
+          view: 'sequence',
+          since: '2024-01-15T10:00:00.000Z',
+        });
 
-      const result = await queryTool!.handler({
-        workspaceId: WORKSPACE_ID,
-        workflowId: WORKFLOW_ID,
-        view: 'sequence',
-        since: '2024-01-15T10:00:00.000Z',
+        expect(result.isError).toBe(true);
+        const errorText = JSON.parse(result.content[0].text);
+        expect(errorText.error.code).toBe('VALIDATION_ERROR');
+        expect(errorText.error.message).toContain('since');
       });
 
-      expect(result.isError).toBe(true);
-      const errorText = JSON.parse(result.content[0].text);
-      expect(errorText.error.code).toBe('VALIDATION_ERROR');
-      expect(errorText.error.message).toContain('since');
-    });
+      it('rejects until filter with VALIDATION_ERROR', async () => {
+        mockJournalService.getCurrentSequence.mockResolvedValue(5);
 
-    it('rejects until filter with VALIDATION_ERROR', async () => {
-      mockJournalService.getCurrentSequence.mockResolvedValue(5);
+        const tools = registerJournalTools({} as never, () => 'test-user');
+        const queryTool = tools.get('journal_query');
+        expect(queryTool).toBeDefined();
 
-      const tools = registerJournalTools({} as never, () => 'test-user');
-      const queryTool = tools.get('journal_query');
-      expect(queryTool).toBeDefined();
+        const result = await queryTool!.handler({
+          workspaceId: WORKSPACE_ID,
+          workflowId: WORKFLOW_ID,
+          view: 'sequence',
+          until: '2024-01-15T10:00:00.000Z',
+        });
 
-      const result = await queryTool!.handler({
-        workspaceId: WORKSPACE_ID,
-        workflowId: WORKFLOW_ID,
-        view: 'sequence',
-        until: '2024-01-15T10:00:00.000Z',
+        expect(result.isError).toBe(true);
+        const errorText = JSON.parse(result.content[0].text);
+        expect(errorText.error.code).toBe('VALIDATION_ERROR');
+        expect(errorText.error.message).toContain('until');
       });
 
-      expect(result.isError).toBe(true);
-      const errorText = JSON.parse(result.content[0].text);
-      expect(errorText.error.code).toBe('VALIDATION_ERROR');
-      expect(errorText.error.message).toContain('until');
-    });
+      it('accepts sequence view with only workspaceId and workflowId', async () => {
+        mockJournalService.getCurrentSequence.mockResolvedValue(10);
 
-    it('accepts sequence view with only workspaceId and workflowId', async () => {
-      mockJournalService.getCurrentSequence.mockResolvedValue(10);
+        const tools = registerJournalTools({} as never, () => 'test-user');
+        const queryTool = tools.get('journal_query');
+        expect(queryTool).toBeDefined();
 
-      const tools = registerJournalTools({} as never, () => 'test-user');
-      const queryTool = tools.get('journal_query');
-      expect(queryTool).toBeDefined();
+        const result = await queryTool!.handler({
+          workspaceId: WORKSPACE_ID,
+          workflowId: WORKFLOW_ID,
+          view: 'sequence',
+        });
 
-      const result = await queryTool!.handler({
-        workspaceId: WORKSPACE_ID,
-        workflowId: WORKFLOW_ID,
-        view: 'sequence',
+        expect(result.isError).toBeFalsy();
+        expect(mockJournalService.getCurrentSequence).toHaveBeenCalledWith(
+          WORKSPACE_ID,
+          WORKFLOW_ID,
+        );
       });
-
-      expect(result.isError).toBeFalsy();
-      expect(mockJournalService.getCurrentSequence).toHaveBeenCalledWith(
-        WORKSPACE_ID,
-        WORKFLOW_ID,
-      );
     });
-  });
     it('returns currentSequence from replay entries, not a separate query', async () => {
       // Simulate entries returned from replay
       mockJournalService.replay.mockResolvedValue({ key: 'value' });
