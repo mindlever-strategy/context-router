@@ -102,6 +102,7 @@ Key patterns support exact keys, prefix wildcards (`lead*`), and `*`.
 | Tool               | Required input              | Optional input                                                                    | Behavior                                            |
 | ------------------ | --------------------------- | --------------------------------------------------------------------------------- | --------------------------------------------------- |
 | `handoff_generate` | `workspaceId`, `workflowId` | `keys`, `maxTokens`, `agentRole`, `priorityKeys`, `nextGoals`, `format`           | Summarizes selected keys with role-aware projection |
+| `handoff_generate_ai` | `workspaceId`, `workflowId` | `keys`, `priorityKeys`, `style`, `model`, `includeReasoning`, `includeOpenQuestions`, `maxTokens`, `context` | Summarizes selected keys with an LLM (`ANTHROPIC_API_KEY` or `OPENAI_API_KEY`), with optional reasoning and open questions. Falls back to the rule-based summary if the model call fails. |
 | `handoff_apply`    | `workspaceId`, `workflowId` | `keys`, `prefix`, `maxTokens`, `agentRole`, `priorityKeys`, `nextGoals`, `format` | Returns prefix plus generated summary               |
 
 `maxTokens` accepts 50–1000 and defaults to 200. It is enforced using a

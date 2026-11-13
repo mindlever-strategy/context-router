@@ -15,7 +15,9 @@
 
 <p align="center">
   <a href="./LICENSE"><img alt="Apache-2.0 License" src="https://img.shields.io/badge/license-Apache--2.0-7C5CFC?style=flat-square"></a>
-  <img alt="Release status" src="https://img.shields.io/badge/status-v0.6.0%20preview-25D9FF?style=flat-square">
+  <img alt="Release status" src="https://img.shields.io/badge/status-preview-25D9FF?style=flat-square">
+  <a href="https://www.npmjs.com/package/@context-router/sdk"><img alt="npm version" src="https://img.shields.io/npm/v/@context-router/sdk?style=flat-square&label=npm&color=25D9FF"></a>
+  <a href="https://pypi.org/project/ctxrouter/"><img alt="PyPI version" src="https://img.shields.io/pypi/v/ctxrouter?style=flat-square&label=PyPI&color=25D9FF"></a>
   <img alt="Node.js 20+" src="https://img.shields.io/badge/Node.js-20%2B-5FA04E?style=flat-square">
   <img alt="SQLite default" src="https://img.shields.io/badge/storage-SQLite%20%7C%20PostgreSQL-4169E1?style=flat-square">
   <img alt="Model Context Protocol" src="https://img.shields.io/badge/protocol-MCP-8B5CFF?style=flat-square">
@@ -156,7 +158,7 @@ await router.close();
 
 ```bash
 npm install @context-router/mcp-server   # Node MCP server the SDK spawns
-pip install context-router
+pip install ctxrouter                    # PyPI name; imported as context_router
 ```
 
 ```python
@@ -372,23 +374,26 @@ See the complete
 ## MCP tool surface
 
 <details>
-<summary><strong>View all 40+ tools</strong></summary>
+<summary><strong>View all 37 tools</strong></summary>
 
-| Area       | Tools                                                                                         |
-| ---------- | --------------------------------------------------------------------------------------------- |
-| Router     | `router_status`                                                                               |
-| Workspace  | `workspace_create`, `workspace_ensure`, `workspace_list`, `workspace_get`, `workspace_delete` |
-| Schema     | `schema_create`, `schema_get`, `schema_list`, `schema_validate`, `schema_migrate`, `schema_diff` |
-| Workflow   | `workflow_create`, `workflow_status`, `workflow_complete`, `workflow_fail`                    |
-| State      | `state_write`, `state_read`, `state_delete`, `state_snapshot`, `state_write_batch`, `state_read_batch` |
-| Checkpoint | `checkpoint_create`, `checkpoint_list`, `checkpoint_restore`, `checkpoint_delete`             |
-| Handoff    | `handoff_generate`, `handoff_generate_ai`, `handoff_generate_structured`, `handoff_apply`   |
-| Step       | `step_run_start`, `step_run_complete`, `step_run_fail`                                        |
-| Journal    | `journal_query`, `journal_replay`, `journal_stats`, `journal_export`, `journal_append`         |
-| State Diff | `state_diff`, `state_diff_current_vs_checkpoint`, `state_diff_recent_changes`                 |
-| State TTL  | `state_write_ttl`, `state_delete_expired`, `ttl_service_status`                              |
-| Agent role | `agent_role_create`, `agent_role_list`                                                        |
-| Debugger   | `debugger_inspect` (list/inspect/diff/tail workflows)                                         |
+| Area       | Tools                                                                                               |
+| ---------- | --------------------------------------------------------------------------------------------------- |
+| Router     | `router_status`                                                                                     |
+| Workspace  | `workspace_create`, `workspace_ensure`, `workspace_list`, `workspace_get`, `workspace_delete`       |
+| Schema     | `schema_create`, `schema_get`, `schema_list`, `schema_validate`, `schema_migrate`, `schema_diff`    |
+| Workflow   | `workflow_create`, `workflow_status`, `workflow_complete`, `workflow_fail`                          |
+| State      | `state_write`, `state_read`, `state_delete`, `state_snapshot`, `state_diff`, `state_delete_expired` |
+| Checkpoint | `checkpoint_create`, `checkpoint_list`, `checkpoint_restore`, `checkpoint_delete`                   |
+| Handoff    | `handoff_generate`, `handoff_generate_ai`, `handoff_apply`                                          |
+| Step       | `step_run_start`, `step_run_complete`, `step_run_fail`                                              |
+| Journal    | `journal_query`, `journal_append`                                                                   |
+| Agent role | `agent_role_create`, `agent_role_list`                                                              |
+| Debugger   | `debugger_inspect` (list/inspect/diff/tail workflows)                                               |
+
+Batch writes, TTL, and the journal's replay, stats, and export views are options
+on these tools, not separate tools: `state_write` takes `entries` or
+`expiresIn`, `state_read` takes `keys`, `state_diff` takes `mode`,
+`journal_query` takes `view`, and `schema_migrate` takes `dryRun`.
 
 Every tool returns one stable JSON envelope:
 
@@ -419,8 +424,10 @@ context-router/
 │   ├── server/           # MCP server (@context-router/mcp-server), tools, Prisma
 │   ├── sdk-typescript/   # TypeScript SDK (@context-router/sdk)
 │   ├── sdk-python/       # Python SDK (ctxrouter on PyPI)
-│   ├── langgraph-adapter/ # LangGraph checkpointer adapter
-│   └── crewai-adapter/   # CREWAI memory adapter
+│   ├── langgraph-adapter/  # LangGraph checkpointer adapter
+│   ├── crewai-adapter/     # CREWAI memory adapter
+│   ├── autogen-adapter/    # AutoGen session and group-chat adapter
+│   └── llamaindex-adapter/ # LlamaIndex semantic search over workflow state
 ├── examples/             # TypeScript + Python end-to-end examples
 ├── docs/                 # Architecture, API, Cursor setup, workflows, publishing
 ├── scripts/              # MCP smoke checks, example runners, publish scripts
@@ -429,14 +436,16 @@ context-router/
 
 ## Current status
 
-Context Router is an **early open-source preview** (npm packages at **v0.6.0**;
-Python SDK at **v0.6.0**).
+Context Router is an **early open-source preview**. The npm packages are
+published at **v0.5.0** and the Python SDK (`ctxrouter`) at **v0.6.0**. The
+v0.6.0 npm release is prepared in this repository but not yet published, so this
+README can be ahead of what `npm install` gives you.
 
 Already working:
 
 - TypeScript build and type-checking
-- unit and SDK contract tests (136 tests passing)
-- MCP discovery smoke test for all 40+ tools
+- unit and SDK contract tests (259 tests passing)
+- MCP discovery smoke test for all 37 tools
 - SQLite and PostgreSQL integration test suites
 - clean npm package generation (`@context-router/mcp-server`, `@context-router/sdk`)
 - Python SDK with MCP stdio transport and TypeScript API parity
@@ -469,10 +478,8 @@ Please do not expose the stdio server directly to an untrusted network.
 - **v0.3.1 / Python 0.4.0:** workflow guides, Python SDK, Cursor zero-config docs
 - **v0.4.0:** LangGraph/CREWAI adapters, workflow debugger, improved error messages
 - **v0.5.0:** AutoGen adapter + coordinated npm/Python 0.5.0 publish line
-- **v0.6.0:** Event Journal, AI Handoffs, LlamaIndex adapter, Operational tools (batch ops, TTL, schema migration, state diff)
-- **Coming next:** Remote MCP transport, hosted authentication, automatic agent execution
-- **Next:** PyPI publish, visual debugger, event journal, AI-assisted handoffs
-- **Later evaluation:** remote transport, authentication, observability, hosted deployment
+- **v0.6.0 (Python SDK published; npm release pending):** Event Journal, AI Handoffs, LlamaIndex adapter, Operational tools (batch ops, TTL, schema migration, state diff), tool surface consolidated to 37
+- **Later evaluation:** remote MCP transport, hosted authentication, observability, hosted deployment, automatic agent execution
 
 See the detailed [roadmap](docs/roadmap.md).
 
@@ -494,6 +501,8 @@ opening a public issue.
 - [Workflow patterns](docs/workflows/simple-pipeline.md)
 - [LangGraph adapter](packages/langgraph-adapter/README.md)
 - [CREWAI adapter](packages/crewai-adapter/README.md)
+- [AutoGen adapter](packages/autogen-adapter/README.md)
+- [LlamaIndex adapter](packages/llamaindex-adapter/README.md)
 - [Publishing guide](docs/publishing.md)
 - [Roadmap](docs/roadmap.md)
 - [Release checklist](docs/release-checklist.md)

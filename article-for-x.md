@@ -52,7 +52,7 @@ No agent execution. No orchestration magic. Just a **reliable state exchange** t
 
 ## What You Actually Get
 
-- **30+ MCP tools** — workspaces, schemas, workflows, state, checkpoints, handoffs, step execution, agent roles, event journal, state diff, TTL, and more
+- **37 MCP tools** — workspaces, schemas, workflows, state, checkpoints, handoffs, step execution, agent roles, event journal, state diff, TTL, and more
 - **Schema-enforced state** — nested objects, arrays, enums, required fields
 - **Selective context reads** — agents read only the keys they need
 - **Durable checkpoints** — atomic restore if a step fails
@@ -60,17 +60,17 @@ No agent execution. No orchestration magic. Just a **reliable state exchange** t
 - **Event Journal** — full audit trail with replay capability
 - **AI-powered summaries** — natural language handoff generation
 
-### 40+ Tools at Your Service
+### 37 Tools at Your Service
 
 | Area | Tools |
 |------|-------|
 | Workspace | `workspace_create`, `workspace_list`, `workspace_delete` |
 | Schema | `schema_create`, `schema_validate`, `schema_migrate` |
 | Workflow | `workflow_create`, `workflow_complete`, `workflow_fail` |
-| State | `state_write`, `state_read`, `state_read_batch` |
+| State | `state_write`, `state_read`, `state_snapshot` |
 | Checkpoint | `checkpoint_create`, `checkpoint_restore` |
 | Handoff | `handoff_generate`, `handoff_generate_ai` |
-| Journal | `journal_query`, `journal_replay`, `journal_export` |
+| Journal | `journal_query`, `journal_append` |
 | Debugger | `debugger_inspect` |
 
 ---
@@ -175,8 +175,8 @@ Context Router isn't locked into one ecosystem:
 - **v0.6.0 preview** — production-ready core, experimental features
 - TypeScript SDK (`@context-router/sdk`) + Python SDK (`ctxrouter`)
 - SQLite by default, PostgreSQL for production
-- **136 tests passing**
-- **40+ MCP tools** with stable JSON envelopes
+- **259 tests passing**
+- **37 MCP tools** with stable JSON envelopes
 - Apache 2.0 licensed
 
 ---
@@ -190,7 +190,7 @@ Zero config. No Docker. No migrations (SQLite defaults to auto-created).
 npm install @context-router/sdk
 
 # Python
-pip install context-router
+pip install ctxrouter
 
 # Cursor MCP
 npx -y @context-router/mcp-server

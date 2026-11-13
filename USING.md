@@ -37,7 +37,7 @@ It does **not**:
 
 It **does**:
 
-- give Cursor (or any MCP client) 30 tools for workspaces, schemas, workflows, state, checkpoints, handoffs, steps, agent roles, and debugger inspect
+- give Cursor (or any MCP client) 37 tools for workspaces, schemas, workflows, state, checkpoints, handoffs, steps, agent roles, the event journal, and debugger inspect
 - give TypeScript and Python SDKs a high-level session API (`start` → `set` → `handoff` → `complete`)
 
 ---
@@ -50,7 +50,7 @@ It **does**:
 | Scripts, apps, or services that manage workflow state in code | **Python SDK** and/or **TypeScript SDK** |
 | Both (Cursor for interactive work, Python for automation) | Same SQLite store can be shared if you point both at the same data dir / owner |
 
-**Rule of thumb:** prefer the SDK session API in code; prefer MCP tools in Cursor Agent. You do not need all 30 tools to get value — start with workspace → workflow → state → handoff → complete.
+**Rule of thumb:** prefer the SDK session API in code; prefer MCP tools in Cursor Agent. You do not need all 37 tools to get value — start with workspace → workflow → state → handoff → complete.
 
 ---
 
@@ -182,7 +182,7 @@ Shorter setup-only notes also live in [docs/cursor-setup.md](docs/cursor-setup.m
 
 ## Use in Python
 
-The Python package is **`context-router`** (import: `context_router`). It launches the Node MCP server and exposes the same high-level session API as the TypeScript SDK.
+The Python package is **`ctxrouter`** on PyPI (import: `context_router`). It launches the Node MCP server and exposes the same high-level session API as the TypeScript SDK.
 
 ### Install (adopter / PyPI)
 
@@ -191,7 +191,7 @@ The Python package is **`context-router`** (import: `context_router`). It launch
 npm install -g @context-router/mcp-server
 # or: npm install @context-router/mcp-server in your project
 
-pip install context-router
+pip install ctxrouter
 ```
 
 If the package is not yet visible on your index, install from this monorepo (below) or set `CONTEXT_ROUTER_MCP_ENTRY` to a built `index.js`.
